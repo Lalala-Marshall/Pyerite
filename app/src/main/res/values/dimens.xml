@@ -288,4 +288,20 @@
     <dimen name="corporation_structure_service_tag_horizontal_padding">6dp</dimen>
     <dimen name="corporation_structure_service_tag_vertical_padding">2dp</dimen>
     <dimen name="corporation_structure_service_tag_gap">4dp</dimen>
+
+    <dimen name="corporation_industry_job_vertical_padding">8dp</dimen>
+    <dimen name="corporation_industry_job_line_gap">1dp</dimen>
+    <dimen name="corporation_industry_title_text_size">15sp</dimen>
+    <dimen name="corporation_industry_title_line_height">18sp</dimen>
+    <dimen name="corporation_industry_caption_text_size">12sp</dimen>
+    <dimen name="corporation_industry_caption_line_height">14sp</dimen>
+    <dimen name="corporation_industry_badge_caption_text_size">11sp</dimen>
+    <dimen name="corporation_industry_badge_caption_line_height">12sp</dimen>
+    <dimen name="corporation_industry_blueprint_icon_size">32dp</dimen>
+    <dimen name="corporation_industry_status_badge_size">16dp</dimen>
+    <dimen name="corporation_industry_status_icon_size">12dp</dimen>
+    <dimen name="corporation_industry_activity_icon_size">14dp</dimen>
+    <dimen name="corporation_industry_installer_avatar_size">18dp</dimen>
+    <dimen name="corporation_industry_status_caption_gap">2dp</dimen>
+    <dimen name="corporation_industry_installer_name_max_width">120dp</dimen>
 </resources>

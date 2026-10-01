@@ -1,5 +1,8 @@
 package com.marshall.pyerite.corporationModule
 
+import com.marshall.pyerite.corporationModule.industry.data.CorporationIndustryLoader
+import com.marshall.pyerite.corporationModule.industry.viewModel.CorporationIndustryRepository
+import com.marshall.pyerite.corporationModule.industry.viewModel.CorporationIndustryViewModel
 import com.marshall.pyerite.corporationModule.members.data.CorporationMemberWatchStore
 import com.marshall.pyerite.corporationModule.members.data.CorporationMembersLoader
 import com.marshall.pyerite.corporationModule.members.viewModel.CorporationMembersRepository
@@ -28,6 +31,9 @@ val corporationModule = module {
     singleOf(::CorporationStructuresLoader)
     singleOf(::CorporationStructuresRepository)
     viewModelOf(::CorporationStructuresViewModel)
+    singleOf(::CorporationIndustryLoader)
+    singleOf(::CorporationIndustryRepository)
+    viewModelOf(::CorporationIndustryViewModel)
     singleOf(::CorporationWalletLoader)
     singleOf(::CorporationWalletRepository)
     viewModelOf(::CorporationWalletsViewModel)

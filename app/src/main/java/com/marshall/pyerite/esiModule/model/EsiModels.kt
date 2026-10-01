@@ -372,6 +372,11 @@ internal object EsiPagedQuery {
     const val PAGES_HEADER = "X-Pages"
 }
 
+/** Query names for `GET /corporations/{id}/industry/jobs`. */
+internal object EsiIndustryJobsQuery {
+    const val INCLUDE_COMPLETED = "include_completed"
+}
+
 internal object EsiHttpStatus {
     const val UNAUTHORIZED = 401
     const val FORBIDDEN = 403
@@ -501,6 +506,31 @@ internal data class EsiCorporationStructureDto(
     val state: String,
     @SerialName("fuel_expires") val fuelExpires: String? = null,
     val services: List<EsiCorporationStructureServiceDto>? = null,
+)
+
+@Serializable
+internal data class EsiCorporationIndustryJobDto(
+    @SerialName("job_id") val jobId: Long,
+    @SerialName("installer_id") val installerId: Long,
+    @SerialName("facility_id") val facilityId: Long,
+    @SerialName("activity_id") val activityId: Int,
+    @SerialName("blueprint_id") val blueprintId: Long = 0L,
+    @SerialName("blueprint_type_id") val blueprintTypeId: Int = 0,
+    @SerialName("blueprint_location_id") val blueprintLocationId: Long = 0L,
+    @SerialName("output_location_id") val outputLocationId: Long = 0L,
+    val runs: Int = 0,
+    val cost: Double? = null,
+    @SerialName("licensed_runs") val licensedRuns: Int? = null,
+    val probability: Double? = null,
+    @SerialName("product_type_id") val productTypeId: Int? = null,
+    val status: String,
+    val duration: Int = 0,
+    @SerialName("start_date") val startDate: String? = null,
+    @SerialName("end_date") val endDate: String? = null,
+    @SerialName("pause_date") val pauseDate: String? = null,
+    @SerialName("completed_date") val completedDate: String? = null,
+    @SerialName("completed_character_id") val completedCharacterId: Long? = null,
+    @SerialName("successful_runs") val successfulRuns: Int? = null,
 )
 
 @Serializable

@@ -81,4 +81,8 @@
     <color name="corporation_structure_service_online_text">#81C784</color>
     <color name="corporation_structure_service_offline_background">#3D1B1B</color>
     <color name="corporation_structure_service_offline_text">#EF5350</color>
+
+    <color name="corporation_industry_manufacturing">#FFD54F</color>
+    <color name="corporation_industry_research">#7986CB</color>
+    <color name="corporation_industry_reaction">#4FC3F7</color>
 </resources>

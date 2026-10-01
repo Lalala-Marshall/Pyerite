@@ -2,8 +2,10 @@ package com.marshall.pyerite.esiModule.api
 
 import com.marshall.pyerite.esiModule.model.EsiContactDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationDivisionsDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationIndustryJobDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationMemberTrackingDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationStructureDto
+import com.marshall.pyerite.esiModule.model.EsiIndustryJobsQuery
 import com.marshall.pyerite.esiModule.model.EsiCorporationWalletDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationWalletJournalDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationWalletTransactionDto
@@ -71,6 +73,15 @@ internal interface EsiCorporationApi {
         @Header("Authorization") authorization: String,
         @Query(EsiPagedQuery.PAGE) page: Int,
     ): Response<List<EsiCorporationMemberTrackingDto>>
+
+    @Headers("Accept: application/json")
+    @GET("corporations/{corporation_id}/industry/jobs")
+    suspend fun fetchIndustryJobs(
+        @Path("corporation_id") corporationId: Long,
+        @Header("Authorization") authorization: String,
+        @Query(EsiPagedQuery.PAGE) page: Int,
+        @Query(EsiIndustryJobsQuery.INCLUDE_COMPLETED) includeCompleted: Boolean,
+    ): Response<List<EsiCorporationIndustryJobDto>>
 
     @Headers("Accept: application/json")
     @GET("corporations/{corporation_id}/divisions")
