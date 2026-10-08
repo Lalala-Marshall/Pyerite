@@ -100,4 +100,15 @@
     <color name="corporation_assets_capacity_warn">#F9A825</color>
     <color name="corporation_assets_capacity_full">#D32F2F</color>
     <color name="corporation_assets_capacity_free">#E6E8EC</color>
+
+    <color name="corporation_contract_status_outstanding_background">#E3F2FD</color>
+    <color name="corporation_contract_status_outstanding_text">#0D47A1</color>
+    <color name="corporation_contract_status_progress_background">#FFF8E1</color>
+    <color name="corporation_contract_status_progress_text">#E65100</color>
+    <color name="corporation_contract_status_finished_background">#C8E6C9</color>
+    <color name="corporation_contract_status_finished_text">#1B5E20</color>
+    <color name="corporation_contract_status_closed_background">#FFCDD2</color>
+    <color name="corporation_contract_status_closed_text">#B71C1C</color>
+    <color name="corporation_contract_status_deleted_background">#E6E8EC</color>
+    <color name="corporation_contract_status_deleted_text">#6E7899</color>
 </resources>

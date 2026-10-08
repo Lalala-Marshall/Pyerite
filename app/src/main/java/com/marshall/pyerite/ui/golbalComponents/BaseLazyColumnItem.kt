@@ -46,11 +46,14 @@ import java.io.File
  * Prefer [text]; use [annotatedText] when a single line needs mixed colors.
  * Optional [iconUrl] / [iconRes] draw a leading adornment aligned with the
  * title-row leading slot on [BaseLazyColumnItem].
+ * Optional [trailingText] sits on the same line, end-aligned.
  */
 data class BaseLazyColumnItemHint(
     val text: String = "",
     val annotatedText: AnnotatedString? = null,
     val color: Color? = null,
+    val trailingText: String = "",
+    val trailingColor: Color? = null,
     val iconUrl: String? = null,
     val iconRes: Int? = null,
     /** SDE icon pack filename; resolved via [IconManager] when [iconUrl] / [iconRes] are unset. */
@@ -343,7 +346,15 @@ fun BaseLazyColumnItem(
                             } else {
                                 hintLineHeight
                             }
-                            Row(verticalAlignment = Alignment.Top) {
+                            val hintTrailing = hint.trailingText
+                            Row(
+                                modifier = if (hintTrailing.isNotEmpty()) {
+                                    Modifier.fillMaxWidth()
+                                } else {
+                                    Modifier
+                                },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 if (showHintLeadingColumn || hintHasIcon) {
                                     Box(
                                         modifier = Modifier.size(hintIconSize),
@@ -360,12 +371,32 @@ fun BaseLazyColumnItem(
                                     Spacer(modifier = Modifier.width(hintIconGap))
                                 }
                                 val annotated = hint.annotatedText
+                                val startModifier = Modifier
+                                    .weight(
+                                        1f,
+                                        fill = hintTrailing.isNotEmpty() ||
+                                            annotated != null ||
+                                            hintClick == null,
+                                    )
+                                    .then(
+                                        if (hintClick != null && annotated == null) {
+                                            Modifier.clickable(onClick = hintClick)
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
                                 if (annotated != null) {
                                     Text(
                                         text = annotated,
                                         fontSize = lineFontSize,
                                         lineHeight = lineLineHeight,
-                                        modifier = Modifier.weight(1f),
+                                        maxLines = if (hintTrailing.isNotEmpty()) 1 else Int.MAX_VALUE,
+                                        overflow = if (hintTrailing.isNotEmpty()) {
+                                            TextOverflow.Ellipsis
+                                        } else {
+                                            TextOverflow.Clip
+                                        },
+                                        modifier = startModifier,
                                     )
                                 } else {
                                     Text(
@@ -380,15 +411,18 @@ fun BaseLazyColumnItem(
                                         lineHeight = lineLineHeight,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier
-                                            .weight(1f, fill = hintClick == null)
-                                            .then(
-                                                if (hintClick != null) {
-                                                    Modifier.clickable(onClick = hintClick)
-                                                } else {
-                                                    Modifier
-                                                },
-                                            ),
+                                        modifier = startModifier,
+                                    )
+                                }
+                                if (hintTrailing.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.width(titleValueGap))
+                                    Text(
+                                        text = hintTrailing,
+                                        color = hint.trailingColor ?: defaultHintColor,
+                                        fontSize = lineFontSize,
+                                        lineHeight = lineLineHeight,
+                                        maxLines = 1,
+                                        softWrap = false,
                                     )
                                 }
                             }

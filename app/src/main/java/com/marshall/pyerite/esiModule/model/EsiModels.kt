@@ -434,14 +434,25 @@ internal data class EsiCharacterOrderDto(
     val escrow: Double = 0.0,
 )
 
-/** Wire `type` values from ESI character contracts. */
+/** Wire `type` values from ESI contracts. */
 internal object EsiContractTypeValue {
     const val ITEM_EXCHANGE = "item_exchange"
+    const val AUCTION = "auction"
+    const val COURIER = "courier"
 }
 
-/** Wire `status` values from ESI character contracts. */
+/** Wire `status` values from ESI contracts. */
 internal object EsiContractStatusValue {
     const val OUTSTANDING = "outstanding"
+    const val IN_PROGRESS = "in_progress"
+    const val FINISHED_ISSUER = "finished_issuer"
+    const val FINISHED_CONTRACTOR = "finished_contractor"
+    const val FINISHED = "finished"
+    const val CANCELLED = "cancelled"
+    const val REJECTED = "rejected"
+    const val FAILED = "failed"
+    const val DELETED = "deleted"
+    const val REVERSED = "reversed"
 }
 
 @Serializable
@@ -452,6 +463,26 @@ internal data class EsiCharacterContractDto(
     @SerialName("issuer_id") val issuerId: Long,
     @SerialName("for_corporation") val forCorporation: Boolean = false,
     val price: Double = 0.0,
+)
+
+@Serializable
+internal data class EsiCorporationContractDto(
+    @SerialName("contract_id") val contractId: Long,
+    @SerialName("issuer_id") val issuerId: Long = 0,
+    @SerialName("issuer_corporation_id") val issuerCorporationId: Long = 0,
+    @SerialName("assignee_id") val assigneeId: Long = 0,
+    @SerialName("start_location_id") val startLocationId: Long = 0,
+    val type: String,
+    val status: String,
+    val title: String? = null,
+    @SerialName("for_corporation") val forCorporation: Boolean = false,
+    @SerialName("date_issued") val dateIssued: String? = null,
+    @SerialName("date_expired") val dateExpired: String? = null,
+    @SerialName("date_completed") val dateCompleted: String? = null,
+    val price: Double = 0.0,
+    val reward: Double = 0.0,
+    val buyout: Double = 0.0,
+    val volume: Double = 0.0,
 )
 
 @Serializable

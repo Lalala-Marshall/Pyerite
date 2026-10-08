@@ -4,6 +4,8 @@ import com.marshall.pyerite.esiModule.model.EsiContactDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationAssetDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationAssetLocationDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationAssetNameDto
+import com.marshall.pyerite.esiModule.model.EsiContractItemDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationContractDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationDivisionsDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationIndustryJobDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationMemberTrackingDto
@@ -78,6 +80,22 @@ internal interface EsiCorporationApi {
         @Header("Authorization") authorization: String,
         @Query(EsiPagedQuery.PAGE) page: Int,
     ): Response<List<EsiCorporationMemberTrackingDto>>
+
+    @Headers("Accept: application/json")
+    @GET("corporations/{corporation_id}/contracts")
+    suspend fun fetchContracts(
+        @Path("corporation_id") corporationId: Long,
+        @Header("Authorization") authorization: String,
+        @Query(EsiPagedQuery.PAGE) page: Int,
+    ): Response<List<EsiCorporationContractDto>>
+
+    @Headers("Accept: application/json")
+    @GET("corporations/{corporation_id}/contracts/{contract_id}/items")
+    suspend fun fetchContractItems(
+        @Path("corporation_id") corporationId: Long,
+        @Path("contract_id") contractId: Long,
+        @Header("Authorization") authorization: String,
+    ): List<EsiContractItemDto>
 
     @Headers("Accept: application/json")
     @GET("corporations/{corporation_id}/industry/jobs")

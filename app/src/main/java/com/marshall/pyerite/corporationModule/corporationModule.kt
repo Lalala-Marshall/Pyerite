@@ -1,6 +1,10 @@
 package com.marshall.pyerite.corporationModule
 
 import com.marshall.pyerite.corporationModule.assets.data.CorporationAssetsDiskCache
+import com.marshall.pyerite.corporationModule.contracts.data.CorporationContractsLoader
+import com.marshall.pyerite.corporationModule.contracts.viewModel.CorporationContractDetailViewModel
+import com.marshall.pyerite.corporationModule.contracts.viewModel.CorporationContractsRepository
+import com.marshall.pyerite.corporationModule.contracts.viewModel.CorporationContractsViewModel
 import com.marshall.pyerite.corporationModule.assets.data.CorporationAssetsLoader
 import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetContainerViewModel
 import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetFolderViewModel
@@ -54,4 +58,8 @@ val corporationModule = module {
     viewModelOf(::CorporationAssetLocationViewModel)
     viewModelOf(::CorporationAssetFolderViewModel)
     viewModelOf(::CorporationAssetContainerViewModel)
+    singleOf(::CorporationContractsLoader)
+    singleOf(::CorporationContractsRepository)
+    viewModelOf(::CorporationContractsViewModel)
+    viewModelOf(::CorporationContractDetailViewModel)
 }
