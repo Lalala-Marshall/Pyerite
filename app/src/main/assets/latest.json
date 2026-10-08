@@ -33,11 +33,11 @@
     }
   },
   "tag_name": "sde-build-3458726",
-  "assets_base_url": "https://github.com/Lalala-Marshall/Pyertie/releases/download/sde-build-3458726/",
+  "assets_base_url": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3458726/",
   "assets": {
-    "latest.json": "https://github.com/Lalala-Marshall/Pyertie/releases/download/sde-build-3458726/latest.json",
-    "item_db_zh.sqlite": "https://github.com/Lalala-Marshall/Pyertie/releases/download/sde-build-3458726/item_db_zh.sqlite",
-    "item_db_en.sqlite": "https://github.com/Lalala-Marshall/Pyertie/releases/download/sde-build-3458726/item_db_en.sqlite",
-    "icons.zip": "https://github.com/Lalala-Marshall/Pyertie/releases/download/sde-build-3458726/icons.zip"
+    "latest.json": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3458726/latest.json",
+    "item_db_zh.sqlite": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3458726/item_db_zh.sqlite",
+    "item_db_en.sqlite": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3458726/item_db_en.sqlite",
+    "icons.zip": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3458726/icons.zip"
   }
 }

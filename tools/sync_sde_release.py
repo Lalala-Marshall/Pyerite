@@ -4,12 +4,12 @@ Download latest EstamelGG/EveSDE_2.0 release (sde.zip + icons.zip), refresh
 D:\\Coding\\sde.
 
 **Phase A (update check only):** Compare upstream ``EstamelGG/EveSDE_2.0`` release metadata to
-**this repo's latest GitHub Release** (``latest.json`` on Pyertie Releases). Bundled
+**this repo's latest GitHub Release** (``latest.json`` on Pyerite Releases). Bundled
 ``app/src/main/assets/latest.txt`` is only a fallback when no Release exists yet.
 No SQLite file diff; no comparing two DBs to decide whether to download.
 
 **Phase B (after a real update):** Unzip upstream DB, normalize for Room, write
-``app/src/main/assets/``, publish/update Pyertie GitHub Release, and ``--commit-assets``
+``app/src/main/assets/``, publish/update Pyerite GitHub Release, and ``--commit-assets``
 pushes bundled files so the next app release ships the same SDE build.
 
 Requires: public GitHub for downloads. Use --yes to allow wiping eve_sde root.
@@ -38,7 +38,7 @@ NORMALIZE_SCRIPT = REPO_ROOT / "tools" / "normalize_sqlite_boolean_to_integer.py
 DEFAULT_EVE_SDE_ROOT = Path(os.environ.get("EVE_SDE_ROOT", str(REPO_ROOT / ".eve_sde_cache")))
 GITHUB_API_LATEST = "https://api.github.com/repos/EstamelGG/EveSDE_2.0/releases/latest"
 GITHUB_HTML_LATEST = "https://github.com/EstamelGG/EveSDE_2.0/releases/latest"
-USER_AGENT = "Pyertie-SDE-Sync/1.0 (github.com/EstamelGG/EveSDE_2.0 consumer)"
+USER_AGENT = "Pyerite-SDE-Sync/1.0 (github.com/EstamelGG/EveSDE_2.0 consumer)"
 
 ASSET_SDE = "sde.zip"
 ASSET_ICONS_PRIMARY = "icons.zip"
@@ -487,7 +487,7 @@ def load_app_release_meta() -> dict | None:
     )
 
 
-def fetch_pyertie_github_release() -> dict | None:
+def fetch_pyerite_github_release() -> dict | None:
     url = f"{_github_repo_api_base()}/releases/latest"
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     try:
@@ -501,9 +501,9 @@ def fetch_pyertie_github_release() -> dict | None:
         raise
 
 
-def load_pyertie_release_latest_json() -> dict | None:
+def load_pyerite_release_latest_json() -> dict | None:
     """Raw ``latest.json`` from this repo's newest GitHub Release asset."""
-    release = fetch_pyertie_github_release()
+    release = fetch_pyerite_github_release()
     if not release:
         return None
     for asset in release.get("assets") or []:
@@ -517,12 +517,12 @@ def load_pyertie_release_latest_json() -> dict | None:
     return None
 
 
-def load_pyertie_github_release_meta() -> dict | None:
-    """Build metadata for the SDE build already published on Pyertie Releases."""
-    raw = load_pyertie_release_latest_json()
+def load_pyerite_github_release_meta() -> dict | None:
+    """Build metadata for the SDE build already published on Pyerite Releases."""
+    raw = load_pyerite_release_latest_json()
     if raw is not None:
         return flatten_release_meta(raw)
-    release = fetch_pyertie_github_release()
+    release = fetch_pyerite_github_release()
     if not release:
         return None
     body_meta = metadata_from_release_body(release)
@@ -538,8 +538,8 @@ def load_pyertie_github_release_meta() -> dict | None:
 
 
 def load_published_release_meta() -> dict | None:
-    """Primary installed version: Pyertie GitHub Release, else bundled assets (first run)."""
-    return load_pyertie_github_release_meta() or load_app_release_meta()
+    """Primary installed version: Pyerite GitHub Release, else bundled assets (first run)."""
+    return load_pyerite_github_release_meta() or load_app_release_meta()
 
 
 def bundled_behind_published(published: dict | None, bundled: dict | None) -> bool:
@@ -573,12 +573,12 @@ def _asset_download_url(latest: dict, filename: str) -> str | None:
 
 def refresh_bundled_from_published_release() -> bool:
     """Copy DB/icons from this repo's GitHub Release into ``app/src/main/assets``."""
-    latest = load_pyertie_release_latest_json()
+    latest = load_pyerite_release_latest_json()
     if not latest:
-        print("[!] Could not load latest.json from Pyertie GitHub Release.", file=sys.stderr)
+        print("[!] Could not load latest.json from Pyerite GitHub Release.", file=sys.stderr)
         return False
 
-    download_dir = Path(tempfile.mkdtemp(prefix="pyertie-release-"))
+    download_dir = Path(tempfile.mkdtemp(prefix="pyerite-release-"))
     try:
         pairs = (
             (PYERITE_RELEASE_ASSET_DB_ZH, APP_DB_ZH),
@@ -599,7 +599,7 @@ def refresh_bundled_from_published_release() -> bool:
         APP_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
         APP_LATEST.write_text(json.dumps(core, indent=2) + "\n", encoding="utf-8")
         APP_LATEST_JSON.write_text(json.dumps(latest, indent=2) + "\n", encoding="utf-8")
-        print(f"[+] Refreshed bundled assets from Pyertie Release (build {core.get('build_number')})")
+        print(f"[+] Refreshed bundled assets from Pyerite Release (build {core.get('build_number')})")
         return True
     finally:
         shutil.rmtree(download_dir, ignore_errors=True)
@@ -654,12 +654,12 @@ def main() -> int:
     p.add_argument(
         "--dry-run",
         action="store_true",
-        help="Fetch release + compare metadata (upstream vs Pyertie Release vs bundled assets); no large downloads",
+        help="Fetch release + compare metadata (upstream vs Pyerite Release vs bundled assets); no large downloads",
     )
     p.add_argument(
         "--publish-release",
         action="store_true",
-        help="After updating bundled assets, create/update a Pyertie GitHub Release with DB/icons/latest.json",
+        help="After updating bundled assets, create/update a Pyerite GitHub Release with DB/icons/latest.json",
     )
     p.add_argument(
         "--commit-assets",
@@ -720,7 +720,7 @@ def main() -> int:
     print(f"[+] Latest release: {tag} ({release_title})")
 
     remote_cmp = remote_meta_for_compare(metadata_url, release, tag)
-    published_meta = load_pyertie_github_release_meta()
+    published_meta = load_pyerite_github_release_meta()
     bundled_meta = load_app_release_meta()
     print(
         "[+] Upstream (EveSDE): "
@@ -730,12 +730,12 @@ def main() -> int:
     )
     if published_meta:
         print(
-            "[+] Pyertie Release: "
+            "[+] Pyerite Release: "
             f"build_number={published_meta.get('build_number')!r} "
             f"release_date={published_meta.get('release_date', '')!r}"
         )
     else:
-        print("[+] Pyertie Release: (none yet)")
+        print("[+] Pyerite Release: (none yet)")
     if bundled_meta:
         print(
             "[+] Bundled assets:  "
@@ -750,7 +750,7 @@ def main() -> int:
         print("[dry-run] Would download:", ASSET_SDE, "and icons zip (only if update)")
         print("[dry-run] Would normalize + copy:", APP_DB_ZH.name, "and", APP_DB_EN.name)
         print("[dry-run] upstream (EveSDE):", remote_cmp)
-        print("[dry-run] published (Pyertie Release):", published_meta)
+        print("[dry-run] published (Pyerite Release):", published_meta)
         print("[dry-run] bundled (assets):", bundled_meta)
         print(
             "[dry-run] would_sync_upstream:",
@@ -761,10 +761,10 @@ def main() -> int:
 
     needs_upstream_sync = args.force or remote_is_newer(remote_cmp, published_meta)
     if not needs_upstream_sync:
-        print("[=] Upstream is not newer than Pyertie GitHub Release. Skipping EveSDE download.")
+        print("[=] Upstream is not newer than Pyerite GitHub Release. Skipping EveSDE download.")
         print("    Upstream:", version_key(remote_cmp), "Published:", version_key(published_meta or {}))
         if bundled_behind_published(published_meta, bundled_meta):
-            print("[+] Bundled assets are behind published Release; refreshing from Pyertie Release ...")
+            print("[+] Bundled assets are behind published Release; refreshing from Pyerite Release ...")
             if not refresh_bundled_from_published_release():
                 return 1
             if args.commit_assets and published_meta:
@@ -773,7 +773,7 @@ def main() -> int:
             return finalize_from_existing_bundled(published_meta, bundled_meta, remote_cmp, args)
         return 0
 
-    print("[+] Upstream newer than Pyertie Release (or --force); downloading SDE and icons ...")
+    print("[+] Upstream newer than Pyerite Release (or --force); downloading SDE and icons ...")
     print(f"[+] Wiping {eve} ...")
     wipe_eve_sde_root(eve)
 
@@ -815,7 +815,7 @@ def main() -> int:
     replace_asset(icons_zip, APP_ICONS_ZIP)
     print(f"[+] Replaced {APP_ICONS_ZIP}")
 
-    publish_meta = build_pyertie_release_meta(merged)
+    publish_meta = build_pyerite_release_meta(merged)
     return finalize_publish_and_commit(publish_meta, args)
 
 
@@ -849,14 +849,14 @@ def load_or_build_publish_meta(source_meta: dict) -> dict:
         cached = load_latest(APP_LATEST_JSON)
         if cached and str(cached.get("build_number")) == str(source_meta.get("build_number")):
             return cached
-    return build_pyertie_release_meta(source_meta)
+    return build_pyerite_release_meta(source_meta)
 
 
 def finalize_publish_and_commit(publish_meta: dict, args: argparse.Namespace) -> int:
     APP_LATEST_JSON.write_text(json.dumps(publish_meta, indent=2) + "\n", encoding="utf-8")
     print(f"[+] Wrote {APP_LATEST_JSON}")
     if args.publish_release:
-        publish_pyertie_github_release(publish_meta)
+        publish_pyerite_github_release(publish_meta)
     if args.commit_assets:
         commit_bundled_assets(str(publish_meta.get("build_number", "?")))
     return 0
@@ -884,18 +884,18 @@ def finalize_from_existing_bundled(
     return finalize_publish_and_commit(publish_meta, args)
 
 
-def pyertie_repo_slug() -> str:
-    return os.environ.get("GITHUB_REPOSITORY", "Lalala-Marshall/Pyertie")
+def pyerite_repo_slug() -> str:
+    return os.environ.get("GITHUB_REPOSITORY", "Lalala-Marshall/Pyerite")
 
 
-def pyertie_release_tag(build_number: str) -> str:
+def pyerite_release_tag(build_number: str) -> str:
     return f"sde-build-{build_number}"
 
 
-def build_pyertie_release_meta(merged: dict) -> dict:
+def build_pyerite_release_meta(merged: dict) -> dict:
     bn = str(merged.get("build_number") or "0")
-    tag = pyertie_release_tag(bn)
-    repo = pyertie_repo_slug()
+    tag = pyerite_release_tag(bn)
+    repo = pyerite_repo_slug()
     base = f"https://github.com/{repo}/releases/download/{urllib.parse.quote(tag, safe='')}"
     out = dict(merged)
     out["tag_name"] = tag
@@ -910,7 +910,7 @@ def build_pyertie_release_meta(merged: dict) -> dict:
 
 
 def _github_repo_api_base() -> str:
-    return f"https://api.github.com/repos/{pyertie_repo_slug()}"
+    return f"https://api.github.com/repos/{pyerite_repo_slug()}"
 
 
 def _require_github_token() -> str:
@@ -980,9 +980,9 @@ def _github_upload_release_asset(upload_url_template: str, file_path: Path, toke
         ) from e
 
 
-def publish_pyertie_github_release(publish_meta: dict) -> None:
+def publish_pyerite_github_release(publish_meta: dict) -> None:
     token = _require_github_token()
-    tag = str(publish_meta.get("tag_name") or pyertie_release_tag(str(publish_meta.get("build_number", "0"))))
+    tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
     bn = str(publish_meta.get("build_number", "?"))
     api = _github_repo_api_base()
 
@@ -1055,7 +1055,7 @@ def publish_pyertie_github_release(publish_meta: dict) -> None:
 
 def commit_bundled_assets(build_number: str) -> None:
     token = _require_github_token()
-    repo = pyertie_repo_slug()
+    repo = pyerite_repo_slug()
     branch = os.environ.get("GITHUB_REF_NAME", "main")
 
     subprocess.run(["git", "config", "user.name", "github-actions[bot]"], cwd=REPO_ROOT, check=True)

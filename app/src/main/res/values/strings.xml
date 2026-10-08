@@ -328,7 +328,7 @@
     <string name="sde_update_cancel_download">取消下载</string>
     <string name="sde_update_retry">重试</string>
     <string name="sde_update_check_failed_title">检查更新失败</string>
-    <string name="sde_update_check_failed_hint">检查更新失败可能只是常规检查超时失败，并不代表当前已下载版本不是最新版本。请尝试切换网络后重新检查，或在 https://github.com/Lalala-Marshall/Pyertie/releases 手动查看最新版本号并与当前版本号对比。</string>
+    <string name="sde_update_check_failed_hint">检查更新失败可能只是常规检查超时失败，并不代表当前已下载版本不是最新版本。请尝试切换网络后重新检查，或在 https://github.com/Lalala-Marshall/Pyerite/releases 手动查看最新版本号并与当前版本号对比。</string>
     <string name="sde_update_cancelled_title">已取消下载</string>
     <string name="sde_update_cancelled_message">下载已取消，可稍后重试。</string>
     <string name="sde_update_network_error">无法连接更新服务器，请检查网络后重试。</string>

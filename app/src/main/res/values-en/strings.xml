@@ -327,7 +327,7 @@
     <string name="sde_update_cancel_download">Cancel download</string>
     <string name="sde_update_retry">Retry</string>
     <string name="sde_update_check_failed_title">Update check failed</string>
-    <string name="sde_update_check_failed_hint">A failed update check may simply mean the routine check timed out; it does not mean your downloaded version is outdated. Try switching networks and checking again, or manually compare version numbers at https://github.com/Lalala-Marshall/Pyertie/releases with your current version.</string>
+    <string name="sde_update_check_failed_hint">A failed update check may simply mean the routine check timed out; it does not mean your downloaded version is outdated. Try switching networks and checking again, or manually compare version numbers at https://github.com/Lalala-Marshall/Pyerite/releases with your current version.</string>
     <string name="sde_update_cancelled_title">Download cancelled</string>
     <string name="sde_update_cancelled_message">Download was cancelled. You can try again later.</string>
     <string name="sde_update_network_error">Could not reach the update server. Check your network and try again.</string>

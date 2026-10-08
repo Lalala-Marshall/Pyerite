@@ -6,7 +6,7 @@ object SdeRemoteConfig {
     const val GITHUB_BASE_URL = "https://$GITHUB_HOST/"
     const val GITHUB_API_BASE_URL = "https://$GITHUB_API_HOST/"
 
-    const val GITHUB_REPO = "Lalala-Marshall/Pyertie"
+    const val GITHUB_REPO = "Lalala-Marshall/Pyerite"
     const val LATEST_JSON_ASSET = "latest.json"
     const val LATEST_JSON_URL =
         "${GITHUB_BASE_URL}$GITHUB_REPO/releases/latest/download/$LATEST_JSON_ASSET"

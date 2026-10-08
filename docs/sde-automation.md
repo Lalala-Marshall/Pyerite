@@ -6,7 +6,7 @@
 |------|------|------|
 | 手机本地 | `databases/` + `files/icons/` | 用户实际使用的数据 |
 | APK 内置 | `app/src/main/assets/` | 安装/升级后的兜底版本 |
-| GitHub Release | `Lalala-Marshall/Pyertie` Releases | 远端增量更新源 |
+| GitHub Release | `Lalala-Marshall/Pyerite` Releases | 远端增量更新源 |
 
 ## CI 如何判断「有新 build」
 
@@ -15,13 +15,13 @@
 | 一端 | 来源 |
 |------|------|
 | **上游** | `EstamelGG/EveSDE_2.0` 最新 Release（`metadata.json` / release body / tag） |
-| **已发布** | `Lalala-Marshall/Pyertie` 最新 Release 的 `latest.json` |
+| **已发布** | `Lalala-Marshall/Pyerite` 最新 Release 的 `latest.json` |
 
-上游 `build_number` 更大 → 下载、normalize、发 Pyertie Release、**commit & push `main/assets`**。
+上游 `build_number` 更大 → 下载、normalize、发 Pyerite Release、**commit & push `main/assets`**。
 
-若上游未更新，但 **assets 落后于 Pyertie Release** → 从 Release 下载文件刷新 assets 并 commit（保证下次发版 APK 兜底是最新的）。
+若上游未更新，但 **assets 落后于 Pyerite Release** → 从 Release 下载文件刷新 assets 并 commit（保证下次发版 APK 兜底是最新的）。
 
-`app/src/main/assets/` 仅在 **尚无 Pyertie Release** 时作为首次比较的兜底。
+`app/src/main/assets/` 仅在 **尚无 Pyerite Release** 时作为首次比较的兜底。
 
 ## 一次性设置
 
@@ -48,7 +48,7 @@ python tools/sync_sde_release.py --yes
 
 ```bash
 set GITHUB_TOKEN=ghp_xxx
-set GITHUB_REPOSITORY=Lalala-Marshall/Pyertie
+set GITHUB_REPOSITORY=Lalala-Marshall/Pyerite
 set GITHUB_REF_NAME=main
 python tools/sync_sde_release.py --yes --publish-release --commit-assets
 ```
@@ -56,7 +56,7 @@ python tools/sync_sde_release.py --yes --publish-release --commit-assets
 ## App 行为
 
 - 启动时：`BundledSdeUpdater` 用 APK 内置 `latest.txt` / `latest.json` 升级手机本地库（若 bundled 更新）。
-- 主页右上角：检查 `https://github.com/Lalala-Marshall/Pyertie/releases/latest/download/latest.json`。
+- 主页右上角：检查 `https://github.com/Lalala-Marshall/Pyerite/releases/latest/download/latest.json`。
 - 有更新时显示角标；点击下载 ~260MB，应用后自动关闭 Room 缓存、重建图标索引，**无需清缓存或重启**。
 
 ## 注意
