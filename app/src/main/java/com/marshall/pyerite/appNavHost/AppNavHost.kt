@@ -26,6 +26,7 @@ import com.marshall.pyerite.mainPageModule.navHost.mainNavGraph
 import com.marshall.pyerite.loyaltyPointsModule.navHost.loyaltyPointsNavGraph
 import com.marshall.pyerite.peoplePlacesModule.navHost.peoplePlacesNavGraph
 import com.marshall.pyerite.corporationModule.assets.navHost.corporationAssetsNavGraph
+import com.marshall.pyerite.corporationModule.contracts.navHost.corporationContractsNavGraph
 import com.marshall.pyerite.corporationModule.industry.navHost.corporationIndustryNavGraph
 import com.marshall.pyerite.corporationModule.members.navHost.corporationMembersNavGraph
 import com.marshall.pyerite.corporationModule.structures.navHost.corporationStructuresNavGraph
@@ -75,6 +76,7 @@ fun AppNavHost() {
                 corporationStructuresNavGraph(navController)
                 corporationIndustryNavGraph(navController)
                 corporationAssetsNavGraph(navController)
+                corporationContractsNavGraph(navController)
                 loyaltyPointsNavGraph(navController)
                 peoplePlacesNavGraph(navController)
             }

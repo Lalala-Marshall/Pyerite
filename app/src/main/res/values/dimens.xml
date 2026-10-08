@@ -307,4 +307,12 @@
 
     <dimen name="corporation_assets_capacity_bar_height">8dp</dimen>
     <dimen name="corporation_assets_capacity_bar_corner">4dp</dimen>
+
+    <dimen name="corporation_contracts_price_field_height">40dp</dimen>
+    <dimen name="corporation_contracts_price_field_corner">12dp</dimen>
+    <dimen name="corporation_contracts_price_field_horizontal_padding">12dp</dimen>
+    <dimen name="corporation_contracts_price_field_gap">12dp</dimen>
+    <dimen name="corporation_contracts_price_field_border">1dp</dimen>
+    <dimen name="corporation_contracts_price_title_gap">4dp</dimen>
+    <dimen name="corporation_contracts_price_block_bottom_padding">12dp</dimen>
 </resources>
