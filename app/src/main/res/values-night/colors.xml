@@ -85,4 +85,9 @@
     <color name="corporation_industry_manufacturing">#FFD54F</color>
     <color name="corporation_industry_research">#7986CB</color>
     <color name="corporation_industry_reaction">#4FC3F7</color>
+
+    <color name="corporation_assets_capacity_ok">#81C784</color>
+    <color name="corporation_assets_capacity_warn">#FFD54F</color>
+    <color name="corporation_assets_capacity_full">#EF5350</color>
+    <color name="corporation_assets_capacity_free">#353535</color>
 </resources>

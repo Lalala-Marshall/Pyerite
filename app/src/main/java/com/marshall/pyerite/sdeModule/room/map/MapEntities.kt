@@ -142,3 +142,11 @@ data class StationLocationRow(
     @ColumnInfo(name = "stationName") val name: String?,
     @ColumnInfo(name = "solarSystemID") val solarSystemId: Int? = null,
 )
+
+/** Universe coordinates for nearest-system lookup (e.g. asset safety). */
+data class SolarSystemPositionRow(
+    val solarSystemId: Long,
+    val x: Double?,
+    val y: Double?,
+    val z: Double?,
+)

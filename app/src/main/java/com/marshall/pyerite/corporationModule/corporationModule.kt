@@ -1,5 +1,12 @@
 package com.marshall.pyerite.corporationModule
 
+import com.marshall.pyerite.corporationModule.assets.data.CorporationAssetsDiskCache
+import com.marshall.pyerite.corporationModule.assets.data.CorporationAssetsLoader
+import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetContainerViewModel
+import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetFolderViewModel
+import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetLocationViewModel
+import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetsRepository
+import com.marshall.pyerite.corporationModule.assets.viewModel.CorporationAssetsViewModel
 import com.marshall.pyerite.corporationModule.industry.data.CorporationIndustryLoader
 import com.marshall.pyerite.corporationModule.industry.viewModel.CorporationIndustryRepository
 import com.marshall.pyerite.corporationModule.industry.viewModel.CorporationIndustryViewModel
@@ -40,4 +47,11 @@ val corporationModule = module {
     viewModelOf(::CorporationWalletDivisionViewModel)
     viewModelOf(::CorporationWalletJournalDayViewModel)
     viewModelOf(::CorporationWalletTransactionDayViewModel)
+    singleOf(::CorporationAssetsLoader)
+    single { CorporationAssetsDiskCache(androidContext()) }
+    singleOf(::CorporationAssetsRepository)
+    viewModelOf(::CorporationAssetsViewModel)
+    viewModelOf(::CorporationAssetLocationViewModel)
+    viewModelOf(::CorporationAssetFolderViewModel)
+    viewModelOf(::CorporationAssetContainerViewModel)
 }
