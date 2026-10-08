@@ -304,4 +304,7 @@
     <dimen name="corporation_industry_installer_avatar_size">18dp</dimen>
     <dimen name="corporation_industry_status_caption_gap">2dp</dimen>
     <dimen name="corporation_industry_installer_name_max_width">120dp</dimen>
+
+    <dimen name="corporation_assets_capacity_bar_height">8dp</dimen>
+    <dimen name="corporation_assets_capacity_bar_corner">4dp</dimen>
 </resources>

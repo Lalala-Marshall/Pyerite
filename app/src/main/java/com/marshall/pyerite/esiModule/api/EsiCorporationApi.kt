@@ -1,6 +1,9 @@
 package com.marshall.pyerite.esiModule.api
 
 import com.marshall.pyerite.esiModule.model.EsiContactDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationAssetDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationAssetLocationDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationAssetNameDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationDivisionsDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationIndustryJobDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationMemberTrackingDto
@@ -12,9 +15,11 @@ import com.marshall.pyerite.esiModule.model.EsiCorporationWalletTransactionDto
 import com.marshall.pyerite.esiModule.model.EsiOrganizationDto
 import com.marshall.pyerite.esiModule.model.EsiPagedQuery
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -82,6 +87,30 @@ internal interface EsiCorporationApi {
         @Query(EsiPagedQuery.PAGE) page: Int,
         @Query(EsiIndustryJobsQuery.INCLUDE_COMPLETED) includeCompleted: Boolean,
     ): Response<List<EsiCorporationIndustryJobDto>>
+
+    @Headers("Accept: application/json")
+    @GET("corporations/{corporation_id}/assets")
+    suspend fun fetchAssets(
+        @Path("corporation_id") corporationId: Long,
+        @Header("Authorization") authorization: String,
+        @Query(EsiPagedQuery.PAGE) page: Int,
+    ): Response<List<EsiCorporationAssetDto>>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("corporations/{corporation_id}/assets/names")
+    suspend fun fetchAssetNames(
+        @Path("corporation_id") corporationId: Long,
+        @Header("Authorization") authorization: String,
+        @Body itemIds: List<Long>,
+    ): List<EsiCorporationAssetNameDto>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("corporations/{corporation_id}/assets/locations")
+    suspend fun fetchAssetLocations(
+        @Path("corporation_id") corporationId: Long,
+        @Header("Authorization") authorization: String,
+        @Body itemIds: List<Long>,
+    ): List<EsiCorporationAssetLocationDto>
 
     @Headers("Accept: application/json")
     @GET("corporations/{corporation_id}/divisions")

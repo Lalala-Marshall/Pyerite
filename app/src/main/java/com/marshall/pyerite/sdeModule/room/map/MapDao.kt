@@ -78,4 +78,19 @@ interface MapDao {
         """,
     )
     suspend fun getStations(stationIds: List<Long>): List<StationLocationRow>
+
+    @Query(
+        """
+        SELECT
+            u.solarsystem_id AS solarSystemId,
+            u.x AS x,
+            u.y AS y,
+            u.z AS z
+        FROM universe u
+        WHERE u.x IS NOT NULL
+          AND u.y IS NOT NULL
+          AND u.z IS NOT NULL
+        """,
+    )
+    suspend fun getSolarSystemPositions(): List<SolarSystemPositionRow>
 }

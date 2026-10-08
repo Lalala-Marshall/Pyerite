@@ -384,6 +384,37 @@ internal object EsiHttpStatus {
 }
 
 @Serializable
+internal data class EsiCorporationAssetDto(
+    @SerialName("item_id") val itemId: Long,
+    @SerialName("type_id") val typeId: Int,
+    val quantity: Int = 0,
+    @SerialName("location_id") val locationId: Long,
+    @SerialName("location_type") val locationType: String,
+    @SerialName("location_flag") val locationFlag: String,
+    @SerialName("is_blueprint_copy") val isBlueprintCopy: Boolean = false,
+    @SerialName("is_singleton") val isSingleton: Boolean = false,
+)
+
+@Serializable
+internal data class EsiCorporationAssetNameDto(
+    @SerialName("item_id") val itemId: Long,
+    val name: String = "",
+)
+
+@Serializable
+internal data class EsiCorporationAssetLocationDto(
+    @SerialName("item_id") val itemId: Long,
+    val position: EsiCorporationAssetPositionDto,
+)
+
+@Serializable
+internal data class EsiCorporationAssetPositionDto(
+    val x: Double = 0.0,
+    val y: Double = 0.0,
+    val z: Double = 0.0,
+)
+
+@Serializable
 internal data class EsiCharacterAssetDto(
     @SerialName("item_id") val itemId: Long,
     @SerialName("type_id") val typeId: Int,
