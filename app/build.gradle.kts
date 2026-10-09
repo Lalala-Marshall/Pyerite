@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.retrofit2.kotlinx.serialization.converter)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.vico.compose.m3)
 
     // Custom Tabs for EVE SSO (tokens use Android Keystore + SharedPreferences)
     implementation(libs.androidx.browser)

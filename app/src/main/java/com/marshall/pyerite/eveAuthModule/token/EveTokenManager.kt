@@ -1,5 +1,6 @@
 package com.marshall.pyerite.eveAuthModule.token
 
+import com.marshall.pyerite.eveAuthModule.model.EveSessionIdentity
 import com.marshall.pyerite.eveAuthModule.model.EveSsoScope
 import com.marshall.pyerite.eveAuthModule.model.EveStoredSession
 import com.marshall.pyerite.eveAuthModule.model.EveTokenSet
@@ -51,6 +52,10 @@ class EveTokenManager internal constructor(
     /** Granted scopes for UI / feature gates — never returns token material. */
     fun grantedScopes(characterId: Long): Set<EveSsoScope> =
         tokenStore.get(characterId)?.grantedScopes.orEmpty()
+
+    /** Logged-in characters (id + name only) for pickers that must not read the token store. */
+    fun sessionIdentities(): List<EveSessionIdentity> =
+        tokenStore.all().map { EveSessionIdentity(it.characterId, it.characterName) }
 
     /** Persist after SSO code exchange. */
     internal fun save(tokenSet: EveTokenSet): EveStoredSession {

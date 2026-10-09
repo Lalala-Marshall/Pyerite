@@ -67,6 +67,7 @@ import com.marshall.pyerite.sdeModule.update.SdeUpdateBottomSheet
 import com.marshall.pyerite.sdeModule.update.SdeUpdateUiState
 import com.marshall.pyerite.sdeModule.update.SdeUpdateViewModel
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
+import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
@@ -373,10 +374,15 @@ fun MainPage(
                 item(key = "data_section_header") {
                     MainPageSectionHeader(title = dataSectionTitle)
                 }
-                item(key = "database_entry") {
-                    MainPageDatabaseItem(
-                        onClick = { navController.navigate(DatabaseRoute.Root.route) },
-                    )
+                item(key = "data_section_entries") {
+                    MainPageSectionCard {
+                        MainPageDatabaseItem(
+                            onClick = { navController.navigate(DatabaseRoute.Root.route) },
+                        )
+                        MainPageRegionMarketItem(
+                            onClick = { navController.navigate(RegionMarketRoute.Root.route) },
+                        )
+                    }
                 }
             }
         }
@@ -419,17 +425,30 @@ private fun MainPageSectionHeader(title: String) {
 }
 
 @Composable
-private fun MainPageDatabaseItem(onClick: () -> Unit) {
-    MainPageSectionCard {
-        BaseLazyColumnItem(
-            model = BaseLazyColumnItemModel(
-                iconRes = R.drawable.ic_database,
-                itemName = stringResource(R.string.database),
-                onClick = onClick,
-            ),
-            showDivider = false,
-        )
-    }
+private fun MainPageDatabaseItem(
+    onClick: () -> Unit,
+) {
+    BaseLazyColumnItem(
+        model = BaseLazyColumnItemModel(
+            iconRes = R.drawable.ic_database,
+            itemName = stringResource(R.string.database),
+            onClick = onClick,
+        ),
+        showDivider = true,
+    )
+}
+
+@Composable
+private fun MainPageRegionMarketItem(onClick: () -> Unit) {
+    BaseLazyColumnItem(
+        model = BaseLazyColumnItemModel(
+            iconRes = R.drawable.ic_region_market,
+            iconTint = androidx.compose.ui.graphics.Color.Unspecified,
+            itemName = stringResource(R.string.region_market),
+            onClick = onClick,
+        ),
+        showDivider = false,
+    )
 }
 
 @Composable

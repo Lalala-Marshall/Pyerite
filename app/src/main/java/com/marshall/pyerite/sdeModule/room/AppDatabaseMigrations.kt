@@ -53,4 +53,10 @@ internal object AppDatabaseMigrations {
             db.execSQL(SdeMasteryTableBootstrap.CREATE_MASTERIES)
         }
     }
+
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // MarketGroupEntity registered; `marketGroups` already present in the SDE file.
+        }
+    }
 }

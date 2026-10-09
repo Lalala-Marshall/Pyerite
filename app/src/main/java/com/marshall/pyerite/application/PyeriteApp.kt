@@ -23,6 +23,7 @@ import com.marshall.pyerite.databaseHierarchyModule.databaseHierarchyModule
 import com.marshall.pyerite.esiModule.esiModule
 import com.marshall.pyerite.eveAuthModule.eveAuthModule
 import com.marshall.pyerite.iconModule.iconModule
+import com.marshall.pyerite.regionMarketModule.regionMarketModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -66,6 +67,7 @@ class PyeriteApp : Application() {
                 loyaltyPointsModule,
                 peoplePlacesModule,
                 entityProfileModule,
+                regionMarketModule,
             )
         }
 

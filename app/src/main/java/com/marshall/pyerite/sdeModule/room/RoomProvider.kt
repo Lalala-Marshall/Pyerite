@@ -53,6 +53,7 @@ class RoomProvider(
                 AppDatabaseMigrations.MIGRATION_5_6,
                 AppDatabaseMigrations.MIGRATION_6_7,
                 AppDatabaseMigrations.MIGRATION_7_8,
+                AppDatabaseMigrations.MIGRATION_8_9,
             )
             .build()
         cachedDbName = dbName

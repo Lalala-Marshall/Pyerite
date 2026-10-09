@@ -213,7 +213,9 @@ private fun rememberVisibleTypeDetailSlots(
         buildList {
             add(TypeDetailSlot.Title)
             add(TypeDetailSlot.Summary)
-            add(TypeDetailSlot.Market)
+            if (hasMarketSectionContent(type)) {
+                add(TypeDetailSlot.Market)
+            }
             add(TypeDetailSlot.BaseInfo)
             if (variantCount > 1) {
                 add(TypeDetailSlot.Variants)
@@ -334,7 +336,13 @@ private fun TypeDetailSlotContent(
         }
 
         TypeDetailSlot.Summary -> TypeSummarySectionItem(typeId = typeId, entity = entity)
-        TypeDetailSlot.Market -> TypeDetailMarketSection()
+        TypeDetailSlot.Market -> TypeDetailMarketSlot(
+            onOpenRegionMarket = {
+                navController.navigate(
+                    com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute.Detail.create(typeId),
+                )
+            },
+        )
         TypeDetailSlot.BaseInfo -> TypeDetailBaseInfoSectionItem(entity = entity)
         TypeDetailSlot.Variants -> TypeDetailVariantsSectionItem(typeId = typeId, navController = navController)
         TypeDetailSlot.Fitting -> TypeDetailFittingSectionItem(typeId)

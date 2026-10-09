@@ -51,6 +51,8 @@
     <!-- Type detail page section spacing -->
     <dimen name="type_detail_section_gap">16dp</dimen>
     <dimen name="type_detail_bottom_padding">24dp</dimen>
+    <dimen name="market_history_chart_height">220dp</dimen>
+    <dimen name="market_price_refresh_icon_size">16dp</dimen>
     <dimen name="type_detail_page_title_start_padding">24dp</dimen>
     <dimen name="type_detail_page_title_vertical_padding">12dp</dimen>
 

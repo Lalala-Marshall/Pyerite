@@ -27,6 +27,8 @@ import com.marshall.pyerite.sdeModule.room.industry.BlueprintResearchTimeMateria
 import com.marshall.pyerite.sdeModule.room.industry.IndustryDao
 import com.marshall.pyerite.sdeModule.room.industry.TypeMaterialEntity
 import com.marshall.pyerite.sdeModule.room.loyalty.LoyaltyDao
+import com.marshall.pyerite.sdeModule.room.market.MarketGroupDao
+import com.marshall.pyerite.sdeModule.room.market.MarketGroupEntity
 import com.marshall.pyerite.sdeModule.room.loyalty.LoyaltyOfferEntity
 import com.marshall.pyerite.sdeModule.room.loyalty.LoyaltyOfferOutputEntity
 import com.marshall.pyerite.sdeModule.room.loyalty.LoyaltyOfferRequirementEntity
@@ -81,8 +83,9 @@ import com.marshall.pyerite.sdeModule.room.type.TypeEntity
         MasteryEntity::class,
         CertificateSkillEntity::class,
         TypeSkillRequirementEntity::class,
+        MarketGroupEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -103,4 +106,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun loyaltyDao(): LoyaltyDao
     /** Ship mastery certificates and direct hull skill requirements. */
     abstract fun masteryDao(): MasteryDao
+    abstract fun marketGroupDao(): MarketGroupDao
 }
