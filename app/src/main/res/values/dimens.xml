@@ -317,4 +317,8 @@
     <dimen name="corporation_contracts_price_field_border">1dp</dimen>
     <dimen name="corporation_contracts_price_title_gap">4dp</dimen>
     <dimen name="corporation_contracts_price_block_bottom_padding">12dp</dimen>
+
+    <dimen name="market_watchlist_quantity_field_width">88dp</dimen>
+    <dimen name="market_watchlist_quantity_field_height">36dp</dimen>
+    <dimen name="market_watchlist_delete_action_width">72dp</dimen>
 </resources>

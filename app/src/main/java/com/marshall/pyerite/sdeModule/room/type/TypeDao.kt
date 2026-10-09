@@ -23,6 +23,39 @@ interface TypeDao {
     @Query("SELECT * FROM types WHERE type_id = :typeId")
     suspend fun getTypeById(typeId: Int): TypeEntity?
 
+    @Query("SELECT * FROM types WHERE type_id IN (:typeIds)")
+    suspend fun getTypesByIds(typeIds: List<Int>): List<TypeEntity>
+
+    @Query(
+        """
+        SELECT type_id FROM types
+        WHERE zh_name = :name COLLATE NOCASE
+        ORDER BY type_id
+        LIMIT 1
+        """,
+    )
+    suspend fun findTypeIdByZhName(name: String): Int?
+
+    @Query(
+        """
+        SELECT type_id FROM types
+        WHERE en_name = :name COLLATE NOCASE
+        ORDER BY type_id
+        LIMIT 1
+        """,
+    )
+    suspend fun findTypeIdByEnName(name: String): Int?
+
+    @Query(
+        """
+        SELECT type_id FROM types
+        WHERE name = :name COLLATE NOCASE
+        ORDER BY type_id
+        LIMIT 1
+        """,
+    )
+    suspend fun findTypeIdByName(name: String): Int?
+
     @Query(
         """
         SELECT icon_filename

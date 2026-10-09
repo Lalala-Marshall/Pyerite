@@ -29,7 +29,10 @@ import com.marshall.pyerite.sdeModule.room.RoomProvider
 import com.marshall.pyerite.sdeModule.room.catalog.MetaGroupEntity
 import com.marshall.pyerite.sdeModule.room.market.MarketGroupEntity
 import com.marshall.pyerite.sdeModule.room.type.TypeEntity
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import retrofit2.Response
@@ -46,6 +49,11 @@ internal class MarketRepository(
     private val structureStore: MarketStructureStore,
     private val quoteCache: MarketQuoteCache,
 ) {
+    /** Structure order books are not filterable by type, so one download serves every type. */
+    private val structureBookGate = Mutex()
+    private val structureBooks = HashMap<Long, Map<Int, List<MarketOrder>>>()
+    private val structureBookLoads =
+        HashMap<Long, CompletableDeferred<Map<Int, List<MarketOrder>>>>()
     suspend fun visibleGroups(): List<MarketGroupEntity> = withContext(Dispatchers.IO) {
         roomProvider.getDatabase().marketGroupDao().getVisibleGroups()
     }
@@ -60,6 +68,24 @@ internal class MarketRepository(
 
     suspend fun type(typeId: Int): TypeEntity? = withContext(Dispatchers.IO) {
         roomProvider.getDatabase().typeDao().getTypeById(typeId)
+    }
+
+    suspend fun typesByIds(typeIds: List<Int>): List<TypeEntity> = withContext(Dispatchers.IO) {
+        if (typeIds.isEmpty()) return@withContext emptyList()
+        val dao = roomProvider.getDatabase().typeDao()
+        typeIds.distinct().chunked(MarketConfig.SQL_IN_CHUNK).flatMap { chunk ->
+            dao.getTypesByIds(chunk)
+        }
+    }
+
+    /** Chinese name, then English name, then the fallback `name` column. */
+    suspend fun findTypeIdByExactName(name: String): Int? = withContext(Dispatchers.IO) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return@withContext null
+        val dao = roomProvider.getDatabase().typeDao()
+        dao.findTypeIdByZhName(trimmed)
+            ?: dao.findTypeIdByEnName(trimmed)
+            ?: dao.findTypeIdByName(trimmed)
     }
 
     suspend fun metaGroups(): List<MetaGroupEntity> = withContext(Dispatchers.IO) {
@@ -211,10 +237,11 @@ internal class MarketRepository(
                     emptyList()
                 } else {
                     try {
-                        fetchStructureOrders(
+                        ordersInStructure(
                             structureId = structureId,
                             characterId = characterId,
                             typeId = typeId,
+                            forceRefresh = forceRefresh,
                             onPage = onPage,
                         )
                     } catch (_: MarketStructureAccessException) {
@@ -409,14 +436,79 @@ internal class MarketRepository(
         return response.isSuccessful
     }
 
-    private suspend fun fetchStructureOrders(
+    private suspend fun ordersInStructure(
         structureId: Long,
         characterId: Long,
         typeId: Int,
+        forceRefresh: Boolean,
+        onPage: (page: Int, pageCount: Int) -> Unit,
+    ): List<MarketOrder> {
+        val book = structureOrderBook(
+            structureId = structureId,
+            characterId = characterId,
+            forceRefresh = forceRefresh,
+            onPage = onPage,
+        )
+        return book[typeId].orEmpty()
+    }
+
+    /**
+     * ESI returns every order in the structure. Parallel quote loads share one download
+     * instead of paging the same book once per type.
+     */
+    private suspend fun structureOrderBook(
+        structureId: Long,
+        characterId: Long,
+        forceRefresh: Boolean,
+        onPage: (page: Int, pageCount: Int) -> Unit,
+    ): Map<Int, List<MarketOrder>> {
+        val lookup = structureBookGate.withLock {
+            val inFlight = structureBookLoads[structureId]
+            if (inFlight != null) return@withLock StructureBookLookup.Pending(inFlight)
+            if (!forceRefresh) {
+                structureBooks[structureId]?.let { return@withLock StructureBookLookup.Ready(it) }
+            } else {
+                structureBooks.remove(structureId)
+            }
+            val deferred = CompletableDeferred<Map<Int, List<MarketOrder>>>()
+            structureBookLoads[structureId] = deferred
+            StructureBookLookup.Start(deferred)
+        }
+        return when (lookup) {
+            is StructureBookLookup.Ready -> lookup.ordersByType
+            is StructureBookLookup.Pending -> lookup.deferred.await()
+            is StructureBookLookup.Start -> {
+                try {
+                    val orders = fetchStructureOrderBook(structureId, characterId, onPage)
+                    val grouped = orders.groupBy { it.typeId }
+                    structureBookGate.withLock {
+                        if (structureBookLoads[structureId] === lookup.deferred) {
+                            structureBooks[structureId] = grouped
+                            structureBookLoads.remove(structureId)
+                        }
+                    }
+                    lookup.deferred.complete(grouped)
+                    grouped
+                } catch (error: Throwable) {
+                    structureBookGate.withLock {
+                        if (structureBookLoads[structureId] === lookup.deferred) {
+                            structureBookLoads.remove(structureId)
+                        }
+                    }
+                    lookup.deferred.completeExceptionally(error)
+                    throw error
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchStructureOrderBook(
+        structureId: Long,
+        characterId: Long,
         onPage: (page: Int, pageCount: Int) -> Unit,
     ): List<MarketOrder> {
         if (!hasStructureMarketScope(characterId)) throw MarketStructureAccessException()
-        val matched = mutableListOf<MarketOrder>()
+        val orders = mutableListOf<MarketOrder>()
         var page = MarketConfig.FIRST_PAGE
         var totalPages = MarketConfig.FIRST_PAGE
         while (page <= totalPages && page <= MarketConfig.MAX_ORDER_PAGES) {
@@ -435,12 +527,22 @@ internal class MarketRepository(
                 throw HttpException(response)
             }
             val chunk = response.body().orEmpty()
-            matched += chunk.filter { it.typeId == typeId }.map { it.toOrder() }
+            orders += chunk.map { it.toOrder() }
             totalPages = totalPages(response, chunk.size, page)
             onPage(page, totalPages)
             page++
         }
-        return matched
+        return orders
+    }
+
+    private sealed interface StructureBookLookup {
+        data class Ready(val ordersByType: Map<Int, List<MarketOrder>>) : StructureBookLookup
+        data class Pending(
+            val deferred: CompletableDeferred<Map<Int, List<MarketOrder>>>,
+        ) : StructureBookLookup
+        data class Start(
+            val deferred: CompletableDeferred<Map<Int, List<MarketOrder>>>,
+        ) : StructureBookLookup
     }
 
     private suspend fun fetchHistory(regionId: Int, typeId: Int): List<MarketHistoryPoint> =

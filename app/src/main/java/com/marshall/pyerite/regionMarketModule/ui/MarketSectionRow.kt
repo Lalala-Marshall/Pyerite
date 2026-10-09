@@ -48,6 +48,7 @@ internal fun MarketSectionItem(
     sectionItemCount: Int,
     showDivider: Boolean,
     titleTrailingContent: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     val radius = dimensionResource(R.dimen.detail_card_corner_radius)
     val shape = marketSectionShape(indexInSection, sectionItemCount, radius)
@@ -62,6 +63,7 @@ internal fun MarketSectionItem(
             model = model,
             showDivider = showDivider,
             titleTrailingContent = titleTrailingContent,
+            trailingContent = trailingContent,
         )
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,7 +44,9 @@ import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
 import com.marshall.pyerite.iconModule.manager.IconManager
 import com.marshall.pyerite.localization.ContentLanguage
 import com.marshall.pyerite.localization.LocaleController
+import com.marshall.pyerite.regionMarketModule.model.MarketConfig
 import com.marshall.pyerite.regionMarketModule.model.MarketHistoryRange
+import com.marshall.pyerite.regionMarketModule.model.MarketSelection
 import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
 import com.marshall.pyerite.regionMarketModule.viewModel.MarketDetailViewModel
 import com.marshall.pyerite.regionMarketModule.viewModel.MarketLocationViewModel
@@ -67,8 +70,9 @@ import java.util.Locale
 internal fun MarketDetailPage(
     navController: NavController,
     typeId: Int,
+    placeKey: String,
 ) {
-    val viewModel: MarketDetailViewModel = koinViewModel { parametersOf(typeId) }
+    val viewModel: MarketDetailViewModel = koinViewModel { parametersOf(typeId, placeKey) }
     val locationViewModel: MarketLocationViewModel = koinViewModel()
     val ui by viewModel.ui.collectAsState()
     val iconManager: IconManager = koinInject()
@@ -88,6 +92,15 @@ internal fun MarketDetailPage(
         Locale.CHINESE
     } else {
         Locale.US
+    }
+    val backStackHandle = navController.currentBackStackEntry?.savedStateHandle
+    if (backStackHandle != null) {
+        val adopted by backStackHandle
+            .getStateFlow(MarketConfig.PLACE_ADOPTED_KEY, false)
+            .collectAsState()
+        LaunchedEffect(adopted) {
+            if (adopted) viewModel.followGlobal()
+        }
     }
 
     PyeritePullToRefreshBox(onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
@@ -170,7 +183,12 @@ internal fun MarketDetailPage(
                             onClick = if (ui.loading) {
                                 null
                             } else {
-                                { navController.navigate(RegionMarketRoute.Orders.create(typeId)) }
+                                {
+                                    val ordersPlace = if (ui.followingGlobal) null else ui.displayPlaceKey
+                                    navController.navigate(
+                                        RegionMarketRoute.Orders.create(typeId, ordersPlace),
+                                    )
+                                }
                             },
                         ),
                         showDivider = true,
@@ -223,6 +241,22 @@ internal fun MarketDetailPage(
     if (showPicker && !ui.hideLocations) {
         MarketLocationSheet(
             viewModel = locationViewModel,
+            highlightedSelection = if (ui.followingGlobal) {
+                null
+            } else {
+                MarketSelection.parse(ui.displayPlaceKey)
+            },
+            onPlaceSelected = { selection ->
+                val wasDetached = !ui.followingGlobal
+                locationViewModel.select(selection)
+                if (wasDetached) {
+                    viewModel.followGlobal()
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        MarketConfig.PLACE_ADOPTED_KEY,
+                        true,
+                    )
+                }
+            },
             onDismiss = { showPicker = false },
         )
     }

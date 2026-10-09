@@ -2,6 +2,7 @@ package com.marshall.pyerite.ui.golbalComponents
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,6 +117,21 @@ data class BaseLazyColumnItemModel(
     val chevronExpanded: Boolean = false,
     /** Null disables click (no ripple). */
     val onClick: (() -> Unit)? = {},
+    /** Null disables long-press. */
+    val onLongClick: (() -> Unit)? = null,
+)
+
+private fun Modifier.rowClickModifier(
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+): Modifier = this.then(
+    when {
+        onClick != null && onLongClick != null ->
+            Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        onClick != null -> Modifier.clickable(onClick = onClick)
+        onLongClick != null -> Modifier.combinedClickable(onClick = {}, onLongClick = onLongClick)
+        else -> Modifier
+    },
 )
 
 @Composable
@@ -214,13 +230,7 @@ fun BaseLazyColumnItem(
                 Modifier
             },
         )
-        .then(
-            if (model.onClick != null) {
-                Modifier.clickable(onClick = model.onClick)
-            } else {
-                Modifier
-            },
-        )
+        .rowClickModifier(model.onClick, model.onLongClick)
 
     Column(modifier = rootModifier) {
         Row(

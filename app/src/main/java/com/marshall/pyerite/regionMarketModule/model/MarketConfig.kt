@@ -59,6 +59,9 @@ internal object MarketConfig {
     /** Below 0.1M, show the full ISK amount instead of a compact abbreviation. */
     const val FULL_PRICE_EXCLUSIVE_MAX = 100_000.0
 
+    /** SavedStateHandle flag: a child market page adopted the global place. */
+    const val PLACE_ADOPTED_KEY = "market_place_adopted"
+
     const val SECURITY_NEGATIVE_MAX = 0.0
     const val SECURITY_LOW_MAX = 0.5
     const val SECURITY_FORMAT = "%.1f"
