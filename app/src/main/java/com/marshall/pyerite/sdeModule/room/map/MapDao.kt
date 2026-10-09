@@ -93,4 +93,73 @@ interface MapDao {
         """,
     )
     suspend fun getSolarSystemPositions(): List<SolarSystemPositionRow>
+
+    @Query(
+        """
+        SELECT regionID, regionName, regionName_zh, regionName_en
+        FROM regions
+        WHERE regionID < :exclusiveMaxId
+        """,
+    )
+    suspend fun getRegionsBelow(exclusiveMaxId: Int): List<MarketRegionRow>
+
+    @Query(
+        """
+        SELECT regionID, regionName, regionName_zh, regionName_en
+        FROM regions
+        WHERE regionID = :regionId
+        LIMIT 1
+        """,
+    )
+    suspend fun getMarketRegion(regionId: Int): MarketRegionRow?
+
+    @Query(
+        """
+        SELECT
+            ss.solarSystemID AS solarSystemID,
+            ss.solarSystemName AS system_name,
+            ss.solarSystemName_zh AS system_zh_name,
+            ss.solarSystemName_en AS system_en_name,
+            COALESCE(u.system_security, ss.security_status) AS security_status,
+            u.region_id AS regionID,
+            r.regionName AS region_name,
+            r.regionName_zh AS region_zh_name,
+            r.regionName_en AS region_en_name
+        FROM solarsystems ss
+        LEFT JOIN universe u ON u.solarsystem_id = ss.solarSystemID
+        LEFT JOIN regions r ON r.regionID = u.region_id
+        WHERE ss.solarSystemID = :solarSystemId
+        LIMIT 1
+        """,
+    )
+    suspend fun getMarketSystemPlace(solarSystemId: Int): MarketSystemPlaceRow?
+
+    @Query(
+        """
+        SELECT
+            ss.solarSystemID AS solarSystemID,
+            ss.solarSystemName AS system_name,
+            ss.solarSystemName_zh AS system_zh_name,
+            ss.solarSystemName_en AS system_en_name,
+            COALESCE(u.system_security, ss.security_status) AS security_status,
+            u.region_id AS regionID,
+            r.regionName AS region_name,
+            r.regionName_zh AS region_zh_name,
+            r.regionName_en AS region_en_name
+        FROM solarsystems ss
+        LEFT JOIN universe u ON u.solarsystem_id = ss.solarSystemID
+        LEFT JOIN regions r ON r.regionID = u.region_id
+        WHERE ss.solarSystemID IN (:solarSystemIds)
+        """,
+    )
+    suspend fun getMarketSystemPlaces(solarSystemIds: List<Int>): List<MarketSystemPlaceRow>
+
+    @Query(
+        """
+        SELECT stationID, stationName, solarSystemID, security
+        FROM stations
+        WHERE stationID IN (:stationIds)
+        """,
+    )
+    suspend fun getMarketStations(stationIds: List<Long>): List<MarketStationRow>
 }

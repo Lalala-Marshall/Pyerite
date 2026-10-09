@@ -80,4 +80,32 @@ interface TypeDao {
         """,
     )
     suspend fun getVariantsByRoot(rootTypeId: Int): List<TypeEntity>
+
+    @Query(
+        """
+        SELECT * FROM types
+        WHERE marketGroupID = :marketGroupId
+        ORDER BY metaGroupID, type_id
+        """,
+    )
+    suspend fun getTypesByMarketGroup(marketGroupId: Int): List<TypeEntity>
+
+    @Query(
+        """
+        SELECT * FROM types
+        WHERE marketGroupID IN (:marketGroupIds)
+          AND (
+            name LIKE :pattern COLLATE NOCASE
+            OR zh_name LIKE :pattern COLLATE NOCASE
+            OR en_name LIKE :pattern COLLATE NOCASE
+          )
+        ORDER BY metaGroupID, type_id
+        LIMIT :limit
+        """,
+    )
+    suspend fun searchTypesInMarketGroups(
+        marketGroupIds: List<Int>,
+        pattern: String,
+        limit: Int,
+    ): List<TypeEntity>
 }

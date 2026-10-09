@@ -11,6 +11,7 @@
     <color name="hint_text">#C3C3C3</color>
     <color name="text_caption">#9AA3B8</color>
     <color name="hyperlink_text">#64B5F6</color>
+    <color name="market_price_refresh_icon">#64B5F6</color>
 
     <color name="resistance_em_active">#5AA4E8</color>
     <color name="resistance_em_inactive">#354F6E</color>

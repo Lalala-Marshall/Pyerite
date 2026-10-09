@@ -143,6 +143,35 @@ data class StationLocationRow(
     @ColumnInfo(name = "solarSystemID") val solarSystemId: Int? = null,
 )
 
+/** Trade-hub region row. Names are bilingual columns present in both language databases. */
+data class MarketRegionRow(
+    @ColumnInfo(name = "regionID") val regionId: Int,
+    @ColumnInfo(name = "regionName") val name: String?,
+    @ColumnInfo(name = "regionName_zh") val zhName: String?,
+    @ColumnInfo(name = "regionName_en") val enName: String?,
+)
+
+/** Solar system plus the region it belongs to, for market place resolution. */
+data class MarketSystemPlaceRow(
+    @ColumnInfo(name = "solarSystemID") val solarSystemId: Int,
+    @ColumnInfo(name = "system_name") val systemName: String?,
+    @ColumnInfo(name = "system_zh_name") val systemZhName: String?,
+    @ColumnInfo(name = "system_en_name") val systemEnName: String?,
+    @ColumnInfo(name = "security_status") val securityStatus: Double?,
+    @ColumnInfo(name = "regionID") val regionId: Int?,
+    @ColumnInfo(name = "region_name") val regionName: String?,
+    @ColumnInfo(name = "region_zh_name") val regionZhName: String?,
+    @ColumnInfo(name = "region_en_name") val regionEnName: String?,
+)
+
+/** NPC station fields used to label a market order location. */
+data class MarketStationRow(
+    @ColumnInfo(name = "stationID") val stationId: Long,
+    @ColumnInfo(name = "stationName") val name: String?,
+    @ColumnInfo(name = "solarSystemID") val solarSystemId: Int?,
+    @ColumnInfo(name = "security") val security: Double?,
+)
+
 /** Universe coordinates for nearest-system lookup (e.g. asset safety). */
 data class SolarSystemPositionRow(
     val solarSystemId: Long,

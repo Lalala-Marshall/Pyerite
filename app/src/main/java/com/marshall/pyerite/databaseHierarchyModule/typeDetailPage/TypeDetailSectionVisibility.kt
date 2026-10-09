@@ -1,6 +1,7 @@
 package com.marshall.pyerite.databaseHierarchyModule.typeDetailPage
 
 import com.marshall.pyerite.sdeModule.room.dogma.TypeAttributeDetail
+import com.marshall.pyerite.sdeModule.room.type.TypeEntity
 import com.marshall.pyerite.sdeModule.room.industry.TypeApplicableBlueprintCount
 import com.marshall.pyerite.sdeModule.room.industry.BlueprintCopyDetail
 import com.marshall.pyerite.sdeModule.room.industry.BlueprintInventionMaterial
@@ -12,6 +13,13 @@ import com.marshall.pyerite.sdeModule.room.industry.BlueprintManufacturingSkill
 import com.marshall.pyerite.sdeModule.room.industry.TypeBlueprintDetail
 import com.marshall.pyerite.sdeModule.room.industry.TypeRefiningOutputSummary
 import com.marshall.pyerite.sdeModule.room.industry.TypeRefiningSourceCount
+
+/**
+ * A type can be sold only when the SDE gives it a market group.
+ * Stars and other non-market types have none. An empty order book is separate:
+ * those types still have a market group, so the section stays.
+ */
+internal fun hasMarketSectionContent(type: TypeEntity?): Boolean = type?.marketGroupID != null
 
 internal fun hasDisplayableDogmaRows(attributes: List<TypeAttributeDetail>): Boolean =
     attributes.any { it.displayName != null && it.value != null }

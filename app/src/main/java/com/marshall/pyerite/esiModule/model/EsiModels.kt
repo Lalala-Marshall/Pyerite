@@ -499,6 +499,39 @@ internal data class EsiMarketPriceDto(
     @SerialName("adjusted_price") val adjustedPrice: Double? = null,
 )
 
+/** Query names for public and structure market order routes. */
+internal object EsiMarketQuery {
+    const val TYPE_ID = "type_id"
+    const val ORDER_TYPE = "order_type"
+    const val ORDER_TYPE_ALL = "all"
+}
+
+@Serializable
+internal data class EsiMarketOrderDto(
+    val duration: Int = 0,
+    @SerialName("is_buy_order") val isBuyOrder: Boolean = false,
+    val issued: String = "",
+    @SerialName("location_id") val locationId: Long = 0,
+    @SerialName("min_volume") val minVolume: Int = 1,
+    @SerialName("order_id") val orderId: Long = 0,
+    val price: Double = 0.0,
+    val range: String = "",
+    @SerialName("system_id") val systemId: Int? = null,
+    @SerialName("type_id") val typeId: Int = 0,
+    @SerialName("volume_remain") val volumeRemain: Long = 0,
+    @SerialName("volume_total") val volumeTotal: Long = 0,
+)
+
+@Serializable
+internal data class EsiMarketHistoryDto(
+    val average: Double = 0.0,
+    val date: String = "",
+    val highest: Double = 0.0,
+    val lowest: Double = 0.0,
+    @SerialName("order_count") val orderCount: Long = 0,
+    val volume: Long = 0,
+)
+
 @Serializable
 internal data class EsiLoyaltyPointsDto(
     @SerialName("corporation_id") val corporationId: Long,
