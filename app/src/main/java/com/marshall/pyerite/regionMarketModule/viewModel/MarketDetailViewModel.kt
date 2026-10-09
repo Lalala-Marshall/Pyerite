@@ -35,10 +35,13 @@ internal data class MarketDetailUiState(
     val hideLocations: Boolean = false,
     val range: MarketHistoryRange = MarketHistoryRange.YEAR,
     val typeId: Int = 0,
+    val followingGlobal: Boolean = true,
+    val displayPlaceKey: String = "",
 )
 
 internal class MarketDetailViewModel(
     private val typeId: Int,
+    initialPlaceKey: String?,
     private val repository: MarketRepository,
     private val selectionStore: SelectedMarketStore,
     private val localeController: LocaleController,
@@ -50,6 +53,11 @@ internal class MarketDetailViewModel(
     @Volatile
     private var loadToken: Int = 0
 
+    private val displayPlace = MarketDisplayPlace(
+        initialPlaceKey = initialPlaceKey,
+        selectionStore = selectionStore,
+    )
+
     init {
         viewModelScope.launch {
             val type = repository.type(typeId)
@@ -60,15 +68,19 @@ internal class MarketDetailViewModel(
                 iconFileName = type?.iconFilename,
             )
         }
-        viewModelScope.launch {
-            selectionStore.selection.collect { selection ->
-                load(selection, forceRefresh = false)
-            }
+        displayPlace.bind(viewModelScope) { selection ->
+            load(selection, forceRefresh = false)
         }
     }
 
     fun refresh() {
-        load(selectionStore.selection.value, forceRefresh = true)
+        load(displayPlace.refreshSelection(), forceRefresh = true)
+    }
+
+    fun followGlobal() {
+        displayPlace.followGlobal(viewModelScope) { selection ->
+            load(selection, forceRefresh = false)
+        }
     }
 
     fun setRange(range: MarketHistoryRange) {
@@ -85,6 +97,8 @@ internal class MarketDetailViewModel(
                 updatePageCount = 0,
                 failed = false,
                 structureAccessDenied = false,
+                followingGlobal = displayPlace.followingGlobal,
+                displayPlaceKey = selection.persistKey,
             )
             val resolved = repository.resolve(selection, typeId)
             _ui.value = _ui.value.copy(
@@ -131,6 +145,7 @@ internal class MarketDetailViewModel(
 
 internal class MarketOrdersViewModel(
     private val typeId: Int,
+    initialPlaceKey: String?,
     private val repository: MarketRepository,
     private val selectionStore: SelectedMarketStore,
     private val localeController: LocaleController,
@@ -156,21 +171,39 @@ internal class MarketOrdersViewModel(
     private val _structureAccessDenied = MutableStateFlow(false)
     val structureAccessDenied: StateFlow<Boolean> = _structureAccessDenied.asStateFlow()
 
+    private val _locationName = MutableStateFlow("")
+    val locationName: StateFlow<String> = _locationName.asStateFlow()
+
+    private val _followingGlobal = MutableStateFlow(initialPlaceKey.isNullOrBlank())
+    val followingGlobal: StateFlow<Boolean> = _followingGlobal.asStateFlow()
+
+    private val _displayPlaceKey = MutableStateFlow(initialPlaceKey.orEmpty())
+    val displayPlaceKey: StateFlow<String> = _displayPlaceKey.asStateFlow()
+
     private var loadJob: Job? = null
+
+    private val displayPlace = MarketDisplayPlace(
+        initialPlaceKey = initialPlaceKey,
+        selectionStore = selectionStore,
+    )
 
     init {
         viewModelScope.launch {
             _title.value = repository.type(typeId)?.displayName(localeController).orEmpty()
         }
-        viewModelScope.launch {
-            selectionStore.selection.collect { selection ->
-                load(selection, forceRefresh = false)
-            }
+        displayPlace.bind(viewModelScope) { selection ->
+            load(selection, forceRefresh = false)
         }
     }
 
     fun refresh() {
-        load(selectionStore.selection.value, forceRefresh = true)
+        load(displayPlace.refreshSelection(), forceRefresh = true)
+    }
+
+    fun followGlobal() {
+        displayPlace.followGlobal(viewModelScope) { selection ->
+            load(selection, forceRefresh = false)
+        }
     }
 
     private fun load(selection: MarketSelection, forceRefresh: Boolean) {
@@ -178,7 +211,10 @@ internal class MarketOrdersViewModel(
         loadJob = viewModelScope.launch {
             _loading.value = true
             _failed.value = false
+            _followingGlobal.value = displayPlace.followingGlobal
+            _displayPlaceKey.value = selection.persistKey
             val resolved = repository.resolve(selection, typeId)
+            _locationName.value = resolved.displayName
             _hideLocations.value = resolved.hideLocations
             try {
                 val quote = repository.loadQuote(

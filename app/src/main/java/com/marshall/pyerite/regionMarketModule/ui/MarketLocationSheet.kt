@@ -85,6 +85,8 @@ private const val DRAG_STEP_PX = 72f
 internal fun MarketLocationSheet(
     viewModel: MarketLocationViewModel,
     onDismiss: () -> Unit,
+    highlightedSelection: MarketSelection? = null,
+    onPlaceSelected: ((MarketSelection) -> Unit)? = null,
 ) {
     val ui by viewModel.ui.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -124,9 +126,14 @@ internal fun MarketLocationSheet(
                     page = MarketSheetPage.AddStructure
                 },
                 onSelect = { selection ->
-                    viewModel.select(selection)
+                    if (onPlaceSelected != null) {
+                        onPlaceSelected(selection)
+                    } else {
+                        viewModel.select(selection)
+                    }
                     onDismiss()
                 },
+                highlightedSelection = highlightedSelection,
                 iconManager = iconManager,
             )
             MarketSheetPage.AddStructure -> AddStructurePage(
@@ -145,9 +152,11 @@ private fun PickerPage(
     onDone: () -> Unit,
     onAddStructure: () -> Unit,
     onSelect: (MarketSelection) -> Unit,
+    highlightedSelection: MarketSelection?,
     iconManager: IconManager,
 ) {
     val ui by viewModel.ui.collectAsState()
+    val selectedPlace = highlightedSelection ?: ui.selected
     val query = ui.query
     val filteredSystems = ui.majorSystems.filter { system ->
         query.isBlank() || viewModel.placeName(system.systemName, system.systemZhName, system.systemEnName)
@@ -194,7 +203,7 @@ private fun PickerPage(
                             security = label.security,
                             iconFileName = label.iconFileName,
                             iconManager = iconManager,
-                            selected = ui.selected.persistKey == place.persistKey,
+                            selected = selectedPlace.persistKey == place.persistKey,
                             editing = editing,
                             pinned = true,
                             onClick = { onSelect(place) },
@@ -255,7 +264,7 @@ private fun PickerPage(
                                 structure = structure,
                                 systemName = viewModel.systemName(structure.systemId),
                                 iconManager = iconManager,
-                                selected = (ui.selected as? MarketSelection.Structure)?.structureId ==
+                                selected = (selectedPlace as? MarketSelection.Structure)?.structureId ==
                                     structure.structureId,
                                 editing = editing,
                                 pinned = ui.pinned.any {
@@ -288,7 +297,7 @@ private fun PickerPage(
                             SystemRow(
                                 system = system,
                                 viewModel = viewModel,
-                                selected = (ui.selected as? MarketSelection.System)?.systemId == system.systemId,
+                                selected = (selectedPlace as? MarketSelection.System)?.systemId == system.systemId,
                                 editing = editing,
                                 pinned = ui.pinned.any {
                                     (it as? MarketSelection.System)?.systemId == system.systemId
@@ -310,7 +319,7 @@ private fun PickerPage(
                             RegionRow(
                                 region = region,
                                 viewModel = viewModel,
-                                selected = (ui.selected as? MarketSelection.Region)?.regionId == region.regionId,
+                                selected = (selectedPlace as? MarketSelection.Region)?.regionId == region.regionId,
                                 editing = editing,
                                 onClick = { onSelect(MarketSelection.Region(region.regionId)) },
                                 onPin = { viewModel.pin(MarketSelection.Region(region.regionId)) },

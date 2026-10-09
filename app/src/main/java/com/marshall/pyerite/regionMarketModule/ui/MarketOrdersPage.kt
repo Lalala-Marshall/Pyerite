@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,15 +23,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.marshall.pyerite.R
+import com.marshall.pyerite.regionMarketModule.model.MarketConfig
 import com.marshall.pyerite.regionMarketModule.model.MarketOrder
+import com.marshall.pyerite.regionMarketModule.model.MarketSelection
+import com.marshall.pyerite.regionMarketModule.viewModel.MarketLocationViewModel
 import com.marshall.pyerite.regionMarketModule.viewModel.MarketOrdersViewModel
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemHint
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
-import com.marshall.pyerite.ui.golbalComponents.PyeriteSegmentedControl
-import com.marshall.pyerite.ui.golbalComponents.PyeriteSegmentedOption
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
 import com.marshall.pyerite.ui.golbalComponents.PyeritePullToRefreshBox
+import com.marshall.pyerite.ui.golbalComponents.PyeriteSegmentedControl
+import com.marshall.pyerite.ui.golbalComponents.PyeriteSegmentedOption
+import com.marshall.pyerite.ui.golbalComponents.PyeriteTopBarActionItem
 import com.marshall.pyerite.ui.golbalComponents.rememberLazyListTitleCollapsed
 import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
 import com.marshall.pyerite.util.NumberDisplayFormatter
@@ -42,8 +49,10 @@ private const val BUY_PAGE = 1
 internal fun MarketOrdersPage(
     navController: NavController,
     typeId: Int,
+    placeKey: String,
 ) {
-    val viewModel: MarketOrdersViewModel = koinViewModel { parametersOf(typeId) }
+    val viewModel: MarketOrdersViewModel = koinViewModel { parametersOf(typeId, placeKey) }
+    val locationViewModel: MarketLocationViewModel = koinViewModel()
     val orders by viewModel.orders.collectAsState()
     val locations by viewModel.locations.collectAsState()
     val title by viewModel.title.collectAsState()
@@ -51,9 +60,13 @@ internal fun MarketOrdersPage(
     val failed by viewModel.failed.collectAsState()
     val hideLocations by viewModel.hideLocations.collectAsState()
     val denied by viewModel.structureAccessDenied.collectAsState()
+    val locationName by viewModel.locationName.collectAsState()
+    val followingGlobal by viewModel.followingGlobal.collectAsState()
+    val displayPlaceKey by viewModel.displayPlaceKey.collectAsState()
     val listState = rememberLazyListState()
     val showCollapsedTitle = rememberLazyListTitleCollapsed(listState)
     val onBack = navController.rememberNavigateUpAction()
+    var showPicker by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable { mutableIntStateOf(SELL_PAGE) }
     val sellOrders = orders.filter { !it.isBuyOrder }.sortedBy { it.price }
     val buyOrders = orders.filter { it.isBuyOrder }.sortedByDescending { it.price }
@@ -67,6 +80,20 @@ internal fun MarketOrdersPage(
             title = title,
             showCollapsedTitle = showCollapsedTitle,
             onBack = onBack,
+            endActions = if (hideLocations) {
+                emptyList()
+            } else {
+                listOf(
+                    PyeriteTopBarActionItem(
+                        onClick = { showPicker = true },
+                        icon = Icons.Filled.Place,
+                        contentDescription = stringResource(R.string.market_select_region),
+                        label = locationName.ifBlank { unknown },
+                        showIcon = false,
+                        accentColor = colorResource(R.color.hyperlink_text),
+                    ),
+                )
+            },
         ) { topBarPadding ->
             Column(
                 modifier = Modifier
@@ -129,6 +156,28 @@ internal fun MarketOrdersPage(
                 }
             }
         }
+    }
+    if (showPicker && !hideLocations) {
+        MarketLocationSheet(
+            viewModel = locationViewModel,
+            highlightedSelection = if (followingGlobal) {
+                null
+            } else {
+                MarketSelection.parse(displayPlaceKey)
+            },
+            onPlaceSelected = { selection ->
+                val wasDetached = !followingGlobal
+                locationViewModel.select(selection)
+                if (wasDetached) {
+                    viewModel.followGlobal()
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        MarketConfig.PLACE_ADOPTED_KEY,
+                        true,
+                    )
+                }
+            },
+            onDismiss = { showPicker = false },
+        )
     }
 }
 

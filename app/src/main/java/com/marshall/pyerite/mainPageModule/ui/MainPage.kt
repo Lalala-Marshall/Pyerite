@@ -382,6 +382,9 @@ fun MainPage(
                         MainPageRegionMarketItem(
                             onClick = { navController.navigate(RegionMarketRoute.Root.route) },
                         )
+                        MainPageMarketWatchlistItem(
+                            onClick = { navController.navigate(RegionMarketRoute.Watchlists.route) },
+                        )
                     }
                 }
             }
@@ -445,6 +448,19 @@ private fun MainPageRegionMarketItem(onClick: () -> Unit) {
             iconRes = R.drawable.ic_region_market,
             iconTint = androidx.compose.ui.graphics.Color.Unspecified,
             itemName = stringResource(R.string.region_market),
+            onClick = onClick,
+        ),
+        showDivider = true,
+    )
+}
+
+@Composable
+private fun MainPageMarketWatchlistItem(onClick: () -> Unit) {
+    BaseLazyColumnItem(
+        model = BaseLazyColumnItemModel(
+            iconRes = R.drawable.ic_market_watchlist,
+            iconTint = androidx.compose.ui.graphics.Color.Unspecified,
+            itemName = stringResource(R.string.market_watchlist),
             onClick = onClick,
         ),
         showDivider = false,
