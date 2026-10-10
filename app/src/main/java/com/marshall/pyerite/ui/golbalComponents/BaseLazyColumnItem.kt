@@ -56,6 +56,8 @@ data class BaseLazyColumnItemHint(
     val trailingText: String = "",
     val trailingColor: Color? = null,
     val iconUrl: String? = null,
+    /** Several leading images on one hint line, e.g. merged character portraits. */
+    val iconUrls: List<String> = emptyList(),
     val iconRes: Int? = null,
     /** SDE icon pack filename; resolved via [IconManager] when [iconUrl] / [iconRes] are unset. */
     val iconFileName: String? = null,
@@ -216,10 +218,7 @@ fun BaseLazyColumnItem(
     val defaultHintColor = colorResource(R.color.hint_text)
     val trailingColor = model.trailingValueColor ?: defaultHintColor
     val showHintLeadingColumn = titleLeadingContent != null ||
-        (model.alignHintLeadingColumn &&
-            hints.any {
-                !it.iconUrl.isNullOrBlank() || it.iconRes != null || !it.iconFileName.isNullOrBlank()
-            })
+        (model.alignHintLeadingColumn && hints.any { it.hasLeadingIcon() })
 
     val rootModifier = modifier
         .fillMaxWidth()
@@ -343,9 +342,8 @@ fun BaseLazyColumnItem(
                         }
                         hints.forEach { hint ->
                             val hintClick = hint.onClick
-                            val hintHasIcon = !hint.iconUrl.isNullOrBlank() ||
-                                hint.iconRes != null ||
-                                !hint.iconFileName.isNullOrBlank()
+                            val portraitUrls = hint.iconUrls.filter { it.isNotBlank() }
+                            val hintHasIcon = hint.hasLeadingIcon()
                             val lineFontSize = if (hint.emphasized) {
                                 emphasizedHintTextSize
                             } else {
@@ -365,7 +363,27 @@ fun BaseLazyColumnItem(
                                 },
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (showHintLeadingColumn || hintHasIcon) {
+                                if (portraitUrls.isNotEmpty()) {
+                                    portraitUrls.forEachIndexed { index, url ->
+                                        if (index > 0) {
+                                            Spacer(modifier = Modifier.width(hintIconGap))
+                                        }
+                                        BaseLazyColumnItemHintIcon(
+                                            iconUrl = url,
+                                            iconRes = null,
+                                            iconFileName = null,
+                                            size = hintIconSize,
+                                            iconManager = iconManager,
+                                        )
+                                    }
+                                    if (
+                                        hint.text.isNotBlank() ||
+                                        hint.annotatedText != null ||
+                                        hint.trailingText.isNotEmpty()
+                                    ) {
+                                        Spacer(modifier = Modifier.width(hintIconGap))
+                                    }
+                                } else if (showHintLeadingColumn || hintHasIcon) {
                                     Box(
                                         modifier = Modifier.size(hintIconSize),
                                         contentAlignment = Alignment.Center,
@@ -381,48 +399,53 @@ fun BaseLazyColumnItem(
                                     Spacer(modifier = Modifier.width(hintIconGap))
                                 }
                                 val annotated = hint.annotatedText
-                                val startModifier = Modifier
-                                    .weight(
-                                        1f,
-                                        fill = hintTrailing.isNotEmpty() ||
-                                            annotated != null ||
-                                            hintClick == null,
-                                    )
-                                    .then(
-                                        if (hintClick != null && annotated == null) {
-                                            Modifier.clickable(onClick = hintClick)
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
-                                if (annotated != null) {
-                                    Text(
-                                        text = annotated,
-                                        fontSize = lineFontSize,
-                                        lineHeight = lineLineHeight,
-                                        maxLines = if (hintTrailing.isNotEmpty()) 1 else Int.MAX_VALUE,
-                                        overflow = if (hintTrailing.isNotEmpty()) {
-                                            TextOverflow.Ellipsis
-                                        } else {
-                                            TextOverflow.Clip
-                                        },
-                                        modifier = startModifier,
-                                    )
-                                } else {
-                                    Text(
-                                        text = hint.text,
-                                        color = hint.color
-                                            ?: if (hintClick != null) {
-                                                colorResource(R.color.hyperlink_text)
+                                val showHintText = annotated != null ||
+                                    hint.text.isNotBlank() ||
+                                    hintTrailing.isNotEmpty()
+                                if (showHintText) {
+                                    val startModifier = Modifier
+                                        .weight(
+                                            1f,
+                                            fill = hintTrailing.isNotEmpty() ||
+                                                annotated != null ||
+                                                hintClick == null,
+                                        )
+                                        .then(
+                                            if (hintClick != null && annotated == null) {
+                                                Modifier.clickable(onClick = hintClick)
                                             } else {
-                                                defaultHintColor
+                                                Modifier
                                             },
-                                        fontSize = lineFontSize,
-                                        lineHeight = lineLineHeight,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = startModifier,
-                                    )
+                                        )
+                                    if (annotated != null) {
+                                        Text(
+                                            text = annotated,
+                                            fontSize = lineFontSize,
+                                            lineHeight = lineLineHeight,
+                                            maxLines = if (hintTrailing.isNotEmpty()) 1 else Int.MAX_VALUE,
+                                            overflow = if (hintTrailing.isNotEmpty()) {
+                                                TextOverflow.Ellipsis
+                                            } else {
+                                                TextOverflow.Clip
+                                            },
+                                            modifier = startModifier,
+                                        )
+                                    } else {
+                                        Text(
+                                            text = hint.text,
+                                            color = hint.color
+                                                ?: if (hintClick != null) {
+                                                    colorResource(R.color.hyperlink_text)
+                                                } else {
+                                                    defaultHintColor
+                                                },
+                                            fontSize = lineFontSize,
+                                            lineHeight = lineLineHeight,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = startModifier,
+                                        )
+                                    }
                                 }
                                 if (hintTrailing.isNotEmpty()) {
                                     Spacer(modifier = Modifier.width(titleValueGap))
@@ -598,6 +621,12 @@ private fun BaseLazyColumnItemLeadingIcon(
         }
     }
 }
+
+private fun BaseLazyColumnItemHint.hasLeadingIcon(): Boolean =
+    iconUrls.any { it.isNotBlank() } ||
+        !iconUrl.isNullOrBlank() ||
+        iconRes != null ||
+        !iconFileName.isNullOrBlank()
 
 private fun BaseLazyColumnItemModel.resolvedHints(): List<BaseLazyColumnItemHint> =
     when {

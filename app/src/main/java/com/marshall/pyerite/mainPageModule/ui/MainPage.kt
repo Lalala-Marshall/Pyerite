@@ -46,6 +46,8 @@ import com.marshall.pyerite.corporationModule.structures.navHost.CorporationStru
 import com.marshall.pyerite.corporationModule.structures.ui.MainPageCorporationStructuresItem
 import com.marshall.pyerite.corporationModule.wallet.navHost.CorporationWalletRoute
 import com.marshall.pyerite.corporationModule.wallet.ui.MainPageCorporationWalletItem
+import com.marshall.pyerite.personalAssetsModule.navHost.PersonalAssetsRoute
+import com.marshall.pyerite.personalAssetsModule.ui.MainPagePersonalAssetsItem
 import com.marshall.pyerite.personalPropertyModule.navHost.PersonalPropertyRoute
 import com.marshall.pyerite.personalPropertyModule.ui.MainPagePersonalPropertyItem
 import com.marshall.pyerite.characterClonesModule.navHost.CharacterClonesRoute
@@ -144,6 +146,7 @@ fun MainPage(
     val pageTitle = stringResource(R.string.main_page)
     val characterSectionTitle = stringResource(R.string.character)
     val corporationSectionTitle = stringResource(R.string.corporation)
+    val businessSectionTitle = stringResource(R.string.business)
     val dataSectionTitle = stringResource(R.string.data)
     val showCorporationSection =
         currentLoggedInCharacter?.hasCorporationManagementAccess == true
@@ -384,6 +387,24 @@ fun MainPage(
                         )
                         MainPageMarketWatchlistItem(
                             onClick = { navController.navigate(RegionMarketRoute.Watchlists.route) },
+                        )
+                    }
+                }
+                item(key = "business_section_header") {
+                    MainPageSectionHeader(title = businessSectionTitle)
+                }
+                item(key = "business_section_entries") {
+                    MainPageSectionCard(
+                        bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
+                    ) {
+                        MainPagePersonalAssetsItem(
+                            onClick = {
+                                val characterId = currentCharacter?.characterId
+                                    ?: return@MainPagePersonalAssetsItem
+                                navController.navigate(
+                                    PersonalAssetsRoute.Regions.create(characterId),
+                                )
+                            },
                         )
                     }
                 }

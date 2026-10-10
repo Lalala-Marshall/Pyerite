@@ -3,8 +3,6 @@ package com.marshall.pyerite.personalPropertyModule.model
 /** Pagination, SDE filters, and cache TTL for personal-property ESI loads. */
 internal object PersonalPropertyConfig {
     const val FIRST_PAGE = 1
-    const val ASSETS_PAGE_SIZE = 1000
-    const val ASSETS_MAX_PAGES = 50
     const val CONTRACTS_PAGE_SIZE = 1000
     const val CONTRACTS_MAX_PAGES = 10
     const val CONTRACT_ITEMS_CONCURRENCY = 4

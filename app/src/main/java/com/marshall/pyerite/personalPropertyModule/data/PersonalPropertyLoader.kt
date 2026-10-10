@@ -2,14 +2,14 @@ package com.marshall.pyerite.personalPropertyModule.data
 
 import com.marshall.pyerite.esiModule.api.EsiCharacterApi
 import com.marshall.pyerite.esiModule.api.EsiMarketApi
+import com.marshall.pyerite.esiModule.data.CharacterAssetListCache
+import com.marshall.pyerite.esiModule.data.CharacterAssetListResult
 import com.marshall.pyerite.esiModule.model.EsiCharacterAssetDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterContractDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterOrderDto
 import com.marshall.pyerite.esiModule.model.EsiContractItemDto
 import com.marshall.pyerite.esiModule.model.EsiContractStatusValue
 import com.marshall.pyerite.esiModule.model.EsiContractTypeValue
-import com.marshall.pyerite.esiModule.model.EsiHttpStatus
-import com.marshall.pyerite.esiModule.model.EsiPagedQuery
 import com.marshall.pyerite.eveAuthModule.token.EveTokenManager
 import com.marshall.pyerite.personalPropertyModule.model.PersonalPropertyBucket
 import com.marshall.pyerite.personalPropertyModule.model.PersonalPropertyConfig
@@ -29,8 +29,6 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import retrofit2.HttpException
-import retrofit2.Response
 
 /**
  * Aggregates wallet, assets, plugged implants, market orders, and item-exchange
@@ -41,6 +39,7 @@ internal class PersonalPropertyLoader(
     private val characterApi: EsiCharacterApi,
     private val marketApi: EsiMarketApi,
     private val roomProvider: RoomProvider,
+    private val assetListCache: CharacterAssetListCache,
 ) {
     @Volatile
     private var cachedPrices: Map<Int, Double>? = null
@@ -50,11 +49,14 @@ internal class PersonalPropertyLoader(
 
     private val pricesLock = Mutex()
 
-    suspend fun load(characterId: Long): PersonalPropertySnapshot = withContext(Dispatchers.IO) {
+    suspend fun load(
+        characterId: Long,
+        forceRefresh: Boolean = false,
+    ): PersonalPropertySnapshot = withContext(Dispatchers.IO) {
         coroutineScope {
             val pricesDeferred = async { loadPrices() }
             val walletDeferred = async { loadWallet(characterId) }
-            val assetsDeferred = async { loadAssets(characterId) }
+            val assetsDeferred = async { loadAssets(characterId, forceRefresh) }
             val implantsDeferred = async { loadImplantTypeIds(characterId) }
             val ordersDeferred = async { loadOrders(characterId) }
             val contractsDeferred = async { loadContracts(characterId) }
@@ -138,47 +140,16 @@ internal class PersonalPropertyLoader(
         }
     }.getOrNull()
 
-    private suspend fun loadAssets(characterId: Long): List<EsiCharacterAssetDto>? = runCatching {
-        val byItemId = LinkedHashMap<Long, EsiCharacterAssetDto>()
-        var page = PersonalPropertyConfig.FIRST_PAGE
-        var totalPages = PersonalPropertyConfig.FIRST_PAGE
-        while (page <= totalPages && page <= PersonalPropertyConfig.ASSETS_MAX_PAGES) {
-            val response = fetchAssetsPage(characterId, page)
-            if (!response.isSuccessful) {
-                if (page > PersonalPropertyConfig.FIRST_PAGE &&
-                    response.code() == EsiHttpStatus.NOT_FOUND
-                ) {
-                    break
-                }
-                throw HttpException(response)
-            }
-            val chunk = response.body().orEmpty()
-            chunk.forEach { asset ->
-                byItemId[asset.itemId] = asset
-            }
-            val headerPages = response.headers()[EsiPagedQuery.PAGES_HEADER]?.toIntOrNull()
-            totalPages = when {
-                headerPages != null -> headerPages
-                chunk.size < PersonalPropertyConfig.ASSETS_PAGE_SIZE -> page
-                else -> page + 1
-            }
-            page++
-        }
-        byItemId.values.toList()
-    }.getOrNull()
-
-    private suspend fun fetchAssetsPage(
+    private suspend fun loadAssets(
         characterId: Long,
-        page: Int,
-    ): Response<List<EsiCharacterAssetDto>> {
-        return tokenManager.executeWithAuthRetry(characterId) { auth ->
-            val response = characterApi.fetchAssets(characterId, auth, page)
-            if (response.code() == EsiHttpStatus.UNAUTHORIZED) {
-                throw HttpException(response)
-            }
-            response
+        forceRefresh: Boolean,
+    ): List<EsiCharacterAssetDto>? =
+        when (val result = assetListCache.load(characterId, forceRefresh)) {
+            is CharacterAssetListResult.Ready -> result.assets
+            CharacterAssetListResult.Forbidden,
+            CharacterAssetListResult.Failed,
+            -> null
         }
-    }
 
     private suspend fun loadImplantTypeIds(characterId: Long): List<Int>? {
         val active = runCatching {

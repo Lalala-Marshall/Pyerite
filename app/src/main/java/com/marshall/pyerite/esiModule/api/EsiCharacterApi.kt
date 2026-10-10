@@ -4,6 +4,8 @@ import com.marshall.pyerite.esiModule.model.EsiCalendarEventDetailDto
 import com.marshall.pyerite.esiModule.model.EsiCalendarEventSummaryDto
 import com.marshall.pyerite.esiModule.model.EsiCalendarQuery
 import com.marshall.pyerite.esiModule.model.EsiCharacterAssetDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationAssetLocationDto
+import com.marshall.pyerite.esiModule.model.EsiCorporationAssetNameDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterAttributesDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterClonesDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterContractDto
@@ -206,6 +208,22 @@ internal interface EsiCharacterApi {
         @Header("Authorization") authorization: String,
         @Query(EsiPagedQuery.PAGE) page: Int,
     ): Response<List<EsiCharacterAssetDto>>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("characters/{character_id}/assets/names")
+    suspend fun fetchAssetNames(
+        @Path("character_id") characterId: Long,
+        @Header("Authorization") authorization: String,
+        @Body itemIds: List<Long>,
+    ): List<EsiCorporationAssetNameDto>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("characters/{character_id}/assets/locations")
+    suspend fun fetchAssetLocations(
+        @Path("character_id") characterId: Long,
+        @Header("Authorization") authorization: String,
+        @Body itemIds: List<Long>,
+    ): List<EsiCorporationAssetLocationDto>
 
     @Headers("Accept: application/json")
     @GET("characters/{character_id}/orders")

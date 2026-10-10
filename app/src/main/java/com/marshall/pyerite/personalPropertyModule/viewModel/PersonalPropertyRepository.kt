@@ -54,7 +54,7 @@ internal class PersonalPropertyRepository(
             if (!forceRefresh) {
                 snapshotByCharacterId[characterId]?.let { return@withLock it }
             }
-            val loaded = loader.load(characterId)
+            val loaded = loader.load(characterId, forceRefresh = forceRefresh)
             snapshotByCharacterId[characterId] = loaded
             loaded
         }
