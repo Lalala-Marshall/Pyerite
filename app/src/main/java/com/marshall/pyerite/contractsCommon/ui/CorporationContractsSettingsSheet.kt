@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.ui
+package com.marshall.pyerite.contractsCommon.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -23,10 +23,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractDisplayLimit
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractStatus
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractType
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractsFilter
+import com.marshall.pyerite.contractsCommon.model.CorporationContractDisplayLimit
+import com.marshall.pyerite.contractsCommon.model.CorporationContractStatus
+import com.marshall.pyerite.contractsCommon.model.CorporationContractType
+import com.marshall.pyerite.contractsCommon.model.CorporationContractsFilter
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel

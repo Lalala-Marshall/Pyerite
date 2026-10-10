@@ -1,8 +1,9 @@
-package com.marshall.pyerite.corporationModule.contracts.viewModel
+package com.marshall.pyerite.contractListModule.viewModel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.marshall.pyerite.contractsCommon.model.ContractListScope
 import com.marshall.pyerite.contractsCommon.model.CorporationContract
 import com.marshall.pyerite.contractsCommon.model.CorporationContractDisplayLimit
 import com.marshall.pyerite.contractsCommon.model.CorporationContractGroupBy
@@ -18,9 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal class CorporationContractsViewModel(
+internal class ContractListViewModel(
     savedStateHandle: SavedStateHandle,
-    private val repository: CorporationContractsRepository,
+    private val repository: ContractListRepository,
     private val settingsStore: ContractsListSettingsStore,
 ) : ViewModel() {
 
@@ -29,7 +30,7 @@ internal class CorporationContractsViewModel(
     }
 
     private val _uiState = MutableStateFlow(initialUiState())
-    val uiState: StateFlow<CorporationContractsUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ContractListUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -45,6 +46,10 @@ internal class CorporationContractsViewModel(
     fun refresh() {
         if (_uiState.value.isLoading) return
         load(forceRefresh = true)
+    }
+
+    fun setScope(scope: ContractListScope) {
+        _uiState.update { it.copy(scope = scope) }
     }
 
     fun setGroupBy(groupBy: CorporationContractGroupBy) {
@@ -83,17 +88,17 @@ internal class CorporationContractsViewModel(
         settingsStore.update { it.copy(displayLimit = limit) }
     }
 
-    private fun initialUiState(): CorporationContractsUiState {
+    private fun initialUiState(): ContractListUiState {
         val cached = repository.cachedContracts(characterId)
         val filter = CorporationContractsFilter().withSettings(settingsStore.settings.value)
         return if (cached != null) {
-            CorporationContractsUiState(
+            ContractListUiState(
                 contracts = cached.contracts,
                 filter = filter,
                 isLoading = false,
             )
         } else {
-            CorporationContractsUiState(filter = filter)
+            ContractListUiState(filter = filter)
         }
     }
 
@@ -132,9 +137,10 @@ internal class CorporationContractsViewModel(
     }
 }
 
-internal data class CorporationContractsUiState(
+internal data class ContractListUiState(
     val contracts: List<CorporationContract> = emptyList(),
     val filter: CorporationContractsFilter = CorporationContractsFilter(),
+    val scope: ContractListScope = ContractListScope.CHARACTER,
     val isLoading: Boolean = true,
     val loadFailed: Boolean = false,
     val permissionDenied: Boolean = false,

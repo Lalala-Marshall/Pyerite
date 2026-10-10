@@ -909,6 +909,16 @@
     <string name="corporation_assets_flag_planet_surface">Planet surface</string>
     <string name="corporation_assets_flag_secondary_storage">Secondary storage</string>
     <string name="corporation_assets_flag_other">Other</string>
+    <string name="contracts_list">Contract list</string>
+    <string name="contracts_list_scope_character">Character</string>
+    <string name="contracts_list_scope_corporation">Corporation</string>
+    <string name="contracts_list_scope_alliance">Alliance</string>
+    <string name="contracts_list_count_total">%1$s contracts in total</string>
+    <string name="contracts_list_count_filtered">%1$s contracts in total, %2$s after filtering</string>
+    <string name="contracts_list_count_hint">%1$s contracts in total, %2$s after filtering, %3$s shown</string>
+    <string name="contracts_list_load_failed">Could not load contracts</string>
+    <string name="contracts_list_permission_denied">No permission to view contracts</string>
+    <string name="contracts_list_detail_load_failed">Could not load contract details</string>
     <string name="corporation_contracts">Corporation-issued contracts</string>
     <string name="corporation_contracts_empty">No matching contracts</string>
     <string name="corporation_contracts_load_failed">Could not load corporation contracts</string>
@@ -940,6 +950,7 @@
     <string name="corporation_contracts_title_none">Title: [None]</string>
     <string name="corporation_contracts_volume">Volume %1$s m³</string>
     <string name="corporation_contracts_expires">%1$s (%2$dd)</string>
+    <string name="corporation_contracts_amount_separator">&#160;&#160;</string>
     <string name="corporation_contracts_amount_positive">+%1$s</string>
     <string name="corporation_contracts_amount_negative">-%1$s</string>
     <string name="corporation_contracts_limit_section">Display limit</string>

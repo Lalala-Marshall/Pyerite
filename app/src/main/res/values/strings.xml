@@ -911,6 +911,16 @@
     <string name="corporation_assets_flag_planet_surface">行星表面</string>
     <string name="corporation_assets_flag_secondary_storage">次级存储</string>
     <string name="corporation_assets_flag_other">其他</string>
+    <string name="contracts_list">合同列表</string>
+    <string name="contracts_list_scope_character">当前角色</string>
+    <string name="contracts_list_scope_corporation">当前军团</string>
+    <string name="contracts_list_scope_alliance">当前联盟</string>
+    <string name="contracts_list_count_total">共%1$s个合同</string>
+    <string name="contracts_list_count_filtered">共%1$s个合同，过滤后%2$s个</string>
+    <string name="contracts_list_count_hint">共%1$s个合同，过滤后%2$s个，显示%3$s个</string>
+    <string name="contracts_list_load_failed">合同加载失败</string>
+    <string name="contracts_list_permission_denied">没有查看合同的权限</string>
+    <string name="contracts_list_detail_load_failed">合同详情加载失败</string>
     <string name="corporation_contracts">军团发起的合同</string>
     <string name="corporation_contracts_empty">没有符合条件的合同</string>
     <string name="corporation_contracts_load_failed">军团合同加载失败</string>
@@ -942,6 +952,7 @@
     <string name="corporation_contracts_title_none">标题：[无]</string>
     <string name="corporation_contracts_volume">体积 %1$s m³</string>
     <string name="corporation_contracts_expires">%1$s（%2$d天）</string>
+    <string name="corporation_contracts_amount_separator">&#160;&#160;</string>
     <string name="corporation_contracts_amount_positive">+%1$s</string>
     <string name="corporation_contracts_amount_negative">-%1$s</string>
     <string name="corporation_contracts_limit_section">合同显示限制</string>

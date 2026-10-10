@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.ui
+package com.marshall.pyerite.contractsCommon.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractsConfig
+import com.marshall.pyerite.contractsCommon.model.CorporationContractsConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

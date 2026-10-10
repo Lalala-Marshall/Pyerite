@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.model
+package com.marshall.pyerite.contractsCommon.model
 
 import androidx.annotation.StringRes
 import com.marshall.pyerite.R
@@ -96,6 +96,34 @@ internal enum class CorporationContractGroupBy {
     COMPLETED,
 }
 
+/** Contract-list filter: current character, their corporation, or their alliance. */
+internal enum class ContractListScope {
+    CHARACTER,
+    CORPORATION,
+    ALLIANCE,
+}
+
+/**
+ * Scopes for one row of `GET /corporations/{corporation_id}/contracts/`.
+ * Corporation: the assignee is the character's corporation.
+ * Alliance: the assignee is the character's alliance.
+ * Deleted rows, and rows assigned to anyone else, are omitted.
+ */
+internal fun corporationContractListScopes(
+    corporationId: Long,
+    allianceId: Long?,
+    assigneeId: Long,
+    status: String,
+): Set<ContractListScope> {
+    if (status == EsiContractStatusValue.DELETED) return emptySet()
+    return buildSet {
+        if (assigneeId == corporationId) add(ContractListScope.CORPORATION)
+        if (allianceId != null && allianceId > 0L && assigneeId == allianceId) {
+            add(ContractListScope.ALLIANCE)
+        }
+    }
+}
+
 internal enum class CorporationContractDisplayLimit(
     val maxCount: Int?,
 ) {
@@ -118,6 +146,9 @@ internal data class CorporationContract(
     val status: CorporationContractStatus,
     val title: String,
     val signedIsk: Double,
+    val price: Double = CorporationContractsConfig.ZERO_ISK,
+    val reward: Double = CorporationContractsConfig.ZERO_ISK,
+    val acceptorId: Long = 0L,
     val volume: Double,
     val issuedAtMs: Long,
     val expiresAtMs: Long?,
@@ -125,12 +156,20 @@ internal data class CorporationContract(
     val issuerId: Long,
     val assigneeId: Long,
     val startLocationId: Long,
+    val scopes: Set<ContractListScope> = emptySet(),
+    /** Corp-endpoint rows use corporation contract items; character-endpoint rows do not. */
+    val itemsViaCorporation: Boolean = false,
 )
 
 /** Finished, reversed, deleted, and other closed contracts show the status-change time. */
 internal val CorporationContractStatus.showsStatusChangedAt: Boolean
     get() = this != CorporationContractStatus.OUTSTANDING &&
         this != CorporationContractStatus.IN_PROGRESS
+
+/** Outstanding and in-progress contracts show the days left until expiry. */
+internal val CorporationContractStatus.showsIssueCountdown: Boolean
+    get() = this == CorporationContractStatus.OUTSTANDING ||
+        this == CorporationContractStatus.IN_PROGRESS
 
 internal data class CorporationContractsSnapshot(
     val contracts: List<CorporationContract>,
@@ -143,14 +182,56 @@ internal data class CorporationContractSection(
     val contracts: List<CorporationContract>,
 )
 
+internal data class ContractsListSettings(
+    val types: Set<CorporationContractType> = CorporationContractType.entries.toSet(),
+    val statuses: Set<CorporationContractStatus> = CorporationContractStatus.entries.toSet(),
+    val displayLimit: CorporationContractDisplayLimit = CorporationContractDisplayLimit.THREE_HUNDRED,
+    val groupBy: CorporationContractGroupBy = CorporationContractGroupBy.ISSUED,
+) {
+    fun toggleType(type: CorporationContractType): ContractsListSettings {
+        val next = types.toMutableSet()
+        if (!next.add(type)) next.remove(type)
+        return copy(types = next)
+    }
+
+    fun toggleAllTypes(): ContractsListSettings = copy(
+        types = if (types.containsAll(CorporationContractType.entries)) {
+            emptySet()
+        } else {
+            CorporationContractType.entries.toSet()
+        },
+    )
+
+    fun toggleStatus(status: CorporationContractStatus): ContractsListSettings {
+        val next = statuses.toMutableSet()
+        if (!next.add(status)) next.remove(status)
+        return copy(statuses = next)
+    }
+
+    fun toggleAllStatuses(): ContractsListSettings = copy(
+        statuses = if (statuses.containsAll(CorporationContractStatus.entries)) {
+            emptySet()
+        } else {
+            CorporationContractStatus.entries.toSet()
+        },
+    )
+}
+
 internal data class CorporationContractsFilter(
     val types: Set<CorporationContractType> = CorporationContractType.entries.toSet(),
-    val statuses: Set<CorporationContractStatus> = setOf(CorporationContractStatus.OUTSTANDING),
+    val statuses: Set<CorporationContractStatus> = CorporationContractStatus.entries.toSet(),
     val minPriceText: String = "",
     val maxPriceText: String = "",
     val displayLimit: CorporationContractDisplayLimit = CorporationContractDisplayLimit.THREE_HUNDRED,
     val groupBy: CorporationContractGroupBy = CorporationContractGroupBy.ISSUED,
 ) {
+    fun withSettings(settings: ContractsListSettings): CorporationContractsFilter = copy(
+        types = settings.types,
+        statuses = settings.statuses,
+        displayLimit = settings.displayLimit,
+        groupBy = settings.groupBy,
+    )
+
     val allTypesSelected: Boolean = types.containsAll(CorporationContractType.entries)
 
     val allStatusesSelected: Boolean = statuses.containsAll(CorporationContractStatus.entries)
@@ -161,30 +242,6 @@ internal data class CorporationContractsFilter(
         return matchesPrice(contract.signedIsk)
     }
 
-    fun toggleType(type: CorporationContractType): CorporationContractsFilter {
-        val next = types.toMutableSet()
-        if (!next.add(type)) next.remove(type)
-        return copy(types = next)
-    }
-
-    fun toggleAllTypes(): CorporationContractsFilter = copy(
-        types = if (allTypesSelected) emptySet() else CorporationContractType.entries.toSet(),
-    )
-
-    fun toggleStatus(status: CorporationContractStatus): CorporationContractsFilter {
-        val next = statuses.toMutableSet()
-        if (!next.add(status)) next.remove(status)
-        return copy(statuses = next)
-    }
-
-    fun toggleAllStatuses(): CorporationContractsFilter = copy(
-        statuses = if (allStatusesSelected) {
-            emptySet()
-        } else {
-            CorporationContractStatus.entries.toSet()
-        },
-    )
-
     private fun matchesPrice(signedIsk: Double): Boolean {
         val amount = abs(signedIsk)
         val min = parseContractPriceBound(minPriceText)
@@ -193,6 +250,138 @@ internal data class CorporationContractsFilter(
         if (min != null && amount < min) return false
         if (max != null && amount > max) return false
         return true
+    }
+}
+
+/** Whose cash flow the +/- on a contract amount follows. */
+internal enum class ContractAmountViewpoint {
+    /** Contract list: the logged-in character pays or is paid. */
+    CHARACTER,
+    /** Corporation-issued list: the corporation is the issuer. */
+    CORPORATION_ISSUER,
+}
+
+internal enum class ContractAmountTone {
+    INCOME,
+    EXPENSE,
+    NEUTRAL,
+    OPEN,
+}
+
+internal data class ContractAmountPart(
+    val amount: Double,
+    val tone: ContractAmountTone,
+)
+
+internal fun contractAmountParts(
+    contract: CorporationContract,
+    viewpoint: ContractAmountViewpoint,
+    characterId: Long,
+): List<ContractAmountPart> = when (viewpoint) {
+    ContractAmountViewpoint.CHARACTER -> characterContractAmountParts(
+        type = contract.type,
+        price = contract.price,
+        reward = contract.reward,
+        characterIsIssuer = characterId > 0L && contract.issuerId == characterId,
+        characterIsAcceptor = characterId > 0L && contract.acceptorId == characterId,
+    )
+    ContractAmountViewpoint.CORPORATION_ISSUER -> corporationIssuedAmountParts(
+        type = contract.type,
+        price = contract.price,
+        reward = contract.reward,
+    )
+}
+
+private fun characterContractAmountParts(
+    type: CorporationContractType,
+    price: Double,
+    reward: Double,
+    characterIsIssuer: Boolean,
+    characterIsAcceptor: Boolean,
+): List<ContractAmountPart> {
+    val hasPrice = price > CorporationContractsConfig.ZERO_ISK
+    val hasReward = reward > CorporationContractsConfig.ZERO_ISK
+    val priceFromIssuer = if (characterIsIssuer) {
+        ContractAmountTone.INCOME
+    } else {
+        ContractAmountTone.EXPENSE
+    }
+    val rewardFromIssuer = if (characterIsIssuer) {
+        ContractAmountTone.EXPENSE
+    } else {
+        ContractAmountTone.INCOME
+    }
+    return when (type) {
+        CorporationContractType.ITEM_EXCHANGE -> when {
+            hasPrice && hasReward -> listOf(
+                ContractAmountPart(price, priceFromIssuer),
+                ContractAmountPart(reward, rewardFromIssuer),
+            )
+            hasPrice -> listOf(ContractAmountPart(price, priceFromIssuer))
+            hasReward -> listOf(ContractAmountPart(reward, rewardFromIssuer))
+            else -> listOf(ContractAmountPart(price, priceFromIssuer))
+        }
+        CorporationContractType.COURIER -> when {
+            hasPrice && hasReward -> listOf(
+                ContractAmountPart(price, ContractAmountTone.NEUTRAL),
+                ContractAmountPart(reward, rewardFromIssuer),
+            )
+            hasReward -> listOf(ContractAmountPart(reward, rewardFromIssuer))
+            hasPrice -> listOf(ContractAmountPart(price, ContractAmountTone.NEUTRAL))
+            else -> listOf(ContractAmountPart(reward, rewardFromIssuer))
+        }
+        CorporationContractType.AUCTION -> {
+            val priceTone = when {
+                characterIsIssuer -> ContractAmountTone.INCOME
+                characterIsAcceptor -> ContractAmountTone.EXPENSE
+                else -> ContractAmountTone.OPEN
+            }
+            when {
+                hasPrice && hasReward -> listOf(
+                    ContractAmountPart(price, priceTone),
+                    ContractAmountPart(reward, ContractAmountTone.INCOME),
+                )
+                hasPrice -> listOf(ContractAmountPart(price, priceTone))
+                hasReward -> listOf(ContractAmountPart(reward, ContractAmountTone.INCOME))
+                else -> listOf(ContractAmountPart(price, priceTone))
+            }
+        }
+    }
+}
+
+private fun corporationIssuedAmountParts(
+    type: CorporationContractType,
+    price: Double,
+    reward: Double,
+): List<ContractAmountPart> {
+    val hasPrice = price > CorporationContractsConfig.ZERO_ISK
+    val hasReward = reward > CorporationContractsConfig.ZERO_ISK
+    val priceTone = when (type) {
+        CorporationContractType.ITEM_EXCHANGE,
+        CorporationContractType.AUCTION,
+        -> ContractAmountTone.INCOME
+        CorporationContractType.COURIER -> ContractAmountTone.NEUTRAL
+    }
+    val rewardTone = when (type) {
+        CorporationContractType.COURIER -> ContractAmountTone.EXPENSE
+        CorporationContractType.ITEM_EXCHANGE,
+        CorporationContractType.AUCTION,
+        -> ContractAmountTone.INCOME
+    }
+    return when {
+        hasPrice && hasReward -> listOf(
+            ContractAmountPart(price, priceTone),
+            ContractAmountPart(reward, rewardTone),
+        )
+        !hasPrice && hasReward -> listOf(ContractAmountPart(reward, rewardTone))
+        hasPrice -> listOf(ContractAmountPart(price, priceTone))
+        else -> when (type) {
+            CorporationContractType.ITEM_EXCHANGE,
+            CorporationContractType.AUCTION,
+            -> listOf(ContractAmountPart(price, ContractAmountTone.INCOME))
+            CorporationContractType.COURIER ->
+                listOf(ContractAmountPart(reward, ContractAmountTone.EXPENSE))
+        }
     }
 }
 
@@ -230,11 +419,19 @@ internal fun parseContractPriceBound(text: String): Double? {
     return value
 }
 
-internal fun List<CorporationContract>.toSections(
+internal data class CorporationContractsListResult(
+    val filteredCount: Int,
+    val sections: List<CorporationContractSection>,
+) {
+    val shownCount: Int
+        get() = sections.sumOf { it.contracts.size }
+}
+
+internal fun List<CorporationContract>.toListResult(
     filter: CorporationContractsFilter,
-): List<CorporationContractSection> {
+): CorporationContractsListResult {
     val matched = filter { filter.matches(it) }
-    return when (filter.groupBy) {
+    val sections = when (filter.groupBy) {
         CorporationContractGroupBy.ISSUED -> matched
             .sortedByDescending { it.issuedAtMs }
             .limited(filter.displayLimit)
@@ -269,6 +466,10 @@ internal fun List<CorporationContract>.toSections(
             }
         }
     }
+    return CorporationContractsListResult(
+        filteredCount = matched.size,
+        sections = sections,
+    )
 }
 
 private fun List<CorporationContract>.limited(

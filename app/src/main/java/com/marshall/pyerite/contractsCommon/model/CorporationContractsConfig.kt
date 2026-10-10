@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.model
+package com.marshall.pyerite.contractsCommon.model
 
 /** Pagination, date patterns, and list limits for corporation-issued contracts. */
 internal object CorporationContractsConfig {

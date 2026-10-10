@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.ui
+package com.marshall.pyerite.contractsCommon.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

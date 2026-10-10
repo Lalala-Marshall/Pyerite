@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.model
+package com.marshall.pyerite.contractsCommon.model
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
