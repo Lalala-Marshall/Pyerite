@@ -419,6 +419,9 @@ internal data class EsiCharacterAssetDto(
     @SerialName("item_id") val itemId: Long,
     @SerialName("type_id") val typeId: Int,
     val quantity: Int = 0,
+    @SerialName("location_id") val locationId: Long = 0,
+    @SerialName("location_type") val locationType: String = "",
+    @SerialName("location_flag") val locationFlag: String = "",
     @SerialName("is_blueprint_copy") val isBlueprintCopy: Boolean = false,
     @SerialName("is_singleton") val isSingleton: Boolean = false,
 )

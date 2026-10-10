@@ -6,6 +6,7 @@
     <string name="database">Database</string>
     <string name="character">Character</string>
     <string name="corporation">Corporation</string>
+    <string name="business">Business</string>
     <string name="character_sheet">Character Sheet</string>
     <string name="character_sheet_skill_points">%1$s SP</string>
     <string name="character_clone_status">Clone Status</string>
@@ -114,6 +115,19 @@
     <string name="personal_property_ranking_unpriced">Items without market value (Top %1$d)</string>
     <string name="personal_property_ranking_qty_price">%1$s × %2$s</string>
     <string name="personal_property_ranking_empty">No data</string>
+    <string name="personal_assets">Personal assets</string>
+    <string name="personal_assets_page_title">Personal assets</string>
+    <string name="personal_assets_empty">No personal assets</string>
+    <string name="personal_assets_load_failed">Could not load personal assets</string>
+    <string name="personal_assets_permission_denied">No permission to view personal assets</string>
+    <string name="personal_assets_settings">Personal asset settings</string>
+    <string name="personal_assets_settings_done">Done</string>
+    <string name="personal_assets_aggregate">Aggregate characters</string>
+    <string name="personal_assets_aggregate_hint">Show data from multiple characters together</string>
+    <string name="personal_assets_merge_locations">Merge data at the same location</string>
+    <string name="personal_assets_merge_locations_hint">Deduplicate by location and merge assets across characters</string>
+    <string name="personal_assets_select_characters">Select characters</string>
+    <string name="personal_assets_select_all">Select all</string>
     <string name="character_skills_hint_idle">Idle: No skill training queue</string>
     <string name="character_skills_hint_paused">Paused: %1$d skills (%2$s)</string>
     <string name="character_skills_hint_training">Training: %1$d skills (%2$s)</string>

@@ -7,6 +7,7 @@
     <string name="database">数据库</string>
     <string name="character">人物</string>
     <string name="corporation">军团</string>
+    <string name="business">商业</string>
     <string name="character_sheet">人物表单</string>
     <string name="character_sheet_skill_points">%1$s SP</string>
     <string name="character_clone_status">克隆体状态</string>
@@ -115,6 +116,19 @@
     <string name="personal_property_ranking_unpriced">无市场估价的物品（前%1$d名）</string>
     <string name="personal_property_ranking_qty_price">%1$s × %2$s</string>
     <string name="personal_property_ranking_empty">暂无数据</string>
+    <string name="personal_assets">个人资产</string>
+    <string name="personal_assets_page_title">个人资产</string>
+    <string name="personal_assets_empty">暂无个人资产</string>
+    <string name="personal_assets_load_failed">个人资产加载失败</string>
+    <string name="personal_assets_permission_denied">没有查看个人资产的权限</string>
+    <string name="personal_assets_settings">个人资产设置</string>
+    <string name="personal_assets_settings_done">完成</string>
+    <string name="personal_assets_aggregate">多人物聚合</string>
+    <string name="personal_assets_aggregate_hint">聚合显示多个角色的数据</string>
+    <string name="personal_assets_merge_locations">合并相同地点的数据</string>
+    <string name="personal_assets_merge_locations_hint">按地点去重，合并多人物资产</string>
+    <string name="personal_assets_select_characters">选择角色</string>
+    <string name="personal_assets_select_all">全选</string>
     <string name="character_skills_hint_idle">空闲：无技能训练队列</string>
     <string name="character_skills_hint_paused">暂停：%1$d个技能（%2$s）</string>
     <string name="character_skills_hint_training">训练中：%1$d个技能（%2$s）</string>

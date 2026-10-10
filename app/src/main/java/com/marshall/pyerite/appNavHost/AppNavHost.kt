@@ -31,6 +31,7 @@ import com.marshall.pyerite.corporationModule.industry.navHost.corporationIndust
 import com.marshall.pyerite.corporationModule.members.navHost.corporationMembersNavGraph
 import com.marshall.pyerite.corporationModule.structures.navHost.corporationStructuresNavGraph
 import com.marshall.pyerite.corporationModule.wallet.navHost.corporationWalletNavGraph
+import com.marshall.pyerite.personalAssetsModule.navHost.personalAssetsNavGraph
 import com.marshall.pyerite.personalPropertyModule.navHost.personalPropertyNavGraph
 import com.marshall.pyerite.regionMarketModule.navHost.regionMarketNavGraph
 import com.marshall.pyerite.ui.golbalComponents.LocalOpenEntityProfile
@@ -72,6 +73,7 @@ fun AppNavHost() {
                 characterMailNavGraph(navController)
                 characterCalendarNavGraph(navController)
                 personalPropertyNavGraph(navController)
+                personalAssetsNavGraph(navController)
                 corporationWalletNavGraph(navController)
                 corporationMembersNavGraph(navController)
                 corporationStructuresNavGraph(navController)
