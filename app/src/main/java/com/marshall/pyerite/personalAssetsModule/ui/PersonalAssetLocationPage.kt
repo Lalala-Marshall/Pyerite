@@ -35,6 +35,8 @@ internal fun PersonalAssetLocationPage(
     localeController: LocaleController = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+    val showOwnerName = settings.characterIds(viewModel.characterId).size == 1
     val language = localeController.contentLanguage
     val merged = viewModel.locationKey.ownerCharacterId == null
     val ownerLocations = remember(uiState.snapshot, viewModel.locationKey) {
@@ -131,7 +133,7 @@ internal fun PersonalAssetLocationPage(
                         securityStatus = headerSecurity,
                         placeName = pageTitle,
                         owners = headerOwners,
-                        avatarsOnly = merged && headerOwners.isNotEmpty(),
+                        showOwnerName = showOwnerName,
                         hint = stringResource(
                             R.string.corporation_assets_contains_items,
                             itemCountText,

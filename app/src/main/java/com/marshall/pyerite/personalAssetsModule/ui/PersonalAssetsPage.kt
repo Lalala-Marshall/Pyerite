@@ -162,8 +162,7 @@ internal fun PersonalAssetsPage(
                             securityStatus = place.securityStatus,
                             placeName = placeName,
                             owners = place.owners,
-                            avatarsOnly = place.key.ownerCharacterId == null &&
-                                place.owners.isNotEmpty(),
+                            showOwnerName = settings.characterIds(viewModel.characterId).size == 1,
                             hint = stringResource(
                                 R.string.corporation_assets_contains_items,
                                 NumberDisplayFormatter.format(
@@ -174,10 +173,12 @@ internal fun PersonalAssetsPage(
                             showChevron = true,
                             showDivider = index < places.lastIndex,
                             onClick = {
+                                val soleOwnerId = place.owners.singleOrNull()?.characterId
                                 navController.navigate(
                                     PersonalAssetsRoute.Location.create(
                                         characterId = viewModel.characterId,
-                                        ownerKey = place.key.ownerRouteKey(),
+                                        ownerKey = soleOwnerId?.toString()
+                                            ?: place.key.ownerRouteKey(),
                                         kind = place.key.kind,
                                         locationId = place.key.locationId,
                                     ),

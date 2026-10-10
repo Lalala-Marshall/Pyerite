@@ -51,6 +51,7 @@ internal class PersonalAssetLocationViewModel(
         locationId = checkNotNull(savedStateHandle[PersonalAssetsNavArgs.LOCATION_ID]),
     )
     val uiState = coordinator.state
+    val settings = coordinator.settings
 
     init {
         coordinator.bind(characterId)

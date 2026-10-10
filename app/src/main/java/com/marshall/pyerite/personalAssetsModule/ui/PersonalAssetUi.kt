@@ -339,28 +339,26 @@ internal fun PersonalAssetPlaceLine(
     placeName: String,
     hint: String,
     owners: List<PersonalAssetOwnerRef> = emptyList(),
-    avatarsOnly: Boolean = false,
+    showOwnerName: Boolean = false,
     showChevron: Boolean,
     showDivider: Boolean,
     onClick: (() -> Unit)?,
 ) {
     val hasFileIcon = !iconFilename.isNullOrBlank()
+    val namedOwner = owners.singleOrNull()?.takeIf { showOwnerName }
     val hints = buildList {
-        if (avatarsOnly && owners.isNotEmpty()) {
-            add(
+        when {
+            namedOwner != null -> add(
+                BaseLazyColumnItemHint(
+                    text = namedOwner.name,
+                    iconUrl = portraitUrl(namedOwner.characterId),
+                ),
+            )
+            owners.isNotEmpty() -> add(
                 BaseLazyColumnItemHint(
                     iconUrls = owners.map { owner -> portraitUrl(owner.characterId) },
                 ),
             )
-        } else {
-            owners.firstOrNull()?.let { owner ->
-                add(
-                    BaseLazyColumnItemHint(
-                        text = owner.name,
-                        iconUrl = portraitUrl(owner.characterId),
-                    ),
-                )
-            }
         }
         if (hint.isNotBlank()) add(BaseLazyColumnItemHint(text = hint))
     }
@@ -376,7 +374,7 @@ internal fun PersonalAssetPlaceLine(
                 placeName = placeName,
             ),
             itemHints = hints,
-            alignHintLeadingColumn = !avatarsOnly && owners.isNotEmpty(),
+            alignHintLeadingColumn = false,
             showChevron = showChevron,
             onClick = onClick,
         ),

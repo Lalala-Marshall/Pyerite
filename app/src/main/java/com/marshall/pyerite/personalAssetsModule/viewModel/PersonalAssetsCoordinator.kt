@@ -112,14 +112,10 @@ internal class PersonalAssetsCoordinator(
             }
             val snapshots = loaded.mapNotNull { (characterId, result) ->
                 val snapshot = result.getOrNull() ?: return@mapNotNull null
-                if (!settings.aggregateCharacters) {
-                    snapshot
-                } else {
-                    val name = characters.loggedInCharacters.value
-                        .firstOrNull { it.characterId == characterId }
-                        ?.name
-                    snapshot.withOwner(characterId, name)
-                }
+                val name = characters.loggedInCharacters.value
+                    .firstOrNull { it.characterId == characterId }
+                    ?.name
+                snapshot.withOwner(characterId, name)
             }
             _state.value = PersonalAssetsLoadState(
                 snapshot = snapshots.combine(
