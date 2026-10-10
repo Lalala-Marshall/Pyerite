@@ -1,14 +1,14 @@
-package com.marshall.pyerite.corporationModule.contracts.viewModel
+package com.marshall.pyerite.contractListModule.viewModel
 
-import com.marshall.pyerite.corporationModule.contracts.data.CorporationContractsLoader
+import com.marshall.pyerite.contractListModule.data.ContractListLoader
 import com.marshall.pyerite.contractsCommon.model.CorporationContractDetail
 import com.marshall.pyerite.contractsCommon.model.CorporationContractsSnapshot
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
-internal class CorporationContractsRepository(
-    private val loader: CorporationContractsLoader,
+internal class ContractListRepository(
+    private val loader: ContractListLoader,
 ) {
     private val contractsByCharacterId = ConcurrentHashMap<Long, CorporationContractsSnapshot>()
     private val locks = ConcurrentHashMap<Long, Mutex>()

@@ -15,6 +15,8 @@ import com.marshall.pyerite.characterMailModule.characterMailModule
 import com.marshall.pyerite.characterMasteryModule.characterMasteryModule
 import com.marshall.pyerite.characterSheetModule.characterSheetModule
 import com.marshall.pyerite.entityProfileModule.entityProfileModule
+import com.marshall.pyerite.contractsCommon.contractsCommonModule
+import com.marshall.pyerite.contractListModule.contractListModule
 import com.marshall.pyerite.corporationModule.corporationModule
 import com.marshall.pyerite.personalAssetsModule.personalAssetsModule
 import com.marshall.pyerite.personalPropertyModule.personalPropertyModule
@@ -65,6 +67,8 @@ class PyeriteApp : Application() {
                 characterCalendarModule,
                 personalPropertyModule,
                 personalAssetsModule,
+                contractsCommonModule,
+                contractListModule,
                 corporationModule,
                 loyaltyPointsModule,
                 peoplePlacesModule,

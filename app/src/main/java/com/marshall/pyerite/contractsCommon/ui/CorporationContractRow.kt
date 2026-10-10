@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.ui
+package com.marshall.pyerite.contractsCommon.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
@@ -11,16 +11,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContract
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractStatus
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractStatusTone
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractsConfig
-import com.marshall.pyerite.corporationModule.contracts.model.CorporationContractsDateFormatter
+import com.marshall.pyerite.contractsCommon.model.ContractAmountPart
+import com.marshall.pyerite.contractsCommon.model.ContractAmountTone
+import com.marshall.pyerite.contractsCommon.model.ContractAmountViewpoint
+import com.marshall.pyerite.contractsCommon.model.CorporationContract
+import com.marshall.pyerite.contractsCommon.model.CorporationContractStatus
+import com.marshall.pyerite.contractsCommon.model.contractAmountParts
+import com.marshall.pyerite.contractsCommon.model.CorporationContractStatusTone
+import com.marshall.pyerite.contractsCommon.model.CorporationContractsConfig
+import com.marshall.pyerite.contractsCommon.model.CorporationContractsDateFormatter
+import com.marshall.pyerite.contractsCommon.model.showsIssueCountdown
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemHint
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
@@ -33,6 +42,8 @@ internal fun CorporationContractRow(
     contract: CorporationContract,
     nowMs: Long,
     showDivider: Boolean,
+    amountViewpoint: ContractAmountViewpoint,
+    characterId: Long,
     onClick: () -> Unit,
 ) {
     val captionColor = colorResource(R.color.hint_text)
@@ -49,7 +60,7 @@ internal fun CorporationContractRow(
         R.string.corporation_contracts_volume,
         formatContractWholeNumber(contract.volume),
     )
-    val expiryText = contractExpiryText(contract.expiresAtMs, nowMs)
+    val expiryText = contractIssueCountdownText(contract, nowMs)
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             showLeadingIcon = false,
@@ -59,11 +70,14 @@ internal fun CorporationContractRow(
                 BaseLazyColumnItemHint(
                     text = titleText,
                     color = captionColor,
-                    trailingText = stringResource(
-                        R.string.personal_property_isk_value,
-                        corporationContractAmountBody(contract.signedIsk, compact = false),
+                    trailingAnnotated = contractAmountAnnotated(
+                        parts = contractAmountParts(
+                            contract = contract,
+                            viewpoint = amountViewpoint,
+                            characterId = characterId,
+                        ),
+                        withCompactPair = false,
                     ),
-                    trailingColor = corporationContractAmountColor(contract.signedIsk),
                 ),
                 BaseLazyColumnItemHint(
                     text = volumeText,
@@ -112,38 +126,70 @@ internal fun CorporationContractStatusTag(
 }
 
 @Composable
-private fun contractExpiryText(
-    expiresAtMs: Long?,
+private fun contractIssueCountdownText(
+    contract: CorporationContract,
     nowMs: Long,
 ): String {
-    val placeholder = stringResource(R.string.character_sheet_value_placeholder)
-    val dateText = expiresAtMs?.let {
-        CorporationContractsDateFormatter.displayDate(it)
-    }.orEmpty()
-    val days = expiresAtMs?.let {
-        CorporationContractsDateFormatter.daysUntil(it, nowMs)
-    } ?: 0
-    val formatted = stringResource(R.string.corporation_contracts_expires, dateText, days)
-    return if (expiresAtMs == null) placeholder else formatted
+    val issuedText = CorporationContractsDateFormatter.displayDateTime(contract.issuedAtMs)
+    if (!contract.status.showsIssueCountdown) return issuedText
+    val expiresAtMs = contract.expiresAtMs ?: return issuedText
+    val days = CorporationContractsDateFormatter.daysUntil(expiresAtMs, nowMs)
+    return stringResource(R.string.corporation_contracts_expires, issuedText, days)
 }
 
 @Composable
-internal fun corporationContractAmountBody(
-    signedIsk: Double,
+internal fun contractAmountAnnotated(
+    parts: List<ContractAmountPart>,
+    withCompactPair: Boolean,
+): AnnotatedString {
+    val separator = stringResource(R.string.corporation_contracts_amount_separator)
+    return buildAnnotatedString {
+        parts.forEachIndexed { index, part ->
+            if (index > 0) append(separator)
+            val full = contractAmountBody(part, compact = false)
+            val text = if (withCompactPair) {
+                stringResource(
+                    R.string.corporation_contracts_detail_price_value,
+                    full,
+                    contractAmountBody(part, compact = true),
+                )
+            } else {
+                stringResource(R.string.personal_property_isk_value, full)
+            }
+            withStyle(SpanStyle(color = contractAmountColor(part.tone))) {
+                append(text)
+            }
+        }
+    }
+}
+
+@Composable
+private fun contractAmountBody(
+    part: ContractAmountPart,
     compact: Boolean,
 ): String {
     val magnitude = if (compact) {
-        formatContractCompactNumber(signedIsk)
+        formatContractCompactNumber(part.amount)
     } else {
-        formatContractWholeNumber(signedIsk)
+        formatContractWholeNumber(part.amount)
     }
     val positive = stringResource(R.string.corporation_contracts_amount_positive, magnitude)
     val negative = stringResource(R.string.corporation_contracts_amount_negative, magnitude)
-    return when {
-        signedIsk > CorporationContractsConfig.ZERO_ISK -> positive
-        signedIsk < CorporationContractsConfig.ZERO_ISK -> negative
-        else -> magnitude
+    return when (part.tone) {
+        ContractAmountTone.INCOME -> positive
+        ContractAmountTone.EXPENSE -> negative
+        ContractAmountTone.NEUTRAL,
+        ContractAmountTone.OPEN,
+        -> magnitude
     }
+}
+
+@Composable
+private fun contractAmountColor(tone: ContractAmountTone): Color = when (tone) {
+    ContractAmountTone.INCOME -> colorResource(R.color.wallet_income)
+    ContractAmountTone.EXPENSE -> colorResource(R.color.wallet_expense)
+    ContractAmountTone.NEUTRAL -> colorResource(R.color.hint_text)
+    ContractAmountTone.OPEN -> colorResource(R.color.contract_amount_open)
 }
 
 internal fun formatContractWholeNumber(value: Double): String {
@@ -181,11 +227,4 @@ private fun corporationContractStatusColorRes(
     CorporationContractStatusTone.DELETED ->
         R.color.corporation_contract_status_deleted_background to
             R.color.corporation_contract_status_deleted_text
-}
-
-@Composable
-internal fun corporationContractAmountColor(signedIsk: Double): Color = when {
-    signedIsk > CorporationContractsConfig.ZERO_ISK -> colorResource(R.color.wallet_income)
-    signedIsk < CorporationContractsConfig.ZERO_ISK -> colorResource(R.color.wallet_expense)
-    else -> colorResource(R.color.hint_text)
 }

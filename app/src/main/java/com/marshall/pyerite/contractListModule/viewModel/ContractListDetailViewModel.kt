@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.viewModel
+package com.marshall.pyerite.contractListModule.viewModel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -11,15 +11,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal class CorporationContractDetailViewModel(
+internal class ContractListDetailViewModel(
     savedStateHandle: SavedStateHandle,
-    private val repository: CorporationContractsRepository,
+    private val repository: ContractListRepository,
 ) : ViewModel() {
 
-    private val characterId: Long = checkNotNull(
-        savedStateHandle[CorporationContractsViewModel.NAV_ARG_CHARACTER_ID],
+    internal val characterId: Long = checkNotNull(
+        savedStateHandle[ContractListViewModel.NAV_ARG_CHARACTER_ID],
     ) {
-        "Missing ${CorporationContractsViewModel.NAV_ARG_CHARACTER_ID}"
+        "Missing ${ContractListViewModel.NAV_ARG_CHARACTER_ID}"
     }
 
     private val contractId: Long = checkNotNull(savedStateHandle[NAV_ARG_CONTRACT_ID]) {

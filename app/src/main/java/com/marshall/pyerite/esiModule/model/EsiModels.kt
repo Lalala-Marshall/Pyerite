@@ -464,8 +464,19 @@ internal data class EsiCharacterContractDto(
     val type: String,
     val status: String,
     @SerialName("issuer_id") val issuerId: Long,
+    @SerialName("issuer_corporation_id") val issuerCorporationId: Long = 0,
+    @SerialName("assignee_id") val assigneeId: Long = 0,
+    @SerialName("acceptor_id") val acceptorId: Long = 0,
+    @SerialName("start_location_id") val startLocationId: Long = 0,
+    val title: String? = null,
     @SerialName("for_corporation") val forCorporation: Boolean = false,
+    @SerialName("date_issued") val dateIssued: String? = null,
+    @SerialName("date_expired") val dateExpired: String? = null,
+    @SerialName("date_completed") val dateCompleted: String? = null,
     val price: Double = 0.0,
+    val reward: Double = 0.0,
+    val buyout: Double = 0.0,
+    val volume: Double = 0.0,
 )
 
 @Serializable
@@ -474,6 +485,7 @@ internal data class EsiCorporationContractDto(
     @SerialName("issuer_id") val issuerId: Long = 0,
     @SerialName("issuer_corporation_id") val issuerCorporationId: Long = 0,
     @SerialName("assignee_id") val assigneeId: Long = 0,
+    @SerialName("acceptor_id") val acceptorId: Long = 0,
     @SerialName("start_location_id") val startLocationId: Long = 0,
     val type: String,
     val status: String,

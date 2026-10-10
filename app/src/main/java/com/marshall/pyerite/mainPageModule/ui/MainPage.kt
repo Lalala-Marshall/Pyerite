@@ -46,6 +46,8 @@ import com.marshall.pyerite.corporationModule.structures.navHost.CorporationStru
 import com.marshall.pyerite.corporationModule.structures.ui.MainPageCorporationStructuresItem
 import com.marshall.pyerite.corporationModule.wallet.navHost.CorporationWalletRoute
 import com.marshall.pyerite.corporationModule.wallet.ui.MainPageCorporationWalletItem
+import com.marshall.pyerite.contractListModule.navHost.ContractListRoute
+import com.marshall.pyerite.contractListModule.ui.MainPageContractListItem
 import com.marshall.pyerite.personalAssetsModule.navHost.PersonalAssetsRoute
 import com.marshall.pyerite.personalAssetsModule.ui.MainPagePersonalAssetsItem
 import com.marshall.pyerite.personalPropertyModule.navHost.PersonalPropertyRoute
@@ -403,6 +405,16 @@ fun MainPage(
                                     ?: return@MainPagePersonalAssetsItem
                                 navController.navigate(
                                     PersonalAssetsRoute.Regions.create(characterId),
+                                )
+                            },
+                            showDivider = true,
+                        )
+                        MainPageContractListItem(
+                            onClick = {
+                                val characterId = currentCharacter?.characterId
+                                    ?: return@MainPageContractListItem
+                                navController.navigate(
+                                    ContractListRoute.List.create(characterId),
                                 )
                             },
                         )

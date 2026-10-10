@@ -84,6 +84,7 @@
 
     <color name="wallet_income">#34A853</color>
     <color name="wallet_expense">#D32F2F</color>
+    <color name="contract_amount_open">#F9A825</color>
 
     <color name="corporation_structure_state_vulnerable">#34A853</color>
     <color name="corporation_structure_state_armor">#E1A640</color>

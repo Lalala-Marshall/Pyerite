@@ -54,6 +54,8 @@ data class BaseLazyColumnItemHint(
     val annotatedText: AnnotatedString? = null,
     val color: Color? = null,
     val trailingText: String = "",
+    /** When set, drawn instead of [trailingText] so one line can mix amount colors. */
+    val trailingAnnotated: AnnotatedString? = null,
     val trailingColor: Color? = null,
     val iconUrl: String? = null,
     /** Several leading images on one hint line, e.g. merged character portraits. */
@@ -354,9 +356,10 @@ fun BaseLazyColumnItem(
                             } else {
                                 hintLineHeight
                             }
-                            val hintTrailing = hint.trailingText
+                            val hasHintTrailing = hint.trailingAnnotated != null ||
+                                hint.trailingText.isNotEmpty()
                             Row(
-                                modifier = if (hintTrailing.isNotEmpty()) {
+                                modifier = if (hasHintTrailing) {
                                     Modifier.fillMaxWidth()
                                 } else {
                                     Modifier
@@ -379,7 +382,7 @@ fun BaseLazyColumnItem(
                                     if (
                                         hint.text.isNotBlank() ||
                                         hint.annotatedText != null ||
-                                        hint.trailingText.isNotEmpty()
+                                        hasHintTrailing
                                     ) {
                                         Spacer(modifier = Modifier.width(hintIconGap))
                                     }
@@ -401,12 +404,12 @@ fun BaseLazyColumnItem(
                                 val annotated = hint.annotatedText
                                 val showHintText = annotated != null ||
                                     hint.text.isNotBlank() ||
-                                    hintTrailing.isNotEmpty()
+                                    hasHintTrailing
                                 if (showHintText) {
                                     val startModifier = Modifier
                                         .weight(
                                             1f,
-                                            fill = hintTrailing.isNotEmpty() ||
+                                            fill = hasHintTrailing ||
                                                 annotated != null ||
                                                 hintClick == null,
                                         )
@@ -422,8 +425,8 @@ fun BaseLazyColumnItem(
                                             text = annotated,
                                             fontSize = lineFontSize,
                                             lineHeight = lineLineHeight,
-                                            maxLines = if (hintTrailing.isNotEmpty()) 1 else Int.MAX_VALUE,
-                                            overflow = if (hintTrailing.isNotEmpty()) {
+                                            maxLines = if (hasHintTrailing) 1 else Int.MAX_VALUE,
+                                            overflow = if (hasHintTrailing) {
                                                 TextOverflow.Ellipsis
                                             } else {
                                                 TextOverflow.Clip
@@ -447,16 +450,27 @@ fun BaseLazyColumnItem(
                                         )
                                     }
                                 }
-                                if (hintTrailing.isNotEmpty()) {
+                                if (hasHintTrailing) {
                                     Spacer(modifier = Modifier.width(titleValueGap))
-                                    Text(
-                                        text = hintTrailing,
-                                        color = hint.trailingColor ?: defaultHintColor,
-                                        fontSize = lineFontSize,
-                                        lineHeight = lineLineHeight,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                    )
+                                    val trailingAnnotated = hint.trailingAnnotated
+                                    if (trailingAnnotated != null) {
+                                        Text(
+                                            text = trailingAnnotated,
+                                            fontSize = lineFontSize,
+                                            lineHeight = lineLineHeight,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
+                                    } else {
+                                        Text(
+                                            text = hint.trailingText,
+                                            color = hint.trailingColor ?: defaultHintColor,
+                                            fontSize = lineFontSize,
+                                            lineHeight = lineLineHeight,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
+                                    }
                                 }
                             }
                         }

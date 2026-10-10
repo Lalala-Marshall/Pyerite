@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.contracts.model
+package com.marshall.pyerite.contractsCommon.model
 
 import com.marshall.pyerite.localization.LocalizableName
 
@@ -22,6 +22,14 @@ internal data class CorporationContractOfferedItem(
     override val name: String?,
     val iconFileName: String?,
 ) : LocalizableName
+
+internal data class CorporationContractDetailUiState(
+    val detail: CorporationContractDetail? = null,
+    val isLoading: Boolean = true,
+    val loadFailed: Boolean = false,
+    val permissionDenied: Boolean = false,
+    val missing: Boolean = false,
+)
 
 internal data class CorporationContractDetail(
     val contract: CorporationContract,
