@@ -607,6 +607,14 @@
     <string name="character_transactions">Transactions</string>
     <string name="character_transactions_load_failed">Failed to load transactions</string>
     <string name="character_transactions_permission_denied">You do not have permission to view transactions</string>
+    <string name="character_wallet_journal_load_failed">Failed to load wallet journal</string>
+    <string name="character_wallet_journal_permission_denied">You do not have permission to view the wallet journal</string>
+    <string name="character_wallet_journal_ref_structure_gate_jump">Jump Bridge Fee</string>
+    <string name="character_wallet_journal_ref_corporate_reward_payout">Corporate Reward Payment</string>
+    <string name="character_wallet_journal_ref_bounty">Bounty</string>
+    <string name="character_wallet_journal_ref_agent_mission_time_bonus_reward">Agent Mission Time Bonus Reward</string>
+    <string name="character_wallet_journal_ref_repair_bill">Repair Bill</string>
+    <string name="character_wallet_journal_ref_jump_clone_installation_fee">Jump Clone Installation Fee</string>
     <string name="corporation_wallet_balance_value">Balance: %1$s</string>
     <string name="corporation_wallet_journal_hint_industry">Project fee between %1$s and %2$s (project ID: %3$s)</string>
     <string name="corporation_wallet_journal_hint_industry_no_id">Project fee between %1$s and %2$s</string>

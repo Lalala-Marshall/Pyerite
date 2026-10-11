@@ -4,11 +4,9 @@ import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletAcce
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletConfig
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDateFormatter
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDivision
-import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalCategory
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalDescription
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalDescriptionKind
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalEntry
-import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalRef
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletLedger
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletLocation
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletMarketTransaction
@@ -25,6 +23,8 @@ import com.marshall.pyerite.eveAuthModule.model.EveSsoScope
 import com.marshall.pyerite.eveAuthModule.token.EveTokenManager
 import com.marshall.pyerite.sdeModule.room.RoomProvider
 import com.marshall.pyerite.sdeModule.room.type.TypeDisplayIconRow
+import com.marshall.pyerite.walletJournal.model.WalletJournalCategory
+import com.marshall.pyerite.walletJournal.model.WalletJournalRef
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -174,14 +174,7 @@ internal class CorporationWalletLoader(
         var totalPages = CorporationWalletConfig.FIRST_PAGE
         while (page <= totalPages && page <= CorporationWalletConfig.TRANSACTIONS_MAX_PAGES) {
             val response = fetchTransactionPage(characterId, corporationId, division, page)
-            if (!response.isSuccessful) {
-                if (page > CorporationWalletConfig.FIRST_PAGE &&
-                    response.code() == EsiHttpStatus.NOT_FOUND
-                ) {
-                    break
-                }
-                throw mapPagedError(response)
-            }
+            if (!response.isSuccessful) throw mapPagedError(response)
             val chunk = response.body().orEmpty()
             chunk.forEach { entry -> byId[entry.transactionId] = entry }
             totalPages = resolveTotalPages(
@@ -357,12 +350,12 @@ internal class CorporationWalletLoader(
         partyNames: Map<Long, String>,
     ): CorporationWalletJournalEntry? {
         val epochMs = parseEsiDateMillis(dto.date) ?: return null
-        val category = CorporationWalletJournalRef.categoryFor(dto.refType)
+        val category = WalletJournalRef.categoryFor(dto.refType)
         val firstName = dto.firstPartyId?.let { partyNames[it] }
         val secondName = dto.secondPartyId?.let { partyNames[it] }
         val fallback = dto.description?.takeIf { it.isNotBlank() }
             ?: dto.reason.orEmpty()
-        val kind = if (category == CorporationWalletJournalCategory.INDUSTRY) {
+        val kind = if (category == WalletJournalCategory.INDUSTRY) {
             CorporationWalletJournalDescriptionKind.INDUSTRY_PROJECT
         } else {
             CorporationWalletJournalDescriptionKind.FALLBACK
@@ -375,7 +368,7 @@ internal class CorporationWalletLoader(
             balance = dto.balance,
             refType = dto.refType,
             category = category,
-            titleRes = CorporationWalletJournalRef.titleResFor(dto.refType),
+            titleRes = WalletJournalRef.titleResFor(dto.refType),
             description = CorporationWalletJournalDescription(
                 kind = kind,
                 firstPartyName = firstName,

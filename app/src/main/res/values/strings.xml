@@ -609,6 +609,14 @@
     <string name="character_transactions">交易纪录</string>
     <string name="character_transactions_load_failed">交易纪录加载失败</string>
     <string name="character_transactions_permission_denied">没有查看交易纪录的权限</string>
+    <string name="character_wallet_journal_load_failed">钱包流水加载失败</string>
+    <string name="character_wallet_journal_permission_denied">没有查看钱包流水的权限</string>
+    <string name="character_wallet_journal_ref_structure_gate_jump">跳跃桥接费用</string>
+    <string name="character_wallet_journal_ref_corporate_reward_payout">军团奖励支付</string>
+    <string name="character_wallet_journal_ref_bounty">追击赏金</string>
+    <string name="character_wallet_journal_ref_agent_mission_time_bonus_reward">代理人任务时间加成奖励</string>
+    <string name="character_wallet_journal_ref_repair_bill">维修账单</string>
+    <string name="character_wallet_journal_ref_jump_clone_installation_fee">远距克隆安装费</string>
     <string name="corporation_wallet_balance_value">余额：%1$s</string>
     <string name="corporation_wallet_journal_hint_industry">%1$s 与%2$s之间产生项目费用（项目ID：%3$s）</string>
     <string name="corporation_wallet_journal_hint_industry_no_id">%1$s 与%2$s之间产生项目费用</string>

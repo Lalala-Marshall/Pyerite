@@ -4,6 +4,7 @@ import com.marshall.pyerite.esiModule.model.EsiCalendarEventDetailDto
 import com.marshall.pyerite.esiModule.model.EsiCalendarEventSummaryDto
 import com.marshall.pyerite.esiModule.model.EsiCalendarQuery
 import com.marshall.pyerite.esiModule.model.EsiCharacterAssetDto
+import com.marshall.pyerite.esiModule.model.EsiCharacterWalletJournalDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterWalletTransactionDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationAssetLocationDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationAssetNameDto
@@ -70,6 +71,14 @@ internal interface EsiCharacterApi {
         @Path("character_id") characterId: Long,
         @Header("Authorization") authorization: String,
     ): ResponseBody
+
+    @Headers("Accept: application/json")
+    @GET("characters/{character_id}/wallet/journal")
+    suspend fun fetchWalletJournal(
+        @Path("character_id") characterId: Long,
+        @Header("Authorization") authorization: String,
+        @Query(EsiPagedQuery.PAGE) page: Int,
+    ): Response<List<EsiCharacterWalletJournalDto>>
 
     @Headers("Accept: application/json")
     @GET("characters/{character_id}/wallet/transactions")

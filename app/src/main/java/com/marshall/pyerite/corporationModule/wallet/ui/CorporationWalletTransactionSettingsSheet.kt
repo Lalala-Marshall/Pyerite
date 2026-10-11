@@ -13,6 +13,7 @@ import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletConf
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
+import com.marshall.pyerite.walletJournal.ui.WalletJournalModalSheet
 
 @Composable
 internal fun CorporationWalletTransactionSettingsSheet(
@@ -21,7 +22,7 @@ internal fun CorporationWalletTransactionSettingsSheet(
     onDismiss: () -> Unit,
 ) {
     val bottomPadding = dimensionResource(R.dimen.type_detail_bottom_padding)
-    CorporationWalletModalSheet(
+    WalletJournalModalSheet(
         title = stringResource(R.string.corporation_wallet_transaction_settings_title),
         onDismiss = onDismiss,
         heightFraction = CorporationWalletConfig.SETTINGS_SHEET_HEIGHT_FRACTION,

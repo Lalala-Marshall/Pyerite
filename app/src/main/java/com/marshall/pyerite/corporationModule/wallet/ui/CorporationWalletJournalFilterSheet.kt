@@ -17,6 +17,9 @@ import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJour
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalFilter
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalFilterType
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
+import com.marshall.pyerite.walletJournal.ui.WalletJournalCheckRow
+import com.marshall.pyerite.walletJournal.ui.WalletJournalModalSheet
+import com.marshall.pyerite.walletJournal.ui.WalletJournalSelectAllButton
 
 @Composable
 internal fun CorporationWalletJournalFilterSheet(
@@ -26,7 +29,7 @@ internal fun CorporationWalletJournalFilterSheet(
 ) {
     val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
     val bottomPadding = dimensionResource(R.dimen.type_detail_bottom_padding)
-    CorporationWalletModalSheet(
+    WalletJournalModalSheet(
         title = stringResource(R.string.corporation_wallet_journal_filter_title),
         onDismiss = onDismiss,
         heightFraction = CorporationWalletConfig.FILTER_SHEET_HEIGHT_FRACTION,
@@ -40,7 +43,7 @@ internal fun CorporationWalletJournalFilterSheet(
             BaseContainer(
                 title = stringResource(R.string.corporation_wallet_filter_direction_section),
                 titleTrailingContent = {
-                    CorporationWalletSelectAllButton(
+                    WalletJournalSelectAllButton(
                         allSelected = filter.allDirectionsSelected,
                         onClick = { onFilterChange(filter.toggleAllDirections()) },
                     )
@@ -48,7 +51,7 @@ internal fun CorporationWalletJournalFilterSheet(
                 useSystemBarsPadding = false,
             ) {
                 CorporationWalletJournalDirection.entries.forEachIndexed { index, direction ->
-                    CorporationWalletCheckRow(
+                    WalletJournalCheckRow(
                         title = stringResource(direction.titleRes),
                         selected = direction in filter.directions,
                         onClick = { onFilterChange(filter.toggleDirection(direction)) },
@@ -60,7 +63,7 @@ internal fun CorporationWalletJournalFilterSheet(
             BaseContainer(
                 title = stringResource(R.string.corporation_wallet_filter_type_section),
                 titleTrailingContent = {
-                    CorporationWalletSelectAllButton(
+                    WalletJournalSelectAllButton(
                         allSelected = filter.allTypesSelected,
                         onClick = { onFilterChange(filter.toggleAllTypes()) },
                     )
@@ -68,7 +71,7 @@ internal fun CorporationWalletJournalFilterSheet(
                 useSystemBarsPadding = false,
             ) {
                 CorporationWalletJournalFilterType.entries.forEachIndexed { index, type ->
-                    CorporationWalletCheckRow(
+                    WalletJournalCheckRow(
                         title = stringResource(type.titleRes),
                         selected = type in filter.types,
                         onClick = { onFilterChange(filter.toggleType(type)) },
