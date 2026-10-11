@@ -1,8 +1,8 @@
 package com.marshall.pyerite.corporationModule.wallet.model
 
 import androidx.annotation.StringRes
-import com.marshall.pyerite.R
 import com.marshall.pyerite.localization.LocalizableName
+import com.marshall.pyerite.walletJournal.model.WalletJournalCategory
 
 internal class CorporationWalletAccessException : Exception()
 
@@ -22,22 +22,6 @@ internal enum class CorporationWalletSummaryWindow(val days: Int) {
         DAYS_7 -> DAYS_1
         DAYS_1 -> DAYS_30
     }
-}
-
-internal enum class CorporationWalletJournalCategory(
-    @param:StringRes val titleRes: Int,
-) {
-    INDUSTRY(R.string.corporation_journal_category_industry),
-    MARKET(R.string.corporation_journal_category_market),
-    CONTRACT(R.string.corporation_journal_category_contract),
-    BOUNTY(R.string.corporation_journal_category_bounty),
-    TAX(R.string.corporation_journal_category_tax),
-    TRANSFER(R.string.corporation_journal_category_transfer),
-    FACILITY(R.string.corporation_journal_category_facility),
-    MISSION(R.string.corporation_journal_category_mission),
-    CLONE(R.string.corporation_journal_category_clone),
-    PLANETARY(R.string.corporation_journal_category_planetary),
-    OTHER(R.string.corporation_journal_category_other),
 }
 
 internal enum class CorporationWalletJournalDescriptionKind {
@@ -80,7 +64,7 @@ internal data class CorporationWalletJournalEntry(
     val amount: Double,
     val balance: Double?,
     val refType: String,
-    val category: CorporationWalletJournalCategory,
+    val category: WalletJournalCategory,
     @param:StringRes val titleRes: Int,
     val description: CorporationWalletJournalDescription,
 )

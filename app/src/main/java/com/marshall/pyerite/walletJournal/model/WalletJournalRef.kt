@@ -1,16 +1,32 @@
-package com.marshall.pyerite.corporationModule.wallet.model
+package com.marshall.pyerite.walletJournal.model
 
 import androidx.annotation.StringRes
 import com.marshall.pyerite.R
 
-internal object CorporationWalletJournalRef {
-    fun categoryFor(refType: String): CorporationWalletJournalCategory {
+internal enum class WalletJournalCategory(
+    @param:StringRes val titleRes: Int,
+) {
+    INDUSTRY(R.string.corporation_journal_category_industry),
+    MARKET(R.string.corporation_journal_category_market),
+    CONTRACT(R.string.corporation_journal_category_contract),
+    BOUNTY(R.string.corporation_journal_category_bounty),
+    TAX(R.string.corporation_journal_category_tax),
+    TRANSFER(R.string.corporation_journal_category_transfer),
+    FACILITY(R.string.corporation_journal_category_facility),
+    MISSION(R.string.corporation_journal_category_mission),
+    CLONE(R.string.corporation_journal_category_clone),
+    PLANETARY(R.string.corporation_journal_category_planetary),
+    OTHER(R.string.corporation_journal_category_other),
+}
+
+internal object WalletJournalRef {
+    fun categoryFor(refType: String): WalletJournalCategory {
         val type = refType.trim()
         return CATEGORY_BY_REF[type] ?: when {
-            type.startsWith(PREFIX_CONTRACT) -> CorporationWalletJournalCategory.CONTRACT
-            type.startsWith(PREFIX_BOUNTY) -> CorporationWalletJournalCategory.BOUNTY
-            type.startsWith(PREFIX_PLANETARY) -> CorporationWalletJournalCategory.PLANETARY
-            else -> CorporationWalletJournalCategory.OTHER
+            type.startsWith(PREFIX_CONTRACT) -> WalletJournalCategory.CONTRACT
+            type.startsWith(PREFIX_BOUNTY) -> WalletJournalCategory.BOUNTY
+            type.startsWith(PREFIX_PLANETARY) -> WalletJournalCategory.PLANETARY
+            else -> WalletJournalCategory.OTHER
         }
     }
 
@@ -158,59 +174,59 @@ internal object CorporationWalletJournalRef {
         "war_fee_surrender" to R.string.corporation_journal_ref_war_fee_surrender,
     )
 
-    private val CATEGORY_BY_REF: Map<String, CorporationWalletJournalCategory> = mapOf(
-        "manufacturing" to CorporationWalletJournalCategory.INDUSTRY,
-        "industry_job" to CorporationWalletJournalCategory.INDUSTRY,
-        "industry_job_tax" to CorporationWalletJournalCategory.INDUSTRY,
-        "copying" to CorporationWalletJournalCategory.INDUSTRY,
-        "research" to CorporationWalletJournalCategory.INDUSTRY,
-        "reverse_engineering" to CorporationWalletJournalCategory.INDUSTRY,
-        "reaction" to CorporationWalletJournalCategory.INDUSTRY,
-        "factory_slot_rental_fee" to CorporationWalletJournalCategory.INDUSTRY,
-        "datacore_fee" to CorporationWalletJournalCategory.INDUSTRY,
-        "market_escrow" to CorporationWalletJournalCategory.MARKET,
-        "market_transaction" to CorporationWalletJournalCategory.MARKET,
-        "transaction_tax" to CorporationWalletJournalCategory.MARKET,
-        "brokers_fee" to CorporationWalletJournalCategory.MARKET,
-        "market_fine_paid" to CorporationWalletJournalCategory.MARKET,
-        "item_exchange" to CorporationWalletJournalCategory.MARKET,
-        "item_trader_payment" to CorporationWalletJournalCategory.MARKET,
-        "player_trading" to CorporationWalletJournalCategory.MARKET,
-        "office_rental_fee" to CorporationWalletJournalCategory.TAX,
-        "corporate_reward_tax" to CorporationWalletJournalCategory.TAX,
-        "project_discovery_tax" to CorporationWalletJournalCategory.TAX,
-        "asset_safety_recovery_tax" to CorporationWalletJournalCategory.TAX,
-        "player_donation" to CorporationWalletJournalCategory.TRANSFER,
-        "corporation_account_withdrawal" to CorporationWalletJournalCategory.TRANSFER,
-        "corporation_bulk_account_entry" to CorporationWalletJournalCategory.TRANSFER,
-        "corporation_payment" to CorporationWalletJournalCategory.TRANSFER,
-        "corporation_dividend_payment" to CorporationWalletJournalCategory.TRANSFER,
-        "gm_cash_transfer" to CorporationWalletJournalCategory.TRANSFER,
-        "ess_escrow_transfer" to CorporationWalletJournalCategory.TRANSFER,
-        "infrastructure_hub_maintenance" to CorporationWalletJournalCategory.FACILITY,
-        "upkeep_adjustment_fee" to CorporationWalletJournalCategory.FACILITY,
-        "structure_gate_jump" to CorporationWalletJournalCategory.FACILITY,
-        "docking_fee" to CorporationWalletJournalCategory.FACILITY,
-        "alliance_maintainance_fee" to CorporationWalletJournalCategory.FACILITY,
-        "alliance_registration_fee" to CorporationWalletJournalCategory.FACILITY,
-        "sovereignity_bill" to CorporationWalletJournalCategory.FACILITY,
-        "agent_mission_reward" to CorporationWalletJournalCategory.MISSION,
-        "agent_mission_reward_corporation_tax" to CorporationWalletJournalCategory.MISSION,
-        "agent_mission_time_bonus_reward" to CorporationWalletJournalCategory.MISSION,
-        "agent_mission_time_bonus_reward_corporation_tax" to CorporationWalletJournalCategory.MISSION,
-        "agent_mission_collateral_paid" to CorporationWalletJournalCategory.MISSION,
-        "agent_mission_collateral_refunded" to CorporationWalletJournalCategory.MISSION,
-        "mission_completion" to CorporationWalletJournalCategory.MISSION,
-        "mission_cost" to CorporationWalletJournalCategory.MISSION,
-        "mission_reward" to CorporationWalletJournalCategory.MISSION,
-        "mission_time_bonus" to CorporationWalletJournalCategory.MISSION,
-        "agents_preward" to CorporationWalletJournalCategory.MISSION,
-        "daily_goal_payouts" to CorporationWalletJournalCategory.MISSION,
-        "daily_goal_payout" to CorporationWalletJournalCategory.MISSION,
-        "daily_goal_reward" to CorporationWalletJournalCategory.MISSION,
-        "clone_activation" to CorporationWalletJournalCategory.CLONE,
-        "clone_transfer" to CorporationWalletJournalCategory.CLONE,
-        "jump_clone_activation_fee" to CorporationWalletJournalCategory.CLONE,
-        "jump_clone_installation_fee" to CorporationWalletJournalCategory.CLONE,
+    private val CATEGORY_BY_REF: Map<String, WalletJournalCategory> = mapOf(
+        "manufacturing" to WalletJournalCategory.INDUSTRY,
+        "industry_job" to WalletJournalCategory.INDUSTRY,
+        "industry_job_tax" to WalletJournalCategory.INDUSTRY,
+        "copying" to WalletJournalCategory.INDUSTRY,
+        "research" to WalletJournalCategory.INDUSTRY,
+        "reverse_engineering" to WalletJournalCategory.INDUSTRY,
+        "reaction" to WalletJournalCategory.INDUSTRY,
+        "factory_slot_rental_fee" to WalletJournalCategory.INDUSTRY,
+        "datacore_fee" to WalletJournalCategory.INDUSTRY,
+        "market_escrow" to WalletJournalCategory.MARKET,
+        "market_transaction" to WalletJournalCategory.MARKET,
+        "transaction_tax" to WalletJournalCategory.MARKET,
+        "brokers_fee" to WalletJournalCategory.MARKET,
+        "market_fine_paid" to WalletJournalCategory.MARKET,
+        "item_exchange" to WalletJournalCategory.MARKET,
+        "item_trader_payment" to WalletJournalCategory.MARKET,
+        "player_trading" to WalletJournalCategory.MARKET,
+        "office_rental_fee" to WalletJournalCategory.TAX,
+        "corporate_reward_tax" to WalletJournalCategory.TAX,
+        "project_discovery_tax" to WalletJournalCategory.TAX,
+        "asset_safety_recovery_tax" to WalletJournalCategory.TAX,
+        "player_donation" to WalletJournalCategory.TRANSFER,
+        "corporation_account_withdrawal" to WalletJournalCategory.TRANSFER,
+        "corporation_bulk_account_entry" to WalletJournalCategory.TRANSFER,
+        "corporation_payment" to WalletJournalCategory.TRANSFER,
+        "corporation_dividend_payment" to WalletJournalCategory.TRANSFER,
+        "gm_cash_transfer" to WalletJournalCategory.TRANSFER,
+        "ess_escrow_transfer" to WalletJournalCategory.TRANSFER,
+        "infrastructure_hub_maintenance" to WalletJournalCategory.FACILITY,
+        "upkeep_adjustment_fee" to WalletJournalCategory.FACILITY,
+        "structure_gate_jump" to WalletJournalCategory.FACILITY,
+        "docking_fee" to WalletJournalCategory.FACILITY,
+        "alliance_maintainance_fee" to WalletJournalCategory.FACILITY,
+        "alliance_registration_fee" to WalletJournalCategory.FACILITY,
+        "sovereignity_bill" to WalletJournalCategory.FACILITY,
+        "agent_mission_reward" to WalletJournalCategory.MISSION,
+        "agent_mission_reward_corporation_tax" to WalletJournalCategory.MISSION,
+        "agent_mission_time_bonus_reward" to WalletJournalCategory.MISSION,
+        "agent_mission_time_bonus_reward_corporation_tax" to WalletJournalCategory.MISSION,
+        "agent_mission_collateral_paid" to WalletJournalCategory.MISSION,
+        "agent_mission_collateral_refunded" to WalletJournalCategory.MISSION,
+        "mission_completion" to WalletJournalCategory.MISSION,
+        "mission_cost" to WalletJournalCategory.MISSION,
+        "mission_reward" to WalletJournalCategory.MISSION,
+        "mission_time_bonus" to WalletJournalCategory.MISSION,
+        "agents_preward" to WalletJournalCategory.MISSION,
+        "daily_goal_payouts" to WalletJournalCategory.MISSION,
+        "daily_goal_payout" to WalletJournalCategory.MISSION,
+        "daily_goal_reward" to WalletJournalCategory.MISSION,
+        "clone_activation" to WalletJournalCategory.CLONE,
+        "clone_transfer" to WalletJournalCategory.CLONE,
+        "jump_clone_activation_fee" to WalletJournalCategory.CLONE,
+        "jump_clone_installation_fee" to WalletJournalCategory.CLONE,
     )
 }

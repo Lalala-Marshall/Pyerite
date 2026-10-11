@@ -10,6 +10,8 @@ import com.marshall.pyerite.sdeModule.sdeModule
 import com.marshall.pyerite.characterCalendarModule.characterCalendarModule
 import com.marshall.pyerite.characterTransactionsModule.characterTransactionsModule
 import com.marshall.pyerite.characterTransactionsModule.data.CharacterTransactionsDiskCache
+import com.marshall.pyerite.characterWalletJournalModule.characterWalletJournalModule
+import com.marshall.pyerite.characterWalletJournalModule.data.CharacterWalletJournalDiskCache
 import com.marshall.pyerite.characterClonesModule.characterClonesModule
 import com.marshall.pyerite.loyaltyPointsModule.loyaltyPointsModule
 import com.marshall.pyerite.peoplePlacesModule.peoplePlacesModule
@@ -72,6 +74,7 @@ class PyeriteApp : Application() {
                 contractsCommonModule,
                 contractListModule,
                 characterTransactionsModule,
+                characterWalletJournalModule,
                 corporationModule,
                 loyaltyPointsModule,
                 peoplePlacesModule,
@@ -85,7 +88,9 @@ class PyeriteApp : Application() {
             GlobalContext.get().get<SdeUpdateController>().checkForUpdates()
         }
         applicationScope.launch(Dispatchers.IO) {
-            GlobalContext.get().get<CharacterTransactionsDiskCache>().removeExpiredTransactions()
+            val koin = GlobalContext.get()
+            koin.get<CharacterTransactionsDiskCache>().removeExpiredTransactions()
+            koin.get<CharacterWalletJournalDiskCache>().removeExpiredJournal()
         }
     }
 }

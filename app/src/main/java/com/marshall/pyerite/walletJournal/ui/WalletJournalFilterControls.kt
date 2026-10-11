@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.wallet.ui
+package com.marshall.pyerite.walletJournal.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,7 +32,7 @@ import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemHint
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 
 @Composable
-internal fun CorporationWalletSelectAllButton(
+internal fun WalletJournalSelectAllButton(
     allSelected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -51,12 +51,12 @@ internal fun CorporationWalletSelectAllButton(
             fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.width(labelGap))
-        CorporationWalletSelectAllMark(selected = allSelected)
+        WalletJournalSelectAllMark(selected = allSelected)
     }
 }
 
 @Composable
-internal fun CorporationWalletSelectAllMark(selected: Boolean) {
+private fun WalletJournalSelectAllMark(selected: Boolean) {
     val checkSize = dimensionResource(R.dimen.corporation_wallet_select_all_check_size)
     val iconSize = dimensionResource(R.dimen.corporation_wallet_select_all_icon_size)
     val borderWidth = dimensionResource(R.dimen.corporation_wallet_select_all_border)
@@ -89,7 +89,7 @@ internal fun CorporationWalletSelectAllMark(selected: Boolean) {
 }
 
 @Composable
-internal fun CorporationWalletCheckRow(
+internal fun WalletJournalCheckRow(
     title: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -109,12 +109,12 @@ internal fun CorporationWalletCheckRow(
             onClick = onClick,
         ),
         showDivider = showDivider,
-        trailingContent = { CorporationWalletItemCheck(selected = selected) },
+        trailingContent = { WalletJournalItemCheck(selected = selected) },
     )
 }
 
 @Composable
-internal fun CorporationWalletItemCheck(selected: Boolean) {
+private fun WalletJournalItemCheck(selected: Boolean) {
     val checkSize = dimensionResource(R.dimen.corporation_wallet_item_check_size)
     Box(
         modifier = Modifier.size(checkSize),

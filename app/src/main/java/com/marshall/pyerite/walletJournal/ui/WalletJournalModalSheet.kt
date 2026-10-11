@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.wallet.ui
+package com.marshall.pyerite.walletJournal.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,7 +36,7 @@ import com.marshall.pyerite.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CorporationWalletModalSheet(
+internal fun WalletJournalModalSheet(
     title: String,
     onDismiss: () -> Unit,
     heightFraction: Float? = null,
@@ -78,7 +78,7 @@ internal fun CorporationWalletModalSheet(
                     top = dimensionResource(R.dimen.character_mail_compose_header_top_padding),
                 ),
             ) {
-                CorporationWalletSheetHeader(
+                WalletJournalSheetHeader(
                     title = title,
                     endLabel = stringResource(R.string.corporation_wallet_sheet_done),
                     onEnd = onDismiss,
@@ -90,7 +90,7 @@ internal fun CorporationWalletModalSheet(
 }
 
 @Composable
-private fun CorporationWalletSheetHeader(
+private fun WalletJournalSheetHeader(
     title: String,
     endLabel: String,
     onEnd: () -> Unit,

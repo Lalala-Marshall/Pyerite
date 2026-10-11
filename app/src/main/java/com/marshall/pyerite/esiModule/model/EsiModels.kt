@@ -657,6 +657,21 @@ internal data class EsiCorporationWalletTransactionDto(
 )
 
 @Serializable
+internal data class EsiCharacterWalletJournalDto(
+    val id: Long,
+    val date: String,
+    val amount: Double = 0.0,
+    val balance: Double? = null,
+    val description: String? = null,
+    val reason: String? = null,
+    @SerialName("ref_type") val refType: String,
+    @SerialName("first_party_id") val firstPartyId: Long? = null,
+    @SerialName("second_party_id") val secondPartyId: Long? = null,
+    @SerialName("context_id") val contextId: Long? = null,
+    @SerialName("context_id_type") val contextIdType: String? = null,
+)
+
+@Serializable
 internal data class EsiCharacterWalletTransactionDto(
     @SerialName("transaction_id") val transactionId: Long,
     val date: String,
