@@ -382,17 +382,8 @@ private fun List<CorporationIndustryJob>.systemOptions(
         )
 
 internal object CorporationIndustryDateFormatter {
-    fun format(epochMs: Long, language: ContentLanguage): String {
-        val pattern = when (language) {
-            ContentLanguage.CHINESE -> CorporationIndustryConfig.DISPLAY_DATE_TIME_PATTERN_ZH
-            ContentLanguage.ENGLISH -> CorporationIndustryConfig.DISPLAY_DATE_TIME_PATTERN_EN
-        }
-        val locale = when (language) {
-            ContentLanguage.CHINESE -> Locale.SIMPLIFIED_CHINESE
-            ContentLanguage.ENGLISH -> Locale.US
-        }
-        return SimpleDateFormat(pattern, locale).apply {
+    fun format(epochMs: Long): String =
+        SimpleDateFormat(CorporationIndustryConfig.DISPLAY_DATE_TIME_PATTERN, Locale.US).apply {
             timeZone = TimeZone.getDefault()
         }.format(Date(epochMs))
-    }
 }

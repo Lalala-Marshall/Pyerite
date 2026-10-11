@@ -68,7 +68,7 @@ internal object MarketConfig {
     const val SECTION_OTHER = "#"
 
     const val DATE_PATTERN = "yyyy-MM-dd"
-    const val MONTH_PATTERN = "MMM"
+    const val MONTH_PATTERN = "yyyy-MM"
 
     /** Jita, Amarr, Rens, Hek, Zarzakh — fixed trade-hub order. */
     val MAJOR_SYSTEM_IDS: List<Int> = listOf(

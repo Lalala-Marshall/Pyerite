@@ -31,7 +31,6 @@ import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDayR
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDivisionTab
 import com.marshall.pyerite.corporationModule.wallet.navHost.CorporationWalletRoute
 import com.marshall.pyerite.corporationModule.wallet.viewModel.CorporationWalletDivisionViewModel
-import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
@@ -45,13 +44,11 @@ import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
 import com.marshall.pyerite.ui.golbalComponents.rememberScrollTitleCollapsed
 import com.marshall.pyerite.util.NumberDisplayFormatter
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 @Composable
 internal fun CorporationWalletDivisionPage(
     navController: NavController,
     viewModel: CorporationWalletDivisionViewModel = koinViewModel(),
-    localeController: LocaleController = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -95,7 +92,6 @@ internal fun CorporationWalletDivisionPage(
             ),
         )
     }
-    val language = localeController.contentLanguage
 
     PyeritePageScaffold(
         title = pageTitle,
@@ -192,10 +188,7 @@ internal fun CorporationWalletDivisionPage(
                                 uiState.journalDays.forEachIndexed { index, day ->
                                     WalletDayRow(
                                         day = day,
-                                        dateLabel = CorporationWalletDateFormatter.displayDate(
-                                            day.dayKey,
-                                            language,
-                                        ),
+                                        dateLabel = CorporationWalletDateFormatter.displayDate(day.dayKey),
                                         hint = stringResource(
                                             R.string.corporation_wallet_journal_count,
                                             day.entryCount,
@@ -229,10 +222,7 @@ internal fun CorporationWalletDivisionPage(
                                 uiState.transactionDays.forEachIndexed { index, day ->
                                     WalletDayRow(
                                         day = day,
-                                        dateLabel = CorporationWalletDateFormatter.displayDate(
-                                            day.dayKey,
-                                            language,
-                                        ),
+                                        dateLabel = CorporationWalletDateFormatter.displayDate(day.dayKey),
                                         hint = stringResource(
                                             R.string.corporation_wallet_transactions_hint,
                                             day.buyCount,

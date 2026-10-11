@@ -31,9 +31,7 @@ import java.util.TimeZone
 internal fun formatCalendarMonthTitle(
     year: Int,
     month: Int,
-    language: ContentLanguage,
 ): String {
-    val locale = CalendarDates.contentLocale(language)
     val cal = Calendar.getInstance()
     cal.clear()
     cal.set(Calendar.YEAR, year)
@@ -42,18 +40,10 @@ internal fun formatCalendarMonthTitle(
         month - CalendarTimeConfig.JAVA_CALENDAR_MONTH_OFFSET,
     )
     cal.set(Calendar.DAY_OF_MONTH, 1)
-    val pattern = when (language) {
-        ContentLanguage.CHINESE -> CalendarDisplayConfig.MONTH_TITLE_PATTERN_ZH
-        ContentLanguage.ENGLISH -> CalendarDisplayConfig.MONTH_TITLE_PATTERN_EN
-    }
-    return SimpleDateFormat(pattern, locale).format(cal.time)
+    return SimpleDateFormat(CalendarDisplayConfig.MONTH_TITLE_PATTERN, Locale.US).format(cal.time)
 }
 
-internal fun formatCalendarDayTitle(
-    date: CalendarDate,
-    language: ContentLanguage,
-): String {
-    val locale = CalendarDates.contentLocale(language)
+internal fun formatCalendarDayTitle(date: CalendarDate): String {
     val cal = Calendar.getInstance()
     cal.clear()
     cal.set(Calendar.YEAR, date.year)
@@ -62,11 +52,7 @@ internal fun formatCalendarDayTitle(
         date.month - CalendarTimeConfig.JAVA_CALENDAR_MONTH_OFFSET,
     )
     cal.set(Calendar.DAY_OF_MONTH, date.day)
-    val pattern = when (language) {
-        ContentLanguage.CHINESE -> CalendarDisplayConfig.DAY_TITLE_PATTERN_ZH
-        ContentLanguage.ENGLISH -> CalendarDisplayConfig.DAY_TITLE_PATTERN_EN
-    }
-    return SimpleDateFormat(pattern, locale).format(cal.time)
+    return SimpleDateFormat(CalendarDisplayConfig.DAY_TITLE_PATTERN, Locale.US).format(cal.time)
 }
 
 internal fun calendarWeekdayLabels(language: ContentLanguage): List<String> {

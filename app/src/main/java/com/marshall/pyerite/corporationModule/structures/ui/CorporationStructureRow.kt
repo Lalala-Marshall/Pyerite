@@ -113,7 +113,7 @@ internal fun CorporationStructureRow(
                 if (fuelExpiresAt != null) {
                     LabeledValue(
                         label = stringResource(R.string.corporation_structures_fuel_expires),
-                        value = CorporationStructuresDateFormatter.displayDateTime(fuelExpiresAt, language),
+                        value = CorporationStructuresDateFormatter.displayDateTime(fuelExpiresAt),
                         valueColor = valueColor,
                         labelColor = hintColor,
                         textSize = bodySize,

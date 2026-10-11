@@ -37,10 +37,8 @@ internal object CalendarEventImportance {
 }
 
 internal object CalendarDisplayConfig {
-    const val MONTH_TITLE_PATTERN_ZH = "yyyy年M月"
-    const val MONTH_TITLE_PATTERN_EN = "MMMM yyyy"
-    const val DAY_TITLE_PATTERN_ZH = "yyyy年M月d日"
-    const val DAY_TITLE_PATTERN_EN = "MMM d, yyyy"
+    const val MONTH_TITLE_PATTERN = "yyyy-MM"
+    const val DAY_TITLE_PATTERN = "yyyy-MM-dd"
 }
 
 internal object CalendarEventCountConfig {

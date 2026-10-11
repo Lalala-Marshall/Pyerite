@@ -122,7 +122,11 @@ internal fun CorporationWalletTransactionItem(
                             .padding(vertical = textVerticalPadding),
                     ) {
                         Text(
-                            text = typeName,
+                            text = stringResource(
+                                R.string.wallet_transaction_type_quantity,
+                                typeName,
+                                quantity,
+                            ),
                             color = titleColor,
                             fontSize = titleTextSize,
                             lineHeight = titleLineHeight,

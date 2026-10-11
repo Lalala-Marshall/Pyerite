@@ -6,7 +6,8 @@ internal object CorporationWalletConfig {
     const val JOURNAL_PAGE_SIZE = 2_500
     const val JOURNAL_MAX_PAGES = 10
     const val TRANSACTIONS_PAGE_SIZE = 2_500
-    const val TRANSACTIONS_MAX_PAGES = 10
+    /** Newest page only. */
+    const val TRANSACTIONS_MAX_PAGES = 1
     const val TYPE_QUERY_CHUNK = 500
     const val MASTER_WALLET_DIVISION = 1
     /** Player-owned Upwell structures use location IDs at or above this value. */
@@ -24,9 +25,7 @@ internal object CorporationWalletConfig {
         MILLIS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY
 
     const val DAY_KEY_PATTERN = "yyyy-MM-dd"
-    const val DISPLAY_DATE_PATTERN_ZH = "yyyy年M月d日"
-    const val DISPLAY_DATE_PATTERN_EN = "d MMM yyyy"
-    const val DISPLAY_TIME_MINUTE_PATTERN = "HH:mm"
+    const val DISPLAY_DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm"
     const val DISPLAY_TIME_SECOND_PATTERN = "HH:mm:ss"
 
     const val SYSTEM_SECURITY_FORMAT = "%.1f"

@@ -27,8 +27,7 @@ internal object CorporationIndustryConfig {
     const val PROGRESS_EMPTY = 0f
     const val PROGRESS_COMPLETE = 1f
 
-    const val DISPLAY_DATE_TIME_PATTERN_ZH = "yyyy/MM/dd HH:mm"
-    const val DISPLAY_DATE_TIME_PATTERN_EN = "MMM d, yyyy HH:mm"
+    const val DISPLAY_DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm"
 
     const val SYSTEM_SECURITY_FORMAT = "%.1f"
     const val SECURITY_STATUS_NAME_GAP = " "
