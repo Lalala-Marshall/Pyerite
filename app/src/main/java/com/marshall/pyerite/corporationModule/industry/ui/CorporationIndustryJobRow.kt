@@ -224,7 +224,6 @@ internal fun CorporationIndustryJobRow(
             historyTitle = job.status.historyTitleRes?.let { stringResource(it) },
             endDateMillis = job.endDateMillis,
             historyTimeMillis = job.historyTimeMillis(),
-            language = language,
             captionStyle = captionStyle,
         )
     }
@@ -461,7 +460,6 @@ private fun FourthLine(
     historyTitle: String?,
     endDateMillis: Long?,
     historyTimeMillis: Long?,
-    language: ContentLanguage,
     captionStyle: TextStyle,
 ) {
     val left: String
@@ -474,7 +472,7 @@ private fun FourthLine(
             right = endDateMillis?.let { end ->
                 stringResource(
                     R.string.corporation_industry_completed_at,
-                    CorporationIndustryDateFormatter.format(end, language),
+                    CorporationIndustryDateFormatter.format(end),
                 )
             }
         }
@@ -486,7 +484,7 @@ private fun FourthLine(
             right = endDateMillis?.let { end ->
                 stringResource(
                     R.string.corporation_industry_finishes_at,
-                    CorporationIndustryDateFormatter.format(end, language),
+                    CorporationIndustryDateFormatter.format(end),
                 )
             }
         }
@@ -494,7 +492,7 @@ private fun FourthLine(
             left = historyTitle.orEmpty()
             leftColor = hintColor
             right = historyTimeMillis?.let { time ->
-                CorporationIndustryDateFormatter.format(time, language)
+                CorporationIndustryDateFormatter.format(time)
             }
         }
     }

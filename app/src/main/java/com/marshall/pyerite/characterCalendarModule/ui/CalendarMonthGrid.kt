@@ -87,7 +87,7 @@ internal fun CalendarMonthSection(
                 contentDescription = stringResource(R.string.character_calendar_previous_month),
             )
             Text(
-                text = formatCalendarMonthTitle(year, month, language),
+                text = formatCalendarMonthTitle(year, month),
                 color = primaryText,
                 fontSize = dimensionResource(R.dimen.list_section_header_text_size).value.sp,
                 fontWeight = FontWeight.SemiBold,

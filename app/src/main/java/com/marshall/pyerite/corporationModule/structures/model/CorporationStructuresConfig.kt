@@ -22,8 +22,7 @@ internal object CorporationStructuresConfig {
     const val MILLIS_PER_DAY =
         MILLIS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY
 
-    const val DISPLAY_DATE_TIME_PATTERN_ZH = "yyyy年M月d日 HH:mm"
-    const val DISPLAY_DATE_TIME_PATTERN_EN = "d MMM yyyy HH:mm"
+    const val DISPLAY_DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm"
 
     const val SYSTEM_SECURITY_FORMAT = "%.1f"
     const val SECURITY_STATUS_NAME_GAP = " "

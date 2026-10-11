@@ -17,7 +17,7 @@ internal object EntityProfileConfig {
     /** Layout sample so "0" and "10" keep standing icons aligned. */
     const val STANDING_COLUMN_SAMPLE = "10"
 
-    const val DISPLAY_DATE_PATTERN = "yyyy.MM.dd"
+    const val DISPLAY_DATE_PATTERN = "yyyy-MM-dd"
 
     const val EVEWHO_BASE_URL = "https://evewho.com/"
     const val ZKILL_BASE_URL = "https://zkillboard.com/"

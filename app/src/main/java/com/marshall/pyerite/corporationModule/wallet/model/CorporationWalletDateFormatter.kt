@@ -1,6 +1,5 @@
 package com.marshall.pyerite.corporationModule.wallet.model
 
-import com.marshall.pyerite.localization.ContentLanguage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -10,19 +9,16 @@ internal object CorporationWalletDateFormatter {
 
     fun dayKey(epochMs: Long): String = formatLocal(epochMs, CorporationWalletConfig.DAY_KEY_PATTERN)
 
-    fun displayDate(epochMs: Long, language: ContentLanguage): String =
-        formatLocal(epochMs, datePattern(language), localeFor(language))
+    fun displayDate(epochMs: Long): String =
+        formatLocal(epochMs, CorporationWalletConfig.DAY_KEY_PATTERN)
 
-    fun displayDate(dayKey: String, language: ContentLanguage): String {
+    fun displayDate(dayKey: String): String {
         val parsed = parseDayKey(dayKey) ?: return dayKey
-        return displayDate(parsed, language)
+        return displayDate(parsed)
     }
 
-    fun displayDateTimeMinute(epochMs: Long, language: ContentLanguage): String {
-        val date = displayDate(epochMs, language)
-        val time = formatLocal(epochMs, CorporationWalletConfig.DISPLAY_TIME_MINUTE_PATTERN)
-        return "$date $time"
-    }
+    fun displayDateTimeMinute(epochMs: Long): String =
+        formatLocal(epochMs, CorporationWalletConfig.DISPLAY_DATE_TIME_PATTERN)
 
     fun displayTimeSecond(epochMs: Long): String =
         formatLocal(epochMs, CorporationWalletConfig.DISPLAY_TIME_SECOND_PATTERN)
@@ -41,16 +37,6 @@ internal object CorporationWalletDateFormatter {
             isLenient = false
         }.parse(dayKey)?.time
     }.getOrNull()
-
-    private fun datePattern(language: ContentLanguage): String = when (language) {
-        ContentLanguage.CHINESE -> CorporationWalletConfig.DISPLAY_DATE_PATTERN_ZH
-        ContentLanguage.ENGLISH -> CorporationWalletConfig.DISPLAY_DATE_PATTERN_EN
-    }
-
-    private fun localeFor(language: ContentLanguage): Locale = when (language) {
-        ContentLanguage.CHINESE -> Locale.SIMPLIFIED_CHINESE
-        ContentLanguage.ENGLISH -> Locale.US
-    }
 
     private fun formatLocal(
         epochMs: Long,

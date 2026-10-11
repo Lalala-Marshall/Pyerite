@@ -603,6 +603,10 @@
     <string name="corporation_wallet_buy">Buy</string>
     <string name="corporation_wallet_sell">Sell</string>
     <string name="corporation_wallet_transaction_line">%1$s - %2$s × %3$s</string>
+    <string name="wallet_transaction_type_quantity">%1$s x %2$s</string>
+    <string name="character_transactions">Transactions</string>
+    <string name="character_transactions_load_failed">Failed to load transactions</string>
+    <string name="character_transactions_permission_denied">You do not have permission to view transactions</string>
     <string name="corporation_wallet_balance_value">Balance: %1$s</string>
     <string name="corporation_wallet_journal_hint_industry">Project fee between %1$s and %2$s (project ID: %3$s)</string>
     <string name="corporation_wallet_journal_hint_industry_no_id">Project fee between %1$s and %2$s</string>

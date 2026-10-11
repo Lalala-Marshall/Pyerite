@@ -8,6 +8,8 @@ import com.marshall.pyerite.sdeModule.update.SdeUpdateController
 import com.marshall.pyerite.sdeModule.update.SdeUpdateLog
 import com.marshall.pyerite.sdeModule.sdeModule
 import com.marshall.pyerite.characterCalendarModule.characterCalendarModule
+import com.marshall.pyerite.characterTransactionsModule.characterTransactionsModule
+import com.marshall.pyerite.characterTransactionsModule.data.CharacterTransactionsDiskCache
 import com.marshall.pyerite.characterClonesModule.characterClonesModule
 import com.marshall.pyerite.loyaltyPointsModule.loyaltyPointsModule
 import com.marshall.pyerite.peoplePlacesModule.peoplePlacesModule
@@ -69,6 +71,7 @@ class PyeriteApp : Application() {
                 personalAssetsModule,
                 contractsCommonModule,
                 contractListModule,
+                characterTransactionsModule,
                 corporationModule,
                 loyaltyPointsModule,
                 peoplePlacesModule,
@@ -80,6 +83,9 @@ class PyeriteApp : Application() {
         applicationScope.launch {
             SdeUpdateLog.d("PyeriteApp", "starting background update check")
             GlobalContext.get().get<SdeUpdateController>().checkForUpdates()
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            GlobalContext.get().get<CharacterTransactionsDiskCache>().removeExpiredTransactions()
         }
     }
 }

@@ -38,7 +38,6 @@ import com.marshall.pyerite.characterCalendarModule.model.CalendarEventStatus
 import com.marshall.pyerite.characterCalendarModule.model.CalendarReminderLead
 import com.marshall.pyerite.characterCalendarModule.model.CharacterCalendarEvent
 import com.marshall.pyerite.characterCalendarModule.viewModel.CharacterCalendarViewModel
-import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemHint
@@ -51,7 +50,6 @@ import com.marshall.pyerite.ui.golbalComponents.pyeritePullRefreshTopBarAction
 import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
 import com.marshall.pyerite.ui.golbalComponents.rememberScrollTitleCollapsed
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 @Composable
 internal fun CharacterCalendarPage(
@@ -201,10 +199,9 @@ private fun CalendarDayEventsSection(
     loadFailed: Boolean,
     onEventClick: (Long) -> Unit,
 ) {
-    val localeController: LocaleController = koinInject()
     val placeholder = stringResource(R.string.character_sheet_value_placeholder)
     BaseContainer(
-        title = formatCalendarDayTitle(selectedDate, localeController.contentLanguage),
+        title = formatCalendarDayTitle(selectedDate),
         titleTrailingContent = {
             Text(
                 text = stringResource(R.string.character_calendar_event_count, events.size),

@@ -42,8 +42,6 @@ import androidx.navigation.NavController
 import com.marshall.pyerite.R
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
 import com.marshall.pyerite.iconModule.manager.IconManager
-import com.marshall.pyerite.localization.ContentLanguage
-import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.regionMarketModule.model.MarketConfig
 import com.marshall.pyerite.regionMarketModule.model.MarketHistoryRange
 import com.marshall.pyerite.regionMarketModule.model.MarketSelection
@@ -64,7 +62,6 @@ import com.marshall.pyerite.ui.golbalComponents.rememberScrollTitleCollapsed
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import java.util.Locale
 
 @Composable
 internal fun MarketDetailPage(
@@ -76,7 +73,6 @@ internal fun MarketDetailPage(
     val locationViewModel: MarketLocationViewModel = koinViewModel()
     val ui by viewModel.ui.collectAsState()
     val iconManager: IconManager = koinInject()
-    val localeController: LocaleController = koinInject()
     val scrollState = rememberScrollState()
     val showCollapsedTitle = rememberScrollTitleCollapsed(scrollState)
     val onBack = navController.rememberNavigateUpAction()
@@ -88,11 +84,6 @@ internal fun MarketDetailPage(
         ui.groupName,
         typeId,
     )
-    val locale = if (localeController.contentLanguage == ContentLanguage.CHINESE) {
-        Locale.CHINESE
-    } else {
-        Locale.US
-    }
     val backStackHandle = navController.currentBackStackEntry?.savedStateHandle
     if (backStackHandle != null) {
         val adopted by backStackHandle
@@ -225,7 +216,6 @@ internal fun MarketDetailPage(
                         MarketHistoryChart(
                             history = ui.history,
                             range = ui.range,
-                            locale = locale,
                             modifier = Modifier.padding(
                                 start = dimensionResource(R.dimen.detail_card_horizontal_padding),
                                 end = dimensionResource(R.dimen.detail_card_horizontal_padding),

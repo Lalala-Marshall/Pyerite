@@ -605,6 +605,10 @@
     <string name="corporation_wallet_buy">买入</string>
     <string name="corporation_wallet_sell">卖出</string>
     <string name="corporation_wallet_transaction_line">%1$s - %2$s × %3$s</string>
+    <string name="wallet_transaction_type_quantity">%1$s x %2$s</string>
+    <string name="character_transactions">交易纪录</string>
+    <string name="character_transactions_load_failed">交易纪录加载失败</string>
+    <string name="character_transactions_permission_denied">没有查看交易纪录的权限</string>
     <string name="corporation_wallet_balance_value">余额：%1$s</string>
     <string name="corporation_wallet_journal_hint_industry">%1$s 与%2$s之间产生项目费用（项目ID：%3$s）</string>
     <string name="corporation_wallet_journal_hint_industry_no_id">%1$s 与%2$s之间产生项目费用</string>

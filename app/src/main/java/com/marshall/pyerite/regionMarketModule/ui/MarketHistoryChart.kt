@@ -43,7 +43,6 @@ import kotlin.math.max
 internal fun MarketHistoryChart(
     history: List<MarketHistoryPoint>,
     range: MarketHistoryRange,
-    locale: Locale,
     modifier: Modifier = Modifier,
 ) {
     val points = remember(history, range) { history.within(range) }
@@ -70,11 +69,11 @@ internal fun MarketHistoryChart(
                 .ifEmpty { axisFallback }
         }
     }
-    val monthFormatter = remember(points, locale, axisFallback) {
+    val monthFormatter = remember(points, axisFallback) {
         CartesianValueFormatter { _, value, _ ->
             val index = value.toInt()
             val point = points.getOrNull(index) ?: return@CartesianValueFormatter axisFallback
-            monthLabel(point.date, locale).ifEmpty { axisFallback }
+            monthLabel(point.date).ifEmpty { axisFallback }
         }
     }
 
@@ -133,18 +132,13 @@ private fun cutoffDate(days: Int): String {
     return SimpleDateFormat(MarketConfig.DATE_PATTERN, Locale.US).format(calendar.time)
 }
 
-private fun monthLabel(date: String, locale: Locale): String {
+private fun monthLabel(date: String): String {
     val parser = SimpleDateFormat(MarketConfig.DATE_PATTERN, Locale.US)
     val parsed = parser.parse(date) ?: return ""
-    val formatted = SimpleDateFormat(MarketConfig.MONTH_PATTERN, locale).format(parsed)
-    return if (locale.language.equals(Locale.CHINESE.language, ignoreCase = true)) {
-        formatted
-    } else {
-        formatted.uppercase(locale)
-    }
+    return SimpleDateFormat(MarketConfig.MONTH_PATTERN, Locale.US).format(parsed)
 }
 
-/** First history point of each calendar month, matching Tritanium's x labels. */
+/** First history point of each calendar month. */
 private fun monthStartIndices(points: List<MarketHistoryPoint>): List<Int> {
     if (points.isEmpty()) return emptyList()
     val parser = SimpleDateFormat(MarketConfig.DATE_PATTERN, Locale.US)

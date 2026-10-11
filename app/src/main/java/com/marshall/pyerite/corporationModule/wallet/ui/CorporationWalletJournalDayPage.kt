@@ -22,7 +22,6 @@ import com.marshall.pyerite.R
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDateFormatter
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletJournalEntry
 import com.marshall.pyerite.corporationModule.wallet.viewModel.CorporationWalletJournalDayViewModel
-import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
@@ -34,18 +33,15 @@ import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
 import com.marshall.pyerite.ui.golbalComponents.rememberScrollTitleCollapsed
 import com.marshall.pyerite.util.NumberDisplayFormatter
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 @Composable
 internal fun CorporationWalletJournalDayPage(
     navController: NavController,
     viewModel: CorporationWalletJournalDayViewModel = koinViewModel(),
-    localeController: LocaleController = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    val language = localeController.contentLanguage
-    val pageTitle = CorporationWalletDateFormatter.displayDate(uiState.dayKey, language)
+    val pageTitle = CorporationWalletDateFormatter.displayDate(uiState.dayKey)
     val onBack = navController.rememberNavigateUpAction()
     val showCollapsedTitle = rememberScrollTitleCollapsed(scrollState)
     val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
@@ -103,7 +99,6 @@ internal fun CorporationWalletJournalDayPage(
                                     entry = entry,
                                     dateTimeLabel = CorporationWalletDateFormatter.displayDateTimeMinute(
                                         entry.dateEpochMs,
-                                        language,
                                     ),
                                     showDivider = index < uiState.entries.lastIndex,
                                 )

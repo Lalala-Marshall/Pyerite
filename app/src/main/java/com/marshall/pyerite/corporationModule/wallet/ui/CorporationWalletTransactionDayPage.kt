@@ -19,8 +19,7 @@ import androidx.navigation.NavController
 import com.marshall.pyerite.R
 import com.marshall.pyerite.corporationModule.wallet.model.CorporationWalletDateFormatter
 import com.marshall.pyerite.corporationModule.wallet.viewModel.CorporationWalletTransactionDayViewModel
-import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
-import com.marshall.pyerite.localization.LocaleController
+import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
@@ -29,18 +28,15 @@ import com.marshall.pyerite.ui.golbalComponents.pyeritePullRefreshTopBarAction
 import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
 import com.marshall.pyerite.ui.golbalComponents.rememberScrollTitleCollapsed
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 @Composable
 internal fun CorporationWalletTransactionDayPage(
     navController: NavController,
     viewModel: CorporationWalletTransactionDayViewModel = koinViewModel(),
-    localeController: LocaleController = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    val language = localeController.contentLanguage
-    val pageTitle = CorporationWalletDateFormatter.displayDate(uiState.dayKey, language)
+    val pageTitle = CorporationWalletDateFormatter.displayDate(uiState.dayKey)
     val onBack = navController.rememberNavigateUpAction()
     val showCollapsedTitle = rememberScrollTitleCollapsed(scrollState)
     val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
@@ -99,7 +95,7 @@ internal fun CorporationWalletTransactionDayPage(
                                     showDivider = index < uiState.entries.lastIndex,
                                     onClick = {
                                         navController.navigate(
-                                            DatabaseRoute.TypeDetail.create(entry.typeId),
+                                            RegionMarketRoute.Detail.create(entry.typeId),
                                         )
                                     },
                                 )
