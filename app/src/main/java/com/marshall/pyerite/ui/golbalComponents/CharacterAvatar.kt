@@ -29,9 +29,12 @@ fun CharacterAvatar(
     corporationIconUrl: String? = null,
     allianceIconUrl: String? = null,
     showBadges: Boolean = false,
+    contentDescription: String? = null,
     /** Home / character list stay circular; character sheet uses [PyeriteIconShape]. */
     shape: Shape = CircleShape,
 ) {
+    val resolvedContentDescription = contentDescription
+        ?: stringResource(R.string.character_portrait)
     val badgeSize = dimensionResource(R.dimen.character_badge_size)
     val badgeOffset = dimensionResource(R.dimen.character_badge_offset)
 
@@ -51,14 +54,14 @@ fun CharacterAvatar(
             if (portraitUrl.isNullOrBlank()) {
                 Icon(
                     painter = painterResource(R.drawable.ic_character_avatar_placeholder),
-                    contentDescription = stringResource(R.string.character_portrait),
+                    contentDescription = resolvedContentDescription,
                     modifier = Modifier.size(size * 0.55f),
                     tint = colorResource(R.color.hint_text),
                 )
             } else {
                 AsyncImage(
                     model = portraitUrl,
-                    contentDescription = stringResource(R.string.character_portrait),
+                    contentDescription = resolvedContentDescription,
                     modifier = Modifier.matchParentSize(),
                     contentScale = ContentScale.Crop,
                 )
