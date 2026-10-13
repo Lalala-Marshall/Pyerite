@@ -1045,8 +1045,7 @@
     <string name="about_sde_build">Build: %1$s</string>
     <string name="about_sde_check_failed">Check failed</string>
     <string name="about_author">Author</string>
-    <string name="about_author_name">Yuxiang Man</string>
-    <string name="about_author_role">Individual developer</string>
+    <string name="about_author_name">IICHNIIMarshall Man</string>
     <string name="about_github">Github</string>
     <string name="about_github_url">https://github.com/Lalala-Marshall/Pyerite</string>
     <string name="about_report_issue">Report a bug</string>

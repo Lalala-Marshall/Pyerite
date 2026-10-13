@@ -55,7 +55,6 @@ import com.marshall.pyerite.sdeModule.update.SdeUpdateUiState
 import com.marshall.pyerite.sdeModule.update.SdeUpdateViewModel
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
-import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemHint
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
 import com.marshall.pyerite.ui.golbalComponents.rememberNavigateUpAction
@@ -122,7 +121,6 @@ internal fun AboutPage(
                     AboutAvatarRow(
                         title = stringResource(R.string.about_author),
                         hint = stringResource(R.string.about_author_name),
-                        detail = stringResource(R.string.about_author_role),
                         avatarRes = R.drawable.about_author_avatar,
                         showDivider = true,
                     )
@@ -304,20 +302,11 @@ private fun AboutAvatarRow(
     hint: String,
     avatarRes: Int,
     showDivider: Boolean,
-    detail: String? = null,
 ) {
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             itemName = title,
-            itemHint = if (detail == null) hint else "",
-            itemHints = if (detail == null) {
-                emptyList()
-            } else {
-                listOf(
-                    BaseLazyColumnItemHint(text = hint),
-                    BaseLazyColumnItemHint(text = detail),
-                )
-            },
+            itemHint = hint,
             showChevron = false,
             onClick = null,
         ),

@@ -1047,8 +1047,7 @@
     <string name="about_sde_build">构建号：%1$s</string>
     <string name="about_sde_check_failed">检查失败</string>
     <string name="about_author">作者</string>
-    <string name="about_author_name">满宇翔</string>
-    <string name="about_author_role">个人开发者</string>
+    <string name="about_author_name">IICHNIIMarshall Man</string>
     <string name="about_github">Github</string>
     <string name="about_github_url">https://github.com/Lalala-Marshall/Pyerite</string>
     <string name="about_report_issue">报告缺陷</string>
