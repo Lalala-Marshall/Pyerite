@@ -13,9 +13,12 @@ import com.marshall.pyerite.R
 import com.marshall.pyerite.characterCalendarModule.model.CalendarReminder
 import com.marshall.pyerite.characterCalendarModule.notification.CalendarAlarmReceiver
 import com.marshall.pyerite.characterCalendarModule.notification.CalendarNotificationConfig
+import com.marshall.pyerite.infra.notification.NotificationAccess
+import com.marshall.pyerite.infra.notification.NotificationPreferences
 
 internal class CalendarReminderScheduler(
     context: Context,
+    private val notificationPreferences: NotificationPreferences,
 ) {
     private val appContext = context.applicationContext
     private val alarmManager = appContext.getSystemService(AlarmManager::class.java)
@@ -39,6 +42,10 @@ internal class CalendarReminderScheduler(
     }
 
     fun schedule(reminder: CalendarReminder) {
+        if (!allowsCalendarNotifications()) {
+            cancel(reminder)
+            return
+        }
         ensureChannel()
         val pending = requireNotNull(
             pendingIntent(
@@ -71,9 +78,20 @@ internal class CalendarReminderScheduler(
     }
 
     fun reschedule(reminders: List<CalendarReminder>) {
+        if (!allowsCalendarNotifications()) {
+            reminders.forEach(::cancel)
+            return
+        }
         ensureChannel()
         reminders.forEach(::schedule)
     }
+
+    private fun allowsCalendarNotifications(): Boolean {
+        if (!notificationPreferences.calendarEnabled.value) return false
+        return notificationPreferences.isMasterEnabled(NotificationAccess.isGranted(appContext))
+    }
+
+    fun canPost(): Boolean = allowsCalendarNotifications()
 
     fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

@@ -19,6 +19,7 @@ import com.marshall.pyerite.esiModule.data.portraitUrl
 import com.marshall.pyerite.eveAuthModule.model.EveSsoScope
 import com.marshall.pyerite.eveAuthModule.model.EveStoredSession
 import com.marshall.pyerite.eveAuthModule.token.EveTokenManager
+import com.marshall.pyerite.infra.notification.SkillQueueExpiryScheduler
 import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.localization.displayName
 import com.marshall.pyerite.localization.localizedName
@@ -38,6 +39,7 @@ internal class CharacterProfileLoader(
     private val characterApi: EsiCharacterApi,
     private val roomProvider: RoomProvider,
     private val localeController: LocaleController,
+    private val skillQueueExpiryScheduler: SkillQueueExpiryScheduler,
 ) {
     suspend fun load(session: EveStoredSession): LoggedInCharacter = withContext(Dispatchers.IO) {
         coroutineScope {
@@ -96,11 +98,12 @@ internal class CharacterProfileLoader(
             }
             val location = locationDeferred.await()
             val locationInfo = resolveLocation(location)
-            val queue = queueDeferred.await()?.let { entries -> mapSkillQueue(entries) }
+            val queueEntries = queueDeferred.await()
+            val queue = queueEntries?.let { entries -> mapSkillQueue(entries) }
             val roles = rolesDeferred.await()
             val hasCorporationManagementAccess = !roles?.roles.isNullOrEmpty()
 
-            LoggedInCharacter(
+            val character = LoggedInCharacter(
                 characterId = session.characterId,
                 name = public?.name ?: session.characterName.ifBlank { session.characterId.toString() },
                 portraitUrl = portraitUrl(session.characterId),
@@ -124,6 +127,14 @@ internal class CharacterProfileLoader(
                 corporationId = public?.corporationId,
                 hasCorporationManagementAccess = hasCorporationManagementAccess,
             )
+            if (queueEntries != null) {
+                skillQueueExpiryScheduler.report(
+                    characterId = character.characterId,
+                    characterName = character.name,
+                    queueEndEpochMs = queueEndEpochMs(queue),
+                )
+            }
+            character
         }
     }
 
@@ -219,5 +230,10 @@ internal class CharacterProfileLoader(
         org ?: return null
         val ticker = org.ticker?.let { "[$it] " }.orEmpty()
         return "$ticker${org.name}"
+    }
+
+    private fun queueEndEpochMs(queue: SkillQueueProgress?): Long? {
+        if (queue == null || queue.state != SkillQueueTrainingState.TRAINING) return null
+        return queue.entries.mapNotNull { it.finishAtEpochMs }.maxOrNull()
     }
 }

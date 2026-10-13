@@ -48,6 +48,18 @@
                 <action android:name="android.intent.action.TIME_CHANGED" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".infra.notification.SkillQueueExpiryAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".infra.notification.SkillQueueExpiryBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
