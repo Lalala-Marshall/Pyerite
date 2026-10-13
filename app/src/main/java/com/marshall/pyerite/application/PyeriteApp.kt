@@ -2,6 +2,9 @@ package com.marshall.pyerite.application
 
 import android.app.Application
 import com.marshall.pyerite.infra.appModule
+import com.marshall.pyerite.localization.LocaleController
+import com.marshall.pyerite.settingsModule.settingsModule
+import com.marshall.pyerite.ui.theme.ThemeModeStore
 import com.marshall.pyerite.infra.network.networkModule
 import com.marshall.pyerite.sdeModule.update.BundledSdeUpdater
 import com.marshall.pyerite.sdeModule.update.SdeUpdateController
@@ -48,6 +51,8 @@ class PyeriteApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ThemeModeStore(this).applyCurrent()
+        LocaleController(this).applyAppLanguage()
 
         // SDE must exist before auth restore (createdAtStart) resolves skill/location names.
         runBlocking(Dispatchers.IO) {
@@ -84,6 +89,7 @@ class PyeriteApp : Application() {
                 peoplePlacesModule,
                 entityProfileModule,
                 regionMarketModule,
+                settingsModule,
             )
         }
 

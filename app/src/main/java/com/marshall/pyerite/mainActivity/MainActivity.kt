@@ -3,9 +3,9 @@ package com.marshall.pyerite.mainActivity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import com.marshall.pyerite.appNavHost.AppNavHost
 import com.marshall.pyerite.eveAuthModule.sso.EveSsoCallbackBus
 import com.marshall.pyerite.eveAuthModule.sso.EveSsoConfig
@@ -13,7 +13,7 @@ import com.marshall.pyerite.ui.theme.PyeriteTheme
 import org.koin.android.ext.android.inject
 import androidx.core.net.toUri
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val ssoCallbackBus: EveSsoCallbackBus by inject()
 
