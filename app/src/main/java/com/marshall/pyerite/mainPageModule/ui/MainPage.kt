@@ -2,20 +2,22 @@ package com.marshall.pyerite.mainPageModule.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,9 +75,9 @@ import com.marshall.pyerite.characterSkillsModule.viewModel.CharacterSkillsViewM
 import com.marshall.pyerite.charactersListModule.navHost.CharacterRoute
 import com.marshall.pyerite.charactersListModule.ui.MainPageCharacterCard
 import com.marshall.pyerite.charactersListModule.viewModel.CharacterViewModel
-import com.marshall.pyerite.sdeModule.update.SdeUpdateBottomSheet
-import com.marshall.pyerite.sdeModule.update.SdeUpdateUiState
 import com.marshall.pyerite.sdeModule.update.SdeUpdateViewModel
+import com.marshall.pyerite.aboutModule.navHost.AboutRoute
+import com.marshall.pyerite.aboutModule.ui.MainPageAboutItem
 import com.marshall.pyerite.settingsModule.navHost.SettingsRoute
 import com.marshall.pyerite.settingsModule.ui.MainPageSettingsItem
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
@@ -101,7 +103,6 @@ fun MainPage(
     characterClonesViewModel: CharacterClonesViewModel = koinViewModel(),
     characterSkillsViewModel: CharacterSkillsViewModel = koinViewModel(),
 ) {
-    val uiState by sdeUpdateViewModel.uiState.collectAsState()
     val currentCharacter by characterViewModel.currentCharacter.collectAsState()
     val loggedInCharacters by characterViewModel.loggedInCharacters.collectAsState()
     val isCharacterRefreshing by characterViewModel.isRefreshing.collectAsState()
@@ -149,12 +150,6 @@ fun MainPage(
         stringResource(R.string.personal_property_home_wallet_hint, balance)
     }.orEmpty()
 
-    val updateActionLabel = when (uiState) {
-        is SdeUpdateUiState.CheckFailed -> stringResource(R.string.sde_update_check_manually)
-        else -> stringResource(R.string.sde_update_available)
-    }
-    val showUpdateIcon = uiState is SdeUpdateUiState.UpdateReady ||
-        uiState is SdeUpdateUiState.CheckFailed
     val pageTitle = stringResource(R.string.main_page)
     val characterSectionTitle = stringResource(R.string.character)
     val corporationSectionTitle = stringResource(R.string.corporation)
@@ -173,18 +168,6 @@ fun MainPage(
     )
     val endActions = buildList {
         refreshTopBarAction?.let(::add)
-        if (showUpdateIcon) {
-            add(
-                PyeriteTopBarActionItem(
-                    onClick = { sdeUpdateViewModel.openUpdateSheet() },
-                    icon = Icons.Default.ArrowDownward,
-                    contentDescription = stringResource(R.string.sde_update_download),
-                    label = updateActionLabel,
-                    accentColor = colorResource(R.color.sde_update_accent),
-                    iconBadge = true,
-                ),
-            )
-        }
         if (currentCharacter != null) {
             add(
                 PyeriteTopBarActionItem(
@@ -208,9 +191,14 @@ fun MainPage(
                 .fillMaxSize()
                 .padding(topBarPadding),
         ) {
+            val mainPageBottomPadding = dimensionResource(R.dimen.main_page_bottom_padding)
+            val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    bottom = mainPageBottomPadding + navigationBarBottom,
+                ),
             ) {
                 item(key = "page_title") {
                     PageTitle(text = pageTitle)
@@ -473,23 +461,14 @@ fun MainPage(
                     ) {
                         MainPageSettingsItem(
                             onClick = { navController.navigate(SettingsRoute.Settings.route) },
+                            showDivider = true,
+                        )
+                        MainPageAboutItem(
+                            onClick = { navController.navigate(AboutRoute.About.route) },
                         )
                     }
                 }
             }
-        }
-    }
-
-    val sheetState = uiState as? SdeUpdateUiState.Sheet
-    if (sheetState != null) {
-        key(sheetState.instanceId) {
-            SdeUpdateBottomSheet(
-                content = sheetState.content,
-                onDismiss = sdeUpdateViewModel::dismissSheet,
-                onConfirmDownload = sdeUpdateViewModel::startDownload,
-                onRetryDownload = sdeUpdateViewModel::retryDownload,
-                onRetryCheck = sdeUpdateViewModel::retryCheck,
-            )
         }
     }
 
