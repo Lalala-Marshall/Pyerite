@@ -1045,14 +1045,15 @@
     <string name="about_sde_build">Build: %1$s</string>
     <string name="about_sde_check_failed">Check failed</string>
     <string name="about_author">Author</string>
-    <string name="about_author_name">IICHNIIMarshall Man</string>
+    <string name="about_author_name">Yuxiang Man</string>
+    <string name="about_author_role">Individual developer</string>
     <string name="about_github">Github</string>
     <string name="about_github_url">https://github.com/Lalala-Marshall/Pyerite</string>
     <string name="about_report_issue">Report a bug</string>
     <string name="about_support_email">pyerite.support@gmail.com</string>
     <string name="about_copyright">Copyright and privacy</string>
     <string name="about_copyright_file">Copyright.md</string>
-    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/main/Copyright.md</string>
+    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/master/Copyright.md</string>
     <string name="about_thanks">Acknowledgements</string>
     <string name="about_thanks_hint">Thanks to my partner iDea Center</string>
 </resources>
