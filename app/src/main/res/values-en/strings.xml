@@ -851,6 +851,16 @@
     <string name="corporation_industry_filter_activity">Job types</string>
     <string name="corporation_industry_filter_installer">Installers</string>
     <string name="corporation_industry_filter_system">Solar systems</string>
+    <string name="character_industry">Industry jobs</string>
+    <string name="character_industry_page_title">Industry jobs</string>
+    <string name="character_industry_load_failed">Could not load industry jobs</string>
+    <string name="character_industry_permission_denied">No permission to view industry jobs</string>
+    <string name="character_industry_settings">Industry job settings</string>
+    <string name="character_industry_aggregate">Aggregate characters</string>
+    <string name="character_industry_aggregate_hint">Show industry jobs from every logged-in character</string>
+    <string name="character_industry_select_characters">Select characters</string>
+    <string name="character_industry_slot_details">Job list details</string>
+    <string name="character_industry_slots_unknown">—</string>
     <string name="corporation_assets">Corporation assets</string>
     <string name="corporation_assets_page_title">Corporation assets</string>
     <string name="corporation_assets_location_section">Location</string>

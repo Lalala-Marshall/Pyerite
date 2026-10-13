@@ -372,7 +372,7 @@ internal object EsiPagedQuery {
     const val PAGES_HEADER = "X-Pages"
 }
 
-/** Query names for `GET /corporations/{id}/industry/jobs`. */
+/** Query names for industry-jobs endpoints. */
 internal object EsiIndustryJobsQuery {
     const val INCLUDE_COMPLETED = "include_completed"
 }
@@ -619,7 +619,7 @@ internal data class EsiCorporationStructureDto(
 )
 
 @Serializable
-internal data class EsiCorporationIndustryJobDto(
+internal data class EsiIndustryJobDto(
     @SerialName("job_id") val jobId: Long,
     @SerialName("installer_id") val installerId: Long,
     @SerialName("facility_id") val facilityId: Long,

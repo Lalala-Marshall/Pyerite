@@ -20,6 +20,8 @@ import com.marshall.pyerite.esiModule.model.EsiCharacterOrderDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterRolesDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterShipDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterSkillsDto
+import com.marshall.pyerite.esiModule.model.EsiIndustryJobDto
+import com.marshall.pyerite.esiModule.model.EsiIndustryJobsQuery
 import com.marshall.pyerite.esiModule.model.EsiContactDto
 import com.marshall.pyerite.esiModule.model.EsiContractItemDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationHistoryDto
@@ -93,6 +95,15 @@ internal interface EsiCharacterApi {
         @Path("character_id") characterId: Long,
         @Header("Authorization") authorization: String,
     ): EsiCharacterRolesDto
+
+    @Headers("Accept: application/json")
+    @GET("characters/{character_id}/industry/jobs")
+    suspend fun fetchIndustryJobs(
+        @Path("character_id") characterId: Long,
+        @Header("Authorization") authorization: String,
+        @Query(EsiPagedQuery.PAGE) page: Int,
+        @Query(EsiIndustryJobsQuery.INCLUDE_COMPLETED) includeCompleted: Boolean,
+    ): Response<List<EsiIndustryJobDto>>
 
     @Headers("Accept: application/json")
     @GET("characters/{character_id}/skills")

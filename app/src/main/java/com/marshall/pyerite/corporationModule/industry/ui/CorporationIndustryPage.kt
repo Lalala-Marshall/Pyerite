@@ -33,13 +33,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryBucket
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryConfig
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryJob
-import com.marshall.pyerite.corporationModule.industry.model.toSections
 import com.marshall.pyerite.corporationModule.industry.viewModel.CorporationIndustryViewModel
+import com.marshall.pyerite.industryCommon.model.IndustryBucket
+import com.marshall.pyerite.industryCommon.model.IndustryConfig
+import com.marshall.pyerite.industryCommon.model.toSections
+import com.marshall.pyerite.industryCommon.ui.IndustryFilterSheet
+import com.marshall.pyerite.industryCommon.ui.IndustryJobSection
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
-import com.marshall.pyerite.localization.ContentLanguage
 import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
@@ -70,12 +70,12 @@ internal fun CorporationIndustryPage(
     var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val hasRunningJobs = uiState.jobs.any { job ->
         val bucket = job.bucket(nowMs)
-        bucket == CorporationIndustryBucket.DUE_SOON || bucket == CorporationIndustryBucket.ACTIVE
+        bucket == IndustryBucket.DUE_SOON || bucket == IndustryBucket.ACTIVE
     }
     LaunchedEffect(hasRunningJobs) {
         if (!hasRunningJobs) return@LaunchedEffect
         while (true) {
-            delay(CorporationIndustryConfig.MILLIS_PER_SECOND.milliseconds)
+            delay(IndustryConfig.MILLIS_PER_SECOND.milliseconds)
             nowMs = System.currentTimeMillis()
         }
     }
@@ -148,10 +148,10 @@ internal fun CorporationIndustryPage(
                     }
                     if (sections.ready.isNotEmpty()) {
                         item(key = "ready") {
-                            JobSection(
+                            IndustryJobSection(
                                 title = stringResource(R.string.corporation_industry_section_ready),
                                 jobs = sections.ready,
-                                bucket = CorporationIndustryBucket.READY,
+                                bucket = IndustryBucket.READY,
                                 language = language,
                                 nowMs = nowMs,
                                 onOpenType = { typeId ->
@@ -162,10 +162,10 @@ internal fun CorporationIndustryPage(
                     }
                     if (sections.dueSoon.isNotEmpty()) {
                         item(key = "due_soon") {
-                            JobSection(
+                            IndustryJobSection(
                                 title = stringResource(R.string.corporation_industry_section_due_soon),
                                 jobs = sections.dueSoon,
-                                bucket = CorporationIndustryBucket.DUE_SOON,
+                                bucket = IndustryBucket.DUE_SOON,
                                 language = language,
                                 nowMs = nowMs,
                                 onOpenType = { typeId ->
@@ -176,10 +176,10 @@ internal fun CorporationIndustryPage(
                     }
                     if (sections.active.isNotEmpty()) {
                         item(key = "active") {
-                            JobSection(
+                            IndustryJobSection(
                                 title = stringResource(R.string.corporation_industry_section_active),
                                 jobs = sections.active,
-                                bucket = CorporationIndustryBucket.ACTIVE,
+                                bucket = IndustryBucket.ACTIVE,
                                 language = language,
                                 nowMs = nowMs,
                                 onOpenType = { typeId ->
@@ -190,10 +190,10 @@ internal fun CorporationIndustryPage(
                     }
                     if (sections.history.isNotEmpty()) {
                         item(key = "history") {
-                            JobSection(
+                            IndustryJobSection(
                                 title = stringResource(R.string.corporation_industry_section_history),
                                 jobs = sections.history,
-                                bucket = CorporationIndustryBucket.HISTORY,
+                                bucket = IndustryBucket.HISTORY,
                                 language = language,
                                 nowMs = nowMs,
                                 onOpenType = { typeId ->
@@ -208,7 +208,7 @@ internal fun CorporationIndustryPage(
     }
 
     if (showFilter) {
-        CorporationIndustryFilterSheet(
+        IndustryFilterSheet(
             filter = uiState.filter,
             installers = sections.installers,
             systems = sections.systems,
@@ -295,48 +295,6 @@ private fun SummaryCountRow(
             thickness = dimensionResource(R.dimen.detail_divider_thickness),
             color = colorResource(R.color.border),
         )
-    }
-}
-
-@Composable
-private fun JobSection(
-    title: String,
-    jobs: List<CorporationIndustryJob>,
-    bucket: CorporationIndustryBucket,
-    language: ContentLanguage,
-    nowMs: Long,
-    onOpenType: (Int) -> Unit,
-) {
-    BaseContainer(
-        title = title,
-        titleTrailingContent = {
-            Text(
-                text = stringResource(
-                    R.string.corporation_industry_section_count,
-                    integerCount(jobs.size),
-                ),
-                color = colorResource(R.color.hint_text),
-                fontSize = dimensionResource(R.dimen.list_section_subheader_text_size).value.sp,
-            )
-        },
-        useSystemBarsPadding = false,
-        modifier = Modifier.padding(top = dimensionResource(R.dimen.type_detail_section_gap)),
-    ) {
-        jobs.forEachIndexed { index, job ->
-            CorporationIndustryJobRow(
-                job = job,
-                bucket = bucket,
-                language = language,
-                nowMs = nowMs,
-                onClick = { onOpenType(job.detailTypeId) },
-            )
-            if (index < jobs.lastIndex) {
-                HorizontalDivider(
-                    thickness = dimensionResource(R.dimen.detail_divider_thickness),
-                    color = colorResource(R.color.border),
-                )
-            }
-        }
     }
 }
 

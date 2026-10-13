@@ -25,6 +25,7 @@ import com.marshall.pyerite.mainPageModule.navHost.MainRoute
 import com.marshall.pyerite.mainPageModule.navHost.mainNavGraph
 import com.marshall.pyerite.loyaltyPointsModule.navHost.loyaltyPointsNavGraph
 import com.marshall.pyerite.peoplePlacesModule.navHost.peoplePlacesNavGraph
+import com.marshall.pyerite.characterIndustryModule.navHost.characterIndustryNavGraph
 import com.marshall.pyerite.characterTransactionsModule.navHost.characterTransactionsNavGraph
 import com.marshall.pyerite.characterWalletJournalModule.navHost.characterWalletJournalNavGraph
 import com.marshall.pyerite.contractListModule.navHost.contractListNavGraph
@@ -80,6 +81,7 @@ fun AppNavHost() {
                 contractListNavGraph(navController)
                 characterTransactionsNavGraph(navController)
                 characterWalletJournalNavGraph(navController)
+                characterIndustryNavGraph(navController)
                 corporationWalletNavGraph(navController)
                 corporationMembersNavGraph(navController)
                 corporationStructuresNavGraph(navController)
