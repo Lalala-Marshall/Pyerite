@@ -35,6 +35,7 @@ val charactersListModule = module {
             callbackBus = get(),
             pendingLoginStore = get(),
             profileCache = get(),
+            skillQueueExpiryScheduler = get(),
         )
     }
     single(createdAtStart = true) {

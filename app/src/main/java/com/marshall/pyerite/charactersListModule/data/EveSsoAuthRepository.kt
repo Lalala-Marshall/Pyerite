@@ -16,6 +16,7 @@ import com.marshall.pyerite.eveAuthModule.sso.EveSsoPkce
 import com.marshall.pyerite.eveAuthModule.sso.EveSsoRemoteDataSource
 import com.marshall.pyerite.eveAuthModule.model.EveStoredSession
 import com.marshall.pyerite.eveAuthModule.token.EveTokenManager
+import com.marshall.pyerite.infra.notification.SkillQueueExpiryScheduler
 import com.marshall.pyerite.eveAuthModule.token.EveTokenRefreshResult
 import com.marshall.pyerite.eveAuthModule.model.EveTokenSet
 import com.marshall.pyerite.eveAuthModule.model.normalizeTokenType
@@ -56,6 +57,7 @@ class EveSsoAuthRepository internal constructor(
     private val callbackBus: EveSsoCallbackBus,
     private val pendingLoginStore: EvePendingLoginStore,
     private val profileCache: CharacterProfileCache,
+    private val skillQueueExpiryScheduler: SkillQueueExpiryScheduler,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutex = Mutex()
@@ -123,6 +125,7 @@ class EveSsoAuthRepository internal constructor(
 
     fun removeCharacterSession(characterId: Long) {
         scope.launch(Dispatchers.IO) {
+            skillQueueExpiryScheduler.clear(characterId)
             val refreshToken = tokenManager.peekRefreshToken(characterId)
             tokenManager.remove(characterId)
             profileCache.remove(characterId)

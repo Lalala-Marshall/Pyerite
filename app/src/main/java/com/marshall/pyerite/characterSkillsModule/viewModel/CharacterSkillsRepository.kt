@@ -4,10 +4,13 @@ import com.marshall.pyerite.characterSkillsModule.data.CharacterSkillsCache
 import com.marshall.pyerite.characterSkillsModule.data.CharacterSkillsLoader
 import com.marshall.pyerite.characterSkillsModule.model.CharacterAttributes
 import com.marshall.pyerite.characterSkillsModule.model.CharacterSkillPoints
+import com.marshall.pyerite.characterSkillsModule.model.CharacterSkillQueueState
 import com.marshall.pyerite.characterSkillsModule.model.CharacterSkillQueueStatus
 import com.marshall.pyerite.characterSkillsModule.model.ImplantAttributeBonuses
 import com.marshall.pyerite.characterSkillsModule.model.SkillCatalogGroup
 import com.marshall.pyerite.characterSkillsModule.model.SkillCatalogLoadResult
+import com.marshall.pyerite.eveAuthModule.token.EveTokenManager
+import com.marshall.pyerite.infra.notification.SkillQueueExpiryScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -15,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap
 class CharacterSkillsRepository internal constructor(
     private val skillsLoader: CharacterSkillsLoader,
     private val skillsCache: CharacterSkillsCache,
+    private val tokenManager: EveTokenManager,
+    private val skillQueueExpiryScheduler: SkillQueueExpiryScheduler,
 ) {
     private val statusByCharacterId = ConcurrentHashMap<Long, CharacterSkillQueueStatus>()
     private val attributesByCharacterId = ConcurrentHashMap<Long, CharacterAttributes>()
@@ -35,6 +40,7 @@ class CharacterSkillsRepository internal constructor(
             val loaded = skillsLoader.load(characterId)
             statusByCharacterId[characterId] = loaded
             skillsCache.save(loaded)
+            reportSkillQueue(loaded)
             loaded
         }
 
@@ -81,4 +87,21 @@ class CharacterSkillsRepository internal constructor(
             implantBonusesByCharacterId[characterId] = loaded
             loaded
         }
+
+    private fun reportSkillQueue(status: CharacterSkillQueueStatus) {
+        val name = tokenManager.sessionIdentities()
+            .firstOrNull { it.characterId == status.characterId }
+            ?.characterName
+            .orEmpty()
+        skillQueueExpiryScheduler.report(
+            characterId = status.characterId,
+            characterName = name,
+            queueEndEpochMs = queueEndEpochMs(status),
+        )
+    }
+
+    private fun queueEndEpochMs(status: CharacterSkillQueueStatus): Long? {
+        if (status.state != CharacterSkillQueueState.TRAINING) return null
+        return status.trainingFinishAtEpochMs.maxOrNull()
+    }
 }

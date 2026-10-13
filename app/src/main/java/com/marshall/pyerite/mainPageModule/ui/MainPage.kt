@@ -76,7 +76,10 @@ import com.marshall.pyerite.charactersListModule.viewModel.CharacterViewModel
 import com.marshall.pyerite.sdeModule.update.SdeUpdateBottomSheet
 import com.marshall.pyerite.sdeModule.update.SdeUpdateUiState
 import com.marshall.pyerite.sdeModule.update.SdeUpdateViewModel
+import com.marshall.pyerite.settingsModule.navHost.SettingsRoute
+import com.marshall.pyerite.settingsModule.ui.MainPageSettingsItem
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
+import com.marshall.pyerite.infra.prefs.HomeLayoutPreferences
 import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
@@ -88,6 +91,7 @@ import com.marshall.pyerite.ui.golbalComponents.pyeritePullRefreshTopBarAction
 import com.marshall.pyerite.ui.golbalComponents.rememberLazyListTitleCollapsed
 import com.marshall.pyerite.util.NumberDisplayFormatter
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun MainPage(
@@ -156,8 +160,12 @@ fun MainPage(
     val corporationSectionTitle = stringResource(R.string.corporation)
     val businessSectionTitle = stringResource(R.string.business)
     val dataSectionTitle = stringResource(R.string.data)
+    val otherSectionTitle = stringResource(R.string.main_section_other)
+    val homeLayoutPreferences: HomeLayoutPreferences = koinInject()
+    val showCorporationAffairs by homeLayoutPreferences.showCorporationAffairs.collectAsState()
     val showCorporationSection =
-        currentLoggedInCharacter?.hasCorporationManagementAccess == true
+        currentLoggedInCharacter?.hasCorporationManagementAccess == true &&
+            showCorporationAffairs
     val refreshTopBarAction = pyeritePullRefreshTopBarAction(
         isRefreshing = isRefreshing,
         refreshFailed = refreshFailed,
@@ -453,6 +461,18 @@ fun MainPage(
                                     CharacterIndustryRoute.Industry.create(characterId),
                                 )
                             },
+                        )
+                    }
+                }
+                item(key = "other_section_header") {
+                    MainPageSectionHeader(title = otherSectionTitle)
+                }
+                item(key = "other_section_entries") {
+                    MainPageSectionCard(
+                        bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
+                    ) {
+                        MainPageSettingsItem(
+                            onClick = { navController.navigate(SettingsRoute.Settings.route) },
                         )
                     }
                 }

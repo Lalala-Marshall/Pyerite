@@ -38,6 +38,7 @@ import com.marshall.pyerite.corporationModule.wallet.navHost.corporationWalletNa
 import com.marshall.pyerite.personalAssetsModule.navHost.personalAssetsNavGraph
 import com.marshall.pyerite.personalPropertyModule.navHost.personalPropertyNavGraph
 import com.marshall.pyerite.regionMarketModule.navHost.regionMarketNavGraph
+import com.marshall.pyerite.settingsModule.navHost.settingsNavGraph
 import com.marshall.pyerite.ui.golbalComponents.LocalOpenEntityProfile
 import com.marshall.pyerite.ui.golbalComponents.UniverseEntityRef
 import org.koin.androidx.compose.koinViewModel
@@ -91,6 +92,7 @@ fun AppNavHost() {
                 loyaltyPointsNavGraph(navController)
                 peoplePlacesNavGraph(navController)
                 regionMarketNavGraph(navController)
+                settingsNavGraph(navController)
             }
             if (entityProfileState.stack.isNotEmpty()) {
                 EntityProfileBottomSheet(viewModel = entityProfileViewModel)
