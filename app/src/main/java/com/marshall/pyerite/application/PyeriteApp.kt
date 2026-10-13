@@ -6,6 +6,7 @@ import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.settingsModule.settingsModule
 import com.marshall.pyerite.ui.theme.ThemeModeStore
 import com.marshall.pyerite.infra.network.networkModule
+import com.marshall.pyerite.aboutModule.aboutModule
 import com.marshall.pyerite.sdeModule.update.BundledSdeUpdater
 import com.marshall.pyerite.sdeModule.update.SdeUpdateController
 import com.marshall.pyerite.sdeModule.update.SdeUpdateLog
@@ -90,6 +91,7 @@ class PyeriteApp : Application() {
                 entityProfileModule,
                 regionMarketModule,
                 settingsModule,
+                aboutModule,
             )
         }
 

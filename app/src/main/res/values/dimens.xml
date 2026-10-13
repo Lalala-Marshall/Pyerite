@@ -43,6 +43,7 @@
     <dimen name="list_section_header_text_size">18sp</dimen>
     <dimen name="list_section_subheader_text_size">14sp</dimen>
     <dimen name="list_section_header_bottom_padding">4dp</dimen>
+    <dimen name="main_page_bottom_padding">24dp</dimen>
 
     <!-- Skill unlock page title row -->
     <dimen name="skill_unlock_title_icon_size">32dp</dimen>
@@ -144,6 +145,19 @@
     <dimen name="character_section_spacing">12dp</dimen>
     <dimen name="character_add_icon_size">24dp</dimen>
     <dimen name="settings_trailing_icon_size">24dp</dimen>
+    <dimen name="about_app_icon_size">96dp</dimen>
+    <dimen name="about_app_icon_corner_radius">8dp</dimen>
+    <!-- Adaptive icon canvas is 108dp; masks may crop outside the center 66dp. -->
+    <dimen name="launcher_icon_safe_inset">21dp</dimen>
+    <dimen name="about_icon_glow_width">1.5dp</dimen>
+    <dimen name="about_icon_glow_blur">4dp</dimen>
+    <dimen name="about_name_gap">12dp</dimen>
+    <dimen name="about_name_text_size">28sp</dimen>
+    <dimen name="about_version_gap">8dp</dimen>
+    <dimen name="about_version_text_size">16sp</dimen>
+    <dimen name="about_header_min_height">200dp</dimen>
+    <dimen name="about_avatar_size">36dp</dimen>
+    <dimen name="about_status_text_size">13sp</dimen>
     <dimen name="character_pull_refresh_icon_size">24dp</dimen>
     <dimen name="character_delete_icon_size">22dp</dimen>
     <dimen name="character_delete_icon_gap">8dp</dimen>

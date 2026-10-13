@@ -31,6 +31,8 @@ class SdeUpdateRepository(
 
     fun installedBuildNumber(): String? = versionStore.load()?.buildNumber
 
+    internal fun installedRelease(): SdeReleaseMeta? = versionStore.load()
+
     fun installedIconVersion(): Int? = versionStore.load()?.iconVersion
 
     fun resolveVersionVisibility(remote: SdeRemotePackage): SdeUpdateVersionVisibility {

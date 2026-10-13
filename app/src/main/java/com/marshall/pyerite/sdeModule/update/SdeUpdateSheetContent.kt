@@ -80,4 +80,9 @@ sealed interface SdeUpdateSheetContent {
         val installedIconVersion: Int?,
         val message: String,
     ) : SdeUpdateSheetContent
+
+    data class Info(
+        val installedBuild: String?,
+        val installedIconVersion: Int?,
+    ) : SdeUpdateSheetContent
 }

@@ -7,6 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="about_icon_glow">#F4F7FF</color>
+    <color name="about_icon">#A8AEC0</color>
+    <color name="launcher_icon_background">#FF000000</color>
 
     <color name="main_background">#ADADAD</color>
     <color name="second_background">#FFFFFF</color>
