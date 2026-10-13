@@ -394,6 +394,7 @@
 
     <string name="sde_update_download">下载数据库更新</string>
     <string name="sde_update_available">可更新</string>
+    <string name="sde_update_up_to_date">已是最新</string>
     <string name="sde_update_check_manually">检查更新</string>
     <string name="sde_update_checking">检查中</string>
     <string name="sde_update_checking_title">检查更新</string>
@@ -1039,4 +1040,21 @@
     <string name="settings_skill_queue_notification_channel">技能队列</string>
     <string name="settings_skill_queue_notification_title_unnamed">技能队列</string>
     <string name="settings_skill_queue_notification_body">将在 %1$s 内完成。仅基于拉取的技能队列数据计算，与实际游戏内可实时数据可能不一致</string>
+
+    <string name="about">关于</string>
+    <string name="about_version">v%1$s</string>
+    <string name="about_sde_database">SDE数据库</string>
+    <string name="about_sde_build">构建号：%1$s</string>
+    <string name="about_sde_check_failed">检查失败</string>
+    <string name="about_author">作者</string>
+    <string name="about_author_name">IICHNIIMarshall Man</string>
+    <string name="about_github">Github</string>
+    <string name="about_github_url">https://github.com/Lalala-Marshall/Pyerite</string>
+    <string name="about_report_issue">报告缺陷</string>
+    <string name="about_support_email">pyerite.support@gmail.com</string>
+    <string name="about_copyright">版权与隐私说明</string>
+    <string name="about_copyright_file">Copyright.md</string>
+    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/main/Copyright.md</string>
+    <string name="about_thanks">致谢</string>
+    <string name="about_thanks_hint">向我的合作伙伴 iDea Center 致谢</string>
 </resources>

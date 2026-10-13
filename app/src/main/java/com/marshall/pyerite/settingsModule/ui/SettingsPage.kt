@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +40,10 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.marshall.pyerite.R
+import com.marshall.pyerite.sdeModule.update.SdeUpdateBottomSheet
+import com.marshall.pyerite.sdeModule.update.SdeUpdateSheetContent
+import com.marshall.pyerite.sdeModule.update.SdeUpdateUiState
+import com.marshall.pyerite.sdeModule.update.SdeUpdateViewModel
 import com.marshall.pyerite.settingsModule.navHost.SettingsRoute
 import com.marshall.pyerite.settingsModule.viewModel.SettingsViewModel
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
@@ -55,8 +60,10 @@ import org.koin.androidx.compose.koinViewModel
 internal fun SettingsPage(
     navController: NavController,
     viewModel: SettingsViewModel = koinViewModel(),
+    sdeUpdateViewModel: SdeUpdateViewModel = koinViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val sdeUpdateState by sdeUpdateViewModel.uiState.collectAsState()
     val showCorporationAffairs by viewModel.showCorporationAffairs.collectAsState()
     val cacheMegabytes by viewModel.cacheMegabytes.collectAsState()
     val clearingCache by viewModel.clearingCache.collectAsState()
@@ -138,6 +145,15 @@ internal fun SettingsPage(
                 BaseLazyColumnItem(
                     model = BaseLazyColumnItemModel(
                         showLeadingIcon = false,
+                        itemName = stringResource(R.string.sde_update_sheet_title),
+                        itemHint = sdeUpdateHint(sdeUpdateState),
+                        onClick = sdeUpdateViewModel::openUpdateSheet,
+                    ),
+                    showDivider = true,
+                )
+                BaseLazyColumnItem(
+                    model = BaseLazyColumnItemModel(
+                        showLeadingIcon = false,
                         itemName = stringResource(R.string.settings_notifications),
                         onClick = { navController.navigate(SettingsRoute.Notifications.route) },
                     ),
@@ -177,6 +193,19 @@ internal fun SettingsPage(
         }
     }
 
+    val sheetState = sdeUpdateState as? SdeUpdateUiState.Sheet
+    if (sheetState != null) {
+        key(sheetState.instanceId) {
+            SdeUpdateBottomSheet(
+                content = sheetState.content,
+                onDismiss = sdeUpdateViewModel::dismissSheet,
+                onConfirmDownload = sdeUpdateViewModel::startDownload,
+                onRetryDownload = sdeUpdateViewModel::retryDownload,
+                onRetryCheck = sdeUpdateViewModel::retryCheck,
+            )
+        }
+    }
+
     if (showClearConfirm) {
         ClearCacheConfirmDialog(
             onDismiss = { showClearConfirm = false },
@@ -185,6 +214,28 @@ internal fun SettingsPage(
                 viewModel.clearCache()
             },
         )
+    }
+}
+
+@Composable
+private fun sdeUpdateHint(state: SdeUpdateUiState): String {
+    return when (state) {
+        is SdeUpdateUiState.Checking -> stringResource(R.string.sde_update_checking)
+        is SdeUpdateUiState.UpToDate -> stringResource(R.string.sde_update_up_to_date)
+        is SdeUpdateUiState.UpdateReady -> stringResource(R.string.sde_update_available)
+        is SdeUpdateUiState.CheckFailed -> stringResource(R.string.sde_update_check_failed_title)
+        is SdeUpdateUiState.Idle -> stringResource(R.string.sde_update_check_manually)
+        is SdeUpdateUiState.Sheet -> when (state.content) {
+            is SdeUpdateSheetContent.Checking -> stringResource(R.string.sde_update_checking)
+            is SdeUpdateSheetContent.CheckFailed -> stringResource(R.string.sde_update_check_failed_title)
+            is SdeUpdateSheetContent.Prompt,
+            is SdeUpdateSheetContent.Downloading,
+            is SdeUpdateSheetContent.DownloadFailed,
+            -> stringResource(R.string.sde_update_available)
+            is SdeUpdateSheetContent.Completed,
+            is SdeUpdateSheetContent.Info,
+            -> stringResource(R.string.sde_update_up_to_date)
+        }
     }
 }
 

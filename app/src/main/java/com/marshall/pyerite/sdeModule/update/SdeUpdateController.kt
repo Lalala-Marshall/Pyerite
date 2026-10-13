@@ -90,7 +90,15 @@ class SdeUpdateController(
                 if (remote == null) {
                     pendingUpdate = null
                     logAction("checkForUpdates", "generation=$generation result=UpToDate")
-                    _uiState.value = SdeUpdateUiState.UpToDate
+                    val info = SdeUpdateSheetContent.Info(
+                        installedBuild = repository.installedBuildNumber(),
+                        installedIconVersion = repository.installedIconVersion(),
+                    )
+                    _uiState.value = if (checkResultStaysInSheet(inSheet)) {
+                        updateSheet(info)
+                    } else {
+                        SdeUpdateUiState.UpToDate
+                    }
                 } else {
                     pendingUpdate = remote
                     val installedBuild = repository.installedBuildNumber().orEmpty()
@@ -103,7 +111,7 @@ class SdeUpdateController(
                             "remote=${remote.meta.buildNumber} icons=${remote.meta.iconVersion}",
                     )
                     setCheckUiState(generation) {
-                        if (inSheet) {
+                        if (checkResultStaysInSheet(inSheet)) {
                             updateSheet(
                                 SdeUpdateSheetContent.Prompt(
                                     installedBuild = installedBuild,
@@ -186,7 +194,7 @@ class SdeUpdateController(
         message: String,
     ) {
         setCheckUiState(generation) {
-            if (inSheet) {
+            if (checkResultStaysInSheet(inSheet)) {
                 updateSheet(
                     SdeUpdateSheetContent.CheckFailed(
                         installedBuild = installedForSheet.build ?: installedBuild,
@@ -219,11 +227,37 @@ class SdeUpdateController(
                 )
             }
             is SdeUpdateUiState.CheckFailed -> {
-                logAction("openUpdateSheet", "manual check after background failure")
-                checkForUpdates(inSheet = true)
+                _uiState.value = presentSheet(
+                    SdeUpdateSheetContent.CheckFailed(
+                        installedBuild = state.installedBuild,
+                        installedIconVersion = state.installedIconVersion,
+                        message = state.message,
+                    ),
+                )
             }
-            else -> Unit
+            is SdeUpdateUiState.UpToDate,
+            is SdeUpdateUiState.Idle,
+            is SdeUpdateUiState.Checking -> {
+                _uiState.value = presentInstalledInfoSheet()
+            }
+            is SdeUpdateUiState.Sheet -> Unit
         }
+    }
+
+    /** Keep an already-open info sheet in place when a background check finishes. */
+    private fun checkResultStaysInSheet(inSheet: Boolean): Boolean {
+        if (inSheet) return true
+        val content = (_uiState.value as? SdeUpdateUiState.Sheet)?.content
+        return content is SdeUpdateSheetContent.Info || content is SdeUpdateSheetContent.Checking
+    }
+
+    private fun presentInstalledInfoSheet(): SdeUpdateUiState.Sheet {
+        return presentSheet(
+            SdeUpdateSheetContent.Info(
+                installedBuild = repository.installedBuildNumber(),
+                installedIconVersion = repository.installedIconVersion(),
+            ),
+        )
     }
 
     fun dismissSheet() {
@@ -265,6 +299,9 @@ class SdeUpdateController(
                         installedIconVersion = content.installedIconVersion,
                         message = content.message,
                     )
+                }
+                is SdeUpdateSheetContent.Info -> {
+                    _uiState.value = SdeUpdateUiState.UpToDate
                 }
             }
             else -> Unit
@@ -554,6 +591,7 @@ class SdeUpdateController(
             is SdeUpdateSheetContent.DownloadFailed -> {
                 if (content.cancelled) "DownloadCancelled" else "DownloadFailed"
             }
+            is SdeUpdateSheetContent.Info -> "Info"
         }
     }
 

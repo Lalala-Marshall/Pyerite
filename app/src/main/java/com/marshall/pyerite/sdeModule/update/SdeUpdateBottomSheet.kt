@@ -135,10 +135,11 @@ private fun SdeUpdateSheetBody(
                     color = captionColor,
                 )
                 SdeUpdateSheetActions(
-                    primaryLabel = stringResource(R.string.sde_update_retry),
+                    primaryLabel = stringResource(R.string.sde_update_check_manually),
                     onPrimaryClick = onRetryCheck,
                     secondaryLabel = stringResource(R.string.sde_update_cancel),
                     onSecondaryClick = onDismiss,
+                    sideBySide = true,
                 )
             }
 
@@ -160,6 +161,7 @@ private fun SdeUpdateSheetBody(
                     onPrimaryClick = onConfirmDownload,
                     secondaryLabel = stringResource(R.string.sde_update_cancel),
                     onSecondaryClick = onDismiss,
+                    sideBySide = true,
                 )
             }
 
@@ -203,6 +205,28 @@ private fun SdeUpdateSheetBody(
                     onPrimaryClick = onDismiss,
                     secondaryLabel = null,
                     onSecondaryClick = {},
+                )
+            }
+
+            is SdeUpdateSheetContent.Info -> {
+                SdeUpdateBuildInfo(
+                    installedBuild = content.installedBuild,
+                    remoteBuild = null,
+                    installedIconVersion = content.installedIconVersion,
+                    remoteIconVersion = null,
+                    versionVisibility = SdeUpdateVersionVisibility.All,
+                )
+                Text(
+                    text = stringResource(R.string.sde_update_up_to_date),
+                    fontSize = 14.sp,
+                    color = captionColor,
+                )
+                SdeUpdateSheetActions(
+                    primaryLabel = stringResource(R.string.sde_update_ok),
+                    onPrimaryClick = onDismiss,
+                    secondaryLabel = stringResource(R.string.sde_update_check_manually),
+                    onSecondaryClick = onRetryCheck,
+                    sideBySide = true,
                 )
             }
 
@@ -321,7 +345,28 @@ private fun SdeUpdateSheetActions(
     onPrimaryClick: () -> Unit,
     secondaryLabel: String?,
     onSecondaryClick: () -> Unit,
+    sideBySide: Boolean = false,
 ) {
+    if (sideBySide && secondaryLabel != null) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = onSecondaryClick,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(text = secondaryLabel)
+            }
+            Button(
+                onClick = onPrimaryClick,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(text = primaryLabel)
+            }
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(
             onClick = onPrimaryClick,
@@ -359,6 +404,7 @@ private fun sheetTitle(content: SdeUpdateSheetContent): String {
         }
         is SdeUpdateSheetContent.Checking -> stringResource(R.string.sde_update_checking_title)
         is SdeUpdateSheetContent.CheckFailed -> stringResource(R.string.sde_update_check_failed_title)
+        is SdeUpdateSheetContent.Info -> stringResource(R.string.sde_update_sheet_title)
     }
 }
 
