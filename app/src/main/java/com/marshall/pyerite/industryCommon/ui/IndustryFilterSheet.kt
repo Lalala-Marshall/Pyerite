@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.industry.ui
+package com.marshall.pyerite.industryCommon.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,35 +15,36 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryActivity
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryFilter
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryInstallerOption
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustrySystemOption
+import com.marshall.pyerite.industryCommon.model.IndustryActivity
+import com.marshall.pyerite.industryCommon.model.IndustryFilter
+import com.marshall.pyerite.industryCommon.model.IndustryInstallerOption
+import com.marshall.pyerite.industryCommon.model.IndustrySystemOption
 import com.marshall.pyerite.localization.ContentLanguage
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 
 @Composable
-internal fun CorporationIndustryFilterSheet(
-    filter: CorporationIndustryFilter,
-    installers: List<CorporationIndustryInstallerOption>,
-    systems: List<CorporationIndustrySystemOption>,
+internal fun IndustryFilterSheet(
+    filter: IndustryFilter,
+    installers: List<IndustryInstallerOption>,
+    systems: List<IndustrySystemOption>,
     language: ContentLanguage,
     onHideClosedChange: (Boolean) -> Unit,
-    onToggleActivity: (CorporationIndustryActivity) -> Unit,
+    onToggleActivity: (IndustryActivity) -> Unit,
     onToggleAllActivities: () -> Unit,
-    onToggleInstaller: (Long) -> Unit,
-    onToggleAllInstallers: (Set<Long>) -> Unit,
     onToggleSystem: (Long) -> Unit,
     onToggleAllSystems: (Set<Long>) -> Unit,
     onDismiss: () -> Unit,
+    showInstallers: Boolean = true,
+    onToggleInstaller: (Long) -> Unit = {},
+    onToggleAllInstallers: (Set<Long>) -> Unit = {},
 ) {
     val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
     val bottomPadding = dimensionResource(R.dimen.type_detail_bottom_padding)
     val installerIds = installers.map { it.installerId }.toSet()
     val systemIds = systems.map { it.solarSystemId }.toSet()
-    CorporationIndustryModalSheet(
+    IndustryModalSheet(
         title = stringResource(R.string.corporation_industry_filter_settings),
         endLabel = stringResource(R.string.corporation_structures_sheet_done),
         onDismiss = onDismiss,
@@ -83,14 +84,14 @@ internal fun CorporationIndustryFilterSheet(
             BaseContainer(
                 title = stringResource(R.string.corporation_industry_filter_activity),
                 titleTrailingContent = {
-                    CorporationIndustrySelectAllButton(
+                    IndustrySelectAllButton(
                         allSelected = filter.allActivitiesSelected,
                         onClick = onToggleAllActivities,
                     )
                 },
                 useSystemBarsPadding = false,
             ) {
-                CorporationIndustryActivity.entries.forEachIndexed { index, activity ->
+                IndustryActivity.entries.forEachIndexed { index, activity ->
                     BaseLazyColumnItem(
                         model = BaseLazyColumnItemModel(
                             showLeadingIcon = false,
@@ -98,21 +99,21 @@ internal fun CorporationIndustryFilterSheet(
                             showChevron = false,
                             onClick = { onToggleActivity(activity) },
                         ),
-                        showDivider = index < CorporationIndustryActivity.entries.lastIndex,
+                        showDivider = index < IndustryActivity.entries.lastIndex,
                         trailingContent = {
-                            CorporationIndustryItemCheck(
+                            IndustryItemCheck(
                                 selected = activity !in filter.excludedActivities,
                             )
                         },
                     )
                 }
             }
-            if (installers.isNotEmpty()) {
+            if (showInstallers && installers.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(sectionGap))
                 BaseContainer(
                     title = stringResource(R.string.corporation_industry_filter_installer),
                     titleTrailingContent = {
-                        CorporationIndustrySelectAllButton(
+                        IndustrySelectAllButton(
                             allSelected = filter.allInstallersSelected(installerIds),
                             onClick = { onToggleAllInstallers(installerIds) },
                         )
@@ -132,7 +133,7 @@ internal fun CorporationIndustryFilterSheet(
                             ),
                             showDivider = index < installers.lastIndex,
                             trailingContent = {
-                                CorporationIndustryItemCheck(
+                                IndustryItemCheck(
                                     selected = installer.installerId !in filter.excludedInstallerIds,
                                 )
                             },
@@ -145,7 +146,7 @@ internal fun CorporationIndustryFilterSheet(
                 BaseContainer(
                     title = stringResource(R.string.corporation_industry_filter_system),
                     titleTrailingContent = {
-                        CorporationIndustrySelectAllButton(
+                        IndustrySelectAllButton(
                             allSelected = filter.allSystemsSelected(systemIds),
                             onClick = { onToggleAllSystems(systemIds) },
                         )
@@ -160,7 +161,7 @@ internal fun CorporationIndustryFilterSheet(
                             model = BaseLazyColumnItemModel(
                                 showLeadingIcon = false,
                                 itemName = name,
-                                itemNameAnnotated = corporationIndustryPlaceLabel(
+                                itemNameAnnotated = industryPlaceLabel(
                                     name = name,
                                     security = system.securityStatus,
                                 ),
@@ -169,7 +170,7 @@ internal fun CorporationIndustryFilterSheet(
                             ),
                             showDivider = index < systems.lastIndex,
                             trailingContent = {
-                                CorporationIndustryItemCheck(
+                                IndustryItemCheck(
                                     selected = system.solarSystemId !in filter.excludedSolarSystemIds,
                                 )
                             },

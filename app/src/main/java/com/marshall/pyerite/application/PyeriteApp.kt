@@ -8,6 +8,7 @@ import com.marshall.pyerite.sdeModule.update.SdeUpdateController
 import com.marshall.pyerite.sdeModule.update.SdeUpdateLog
 import com.marshall.pyerite.sdeModule.sdeModule
 import com.marshall.pyerite.characterCalendarModule.characterCalendarModule
+import com.marshall.pyerite.characterIndustryModule.characterIndustryModule
 import com.marshall.pyerite.characterTransactionsModule.characterTransactionsModule
 import com.marshall.pyerite.characterTransactionsModule.data.CharacterTransactionsDiskCache
 import com.marshall.pyerite.characterWalletJournalModule.characterWalletJournalModule
@@ -30,6 +31,7 @@ import com.marshall.pyerite.databaseHierarchyModule.databaseHierarchyModule
 import com.marshall.pyerite.esiModule.esiModule
 import com.marshall.pyerite.eveAuthModule.eveAuthModule
 import com.marshall.pyerite.iconModule.iconModule
+import com.marshall.pyerite.industryCommon.industryCommonModule
 import com.marshall.pyerite.regionMarketModule.regionMarketModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,9 +74,11 @@ class PyeriteApp : Application() {
                 personalPropertyModule,
                 personalAssetsModule,
                 contractsCommonModule,
+                industryCommonModule,
                 contractListModule,
                 characterTransactionsModule,
                 characterWalletJournalModule,
+                characterIndustryModule,
                 corporationModule,
                 loyaltyPointsModule,
                 peoplePlacesModule,

@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.industry.ui
+package com.marshall.pyerite.industryCommon.ui
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -55,10 +55,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryBucket
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryConfig
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryDateFormatter
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryJob
+import com.marshall.pyerite.industryCommon.model.IndustryBucket
+import com.marshall.pyerite.industryCommon.model.IndustryConfig
+import com.marshall.pyerite.industryCommon.model.IndustryDateFormatter
+import com.marshall.pyerite.industryCommon.model.IndustryJob
 import com.marshall.pyerite.iconModule.manager.IconManager
 import com.marshall.pyerite.localization.ContentLanguage
 import com.marshall.pyerite.ui.golbalComponents.CharacterAvatar
@@ -69,12 +69,13 @@ import org.koin.compose.koinInject
 import java.util.Locale
 
 @Composable
-internal fun CorporationIndustryJobRow(
-    job: CorporationIndustryJob,
-    bucket: CorporationIndustryBucket,
+internal fun IndustryJobRow(
+    job: IndustryJob,
+    bucket: IndustryBucket,
     language: ContentLanguage,
     nowMs: Long,
     onClick: () -> Unit,
+    showInstaller: Boolean = true,
     iconManager: IconManager = koinInject(),
 ) {
     val lineGap = dimensionResource(R.dimen.corporation_industry_job_line_gap)
@@ -99,7 +100,7 @@ internal fun CorporationIndustryJobRow(
     }
     val countdown = job.remainingMillis(nowMs)?.let { remainingMs ->
         formatDurationDisplay(
-            totalSeconds = remainingMs / CorporationIndustryConfig.MILLIS_PER_SECOND,
+            totalSeconds = remainingMs / IndustryConfig.MILLIS_PER_SECOND,
             includeSeconds = true,
             language = language,
         )
@@ -176,7 +177,7 @@ internal fun CorporationIndustryJobRow(
                     }
                 }
             }
-            if (bucket == CorporationIndustryBucket.READY) {
+            if (bucket == IndustryBucket.READY) {
                 CompletedBadge()
             }
         }
@@ -184,7 +185,7 @@ internal fun CorporationIndustryJobRow(
         IndustryProgressBar(
             progress = progress,
             fillColor = familyColor,
-            animateShimmer = progress < CorporationIndustryConfig.PROGRESS_COMPLETE,
+            animateShimmer = progress < IndustryConfig.PROGRESS_COMPLETE,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -199,7 +200,7 @@ internal fun CorporationIndustryJobRow(
                 stringResource(R.string.corporation_industry_unknown_location)
             }
             Text(
-                text = corporationIndustryPlaceLabel(
+                text = industryPlaceLabel(
                     name = locationName,
                     security = job.securityStatus,
                 ),
@@ -208,12 +209,14 @@ internal fun CorporationIndustryJobRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            InstallerLabel(
-                portraitUrl = job.installerPortraitUrl,
-                name = job.installerName.ifBlank {
-                    stringResource(R.string.corporation_industry_unknown_installer)
-                },
-            )
+            if (showInstaller) {
+                InstallerLabel(
+                    portraitUrl = job.installerPortraitUrl,
+                    name = job.installerName.ifBlank {
+                        stringResource(R.string.corporation_industry_unknown_installer)
+                    },
+                )
+            }
         }
         FourthLine(
             bucket = bucket,
@@ -241,7 +244,7 @@ internal fun CorporationIndustryJobRow(
 }
 
 @Composable
-internal fun corporationIndustryPlaceLabel(
+internal fun industryPlaceLabel(
     name: String,
     security: Double?,
 ): AnnotatedString {
@@ -252,13 +255,13 @@ internal fun corporationIndustryPlaceLabel(
                 append(
                     String.format(
                         Locale.US,
-                        CorporationIndustryConfig.SYSTEM_SECURITY_FORMAT,
+                        IndustryConfig.SYSTEM_SECURITY_FORMAT,
                         security,
                     ),
                 )
             }
             withStyle(SpanStyle(color = textColor)) {
-                append(CorporationIndustryConfig.SECURITY_STATUS_NAME_GAP)
+                append(IndustryConfig.SECURITY_STATUS_NAME_GAP)
                 append(name)
             }
         } else {
@@ -271,9 +274,9 @@ internal fun corporationIndustryPlaceLabel(
 
 @Composable
 internal fun industrySecurityColor(security: Double): Color = when {
-    security <= CorporationIndustryConfig.SECURITY_NEGATIVE_MAX ->
+    security <= IndustryConfig.SECURITY_NEGATIVE_MAX ->
         colorResource(R.color.character_security_negative)
-    security < CorporationIndustryConfig.SECURITY_LOW_MAX ->
+    security < IndustryConfig.SECURITY_LOW_MAX ->
         colorResource(R.color.character_security_low)
     else -> colorResource(R.color.character_security_high)
 }
@@ -314,8 +317,8 @@ private fun IndustryProgressBar(
         dimensionResource(R.dimen.skill_queue_training_progress_corner_radius),
     )
     val clamped = progress.coerceIn(
-        CorporationIndustryConfig.PROGRESS_EMPTY,
-        CorporationIndustryConfig.PROGRESS_COMPLETE,
+        IndustryConfig.PROGRESS_EMPTY,
+        IndustryConfig.PROGRESS_COMPLETE,
     )
     Box(
         modifier = Modifier
@@ -324,13 +327,13 @@ private fun IndustryProgressBar(
             .clip(shape)
             .background(colorResource(R.color.character_skill_progress_track)),
     ) {
-        if (clamped > CorporationIndustryConfig.PROGRESS_EMPTY) {
+        if (clamped > IndustryConfig.PROGRESS_EMPTY) {
             IndustryProgressFill(
                 progress = clamped,
                 fillColor = fillColor,
                 shimmerColor = colorResource(R.color.character_skill_progress_shimmer),
                 corner = dimensionResource(R.dimen.skill_queue_training_progress_corner_radius),
-                animateShimmer = animateShimmer && clamped < CorporationIndustryConfig.PROGRESS_COMPLETE,
+                animateShimmer = animateShimmer && clamped < IndustryConfig.PROGRESS_COMPLETE,
             )
         }
     }
@@ -347,11 +350,11 @@ private fun IndustryProgressFill(
     val shape = RoundedCornerShape(corner)
     val shimmerProgress by rememberInfiniteTransition(label = "industry_progress_shimmer")
         .animateFloat(
-            initialValue = CorporationIndustryConfig.PROGRESS_EMPTY,
-            targetValue = CorporationIndustryConfig.PROGRESS_COMPLETE,
+            initialValue = IndustryConfig.PROGRESS_EMPTY,
+            targetValue = IndustryConfig.PROGRESS_COMPLETE,
             animationSpec = infiniteRepeatable(
                 animation = tween(
-                    durationMillis = CorporationIndustryConfig.PROGRESS_SHIMMER_DURATION_MS,
+                    durationMillis = IndustryConfig.PROGRESS_SHIMMER_DURATION_MS,
                     easing = LinearEasing,
                 ),
                 repeatMode = RepeatMode.Restart,
@@ -366,7 +369,7 @@ private fun IndustryProgressFill(
             .background(fillColor),
     ) {
         if (animateShimmer && maxWidth > Dp.Hairline) {
-            val bandWidth = maxWidth * CorporationIndustryConfig.PROGRESS_SHIMMER_WIDTH_FRACTION
+            val bandWidth = maxWidth * IndustryConfig.PROGRESS_SHIMMER_WIDTH_FRACTION
             val travel = maxWidth + bandWidth
             val offsetX = -bandWidth + travel * shimmerProgress
             Box(
@@ -379,7 +382,7 @@ private fun IndustryProgressFill(
                             colors = listOf(
                                 Color.Transparent,
                                 shimmerColor.copy(
-                                    alpha = CorporationIndustryConfig.PROGRESS_SHIMMER_PEAK_ALPHA,
+                                    alpha = IndustryConfig.PROGRESS_SHIMMER_PEAK_ALPHA,
                                 ),
                                 Color.Transparent,
                             ),
@@ -452,7 +455,7 @@ private fun InstallerLabel(
 
 @Composable
 private fun FourthLine(
-    bucket: CorporationIndustryBucket,
+    bucket: IndustryBucket,
     activityName: String,
     familyColor: Color,
     positiveColor: Color,
@@ -466,33 +469,33 @@ private fun FourthLine(
     val leftColor: Color
     val right: String?
     when (bucket) {
-        CorporationIndustryBucket.READY -> {
+        IndustryBucket.READY -> {
             left = stringResource(R.string.corporation_industry_deliverable, activityName)
             leftColor = positiveColor
             right = endDateMillis?.let { end ->
                 stringResource(
                     R.string.corporation_industry_completed_at,
-                    CorporationIndustryDateFormatter.format(end),
+                    IndustryDateFormatter.format(end),
                 )
             }
         }
-        CorporationIndustryBucket.DUE_SOON,
-        CorporationIndustryBucket.ACTIVE,
+        IndustryBucket.DUE_SOON,
+        IndustryBucket.ACTIVE,
         -> {
             left = activityName
             leftColor = familyColor
             right = endDateMillis?.let { end ->
                 stringResource(
                     R.string.corporation_industry_finishes_at,
-                    CorporationIndustryDateFormatter.format(end),
+                    IndustryDateFormatter.format(end),
                 )
             }
         }
-        CorporationIndustryBucket.HISTORY -> {
+        IndustryBucket.HISTORY -> {
             left = historyTitle.orEmpty()
             leftColor = hintColor
             right = historyTimeMillis?.let { time ->
-                CorporationIndustryDateFormatter.format(time)
+                IndustryDateFormatter.format(time)
             }
         }
     }

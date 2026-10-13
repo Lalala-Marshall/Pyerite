@@ -3,10 +3,10 @@ package com.marshall.pyerite.corporationModule.industry.viewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryAccessException
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryActivity
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryFilter
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryJob
+import com.marshall.pyerite.industryCommon.model.IndustryAccessException
+import com.marshall.pyerite.industryCommon.model.IndustryActivity
+import com.marshall.pyerite.industryCommon.model.IndustryFilter
+import com.marshall.pyerite.industryCommon.model.IndustryJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,7 +40,7 @@ internal class CorporationIndustryViewModel(
         _uiState.update { it.copy(filter = it.filter.copy(hideClosed = hideClosed)) }
     }
 
-    fun toggleActivity(activity: CorporationIndustryActivity) {
+    fun toggleActivity(activity: IndustryActivity) {
         _uiState.update { it.copy(filter = it.filter.toggleActivity(activity)) }
     }
 
@@ -94,8 +94,8 @@ internal class CorporationIndustryViewModel(
                     onFailure = { error ->
                         current.copy(
                             isLoading = false,
-                            loadFailed = error !is CorporationIndustryAccessException,
-                            permissionDenied = error is CorporationIndustryAccessException,
+                            loadFailed = error !is IndustryAccessException,
+                            permissionDenied = error is IndustryAccessException,
                         )
                     },
                 )
@@ -109,8 +109,8 @@ internal class CorporationIndustryViewModel(
 }
 
 internal data class CorporationIndustryUiState(
-    val jobs: List<CorporationIndustryJob> = emptyList(),
-    val filter: CorporationIndustryFilter = CorporationIndustryFilter(),
+    val jobs: List<IndustryJob> = emptyList(),
+    val filter: IndustryFilter = IndustryFilter(),
     val isLoading: Boolean = true,
     val loadFailed: Boolean = false,
     val permissionDenied: Boolean = false,

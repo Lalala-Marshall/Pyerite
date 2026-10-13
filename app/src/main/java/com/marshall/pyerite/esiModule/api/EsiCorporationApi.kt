@@ -7,7 +7,7 @@ import com.marshall.pyerite.esiModule.model.EsiCorporationAssetNameDto
 import com.marshall.pyerite.esiModule.model.EsiContractItemDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationContractDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationDivisionsDto
-import com.marshall.pyerite.esiModule.model.EsiCorporationIndustryJobDto
+import com.marshall.pyerite.esiModule.model.EsiIndustryJobDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationMemberTrackingDto
 import com.marshall.pyerite.esiModule.model.EsiCorporationStructureDto
 import com.marshall.pyerite.esiModule.model.EsiIndustryJobsQuery
@@ -104,7 +104,7 @@ internal interface EsiCorporationApi {
         @Header("Authorization") authorization: String,
         @Query(EsiPagedQuery.PAGE) page: Int,
         @Query(EsiIndustryJobsQuery.INCLUDE_COMPLETED) includeCompleted: Boolean,
-    ): Response<List<EsiCorporationIndustryJobDto>>
+    ): Response<List<EsiIndustryJobDto>>
 
     @Headers("Accept: application/json")
     @GET("corporations/{corporation_id}/assets")

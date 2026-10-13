@@ -46,6 +46,8 @@ import com.marshall.pyerite.corporationModule.structures.navHost.CorporationStru
 import com.marshall.pyerite.corporationModule.structures.ui.MainPageCorporationStructuresItem
 import com.marshall.pyerite.corporationModule.wallet.navHost.CorporationWalletRoute
 import com.marshall.pyerite.corporationModule.wallet.ui.MainPageCorporationWalletItem
+import com.marshall.pyerite.characterIndustryModule.navHost.CharacterIndustryRoute
+import com.marshall.pyerite.characterIndustryModule.ui.MainPageCharacterIndustryItem
 import com.marshall.pyerite.characterTransactionsModule.navHost.CharacterTransactionsRoute
 import com.marshall.pyerite.characterTransactionsModule.ui.MainPageCharacterTransactionsItem
 import com.marshall.pyerite.characterWalletJournalModule.navHost.CharacterWalletJournalRoute
@@ -439,6 +441,16 @@ fun MainPage(
                                     ?: return@MainPageCharacterWalletJournalItem
                                 navController.navigate(
                                     CharacterWalletJournalRoute.List.create(characterId),
+                                )
+                            },
+                            showDivider = true,
+                        )
+                        MainPageCharacterIndustryItem(
+                            onClick = {
+                                val characterId = currentCharacter?.characterId
+                                    ?: return@MainPageCharacterIndustryItem
+                                navController.navigate(
+                                    CharacterIndustryRoute.Industry.create(characterId),
                                 )
                             },
                         )

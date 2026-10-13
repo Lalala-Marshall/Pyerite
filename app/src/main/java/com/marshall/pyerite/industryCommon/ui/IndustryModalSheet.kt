@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.industry.ui
+package com.marshall.pyerite.industryCommon.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,11 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
-import com.marshall.pyerite.corporationModule.industry.model.CorporationIndustryConfig
+import com.marshall.pyerite.industryCommon.model.IndustryConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CorporationIndustryModalSheet(
+internal fun IndustryModalSheet(
     title: String,
     endLabel: String,
     onDismiss: () -> Unit,
@@ -61,7 +61,7 @@ internal fun CorporationIndustryModalSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(CorporationIndustryConfig.FILTER_SHEET_HEIGHT_FRACTION)
+                .fillMaxHeight(IndustryConfig.FILTER_SHEET_HEIGHT_FRACTION)
                 .background(sheetBackground)
                 .imePadding()
                 .navigationBarsPadding(),

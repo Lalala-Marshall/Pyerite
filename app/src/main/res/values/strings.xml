@@ -853,6 +853,16 @@
     <string name="corporation_industry_filter_activity">项目类型</string>
     <string name="corporation_industry_filter_installer">发起人</string>
     <string name="corporation_industry_filter_system">星系</string>
+    <string name="character_industry">工业任务</string>
+    <string name="character_industry_page_title">工业任务</string>
+    <string name="character_industry_load_failed">工业任务加载失败</string>
+    <string name="character_industry_permission_denied">没有查看工业任务的权限</string>
+    <string name="character_industry_settings">工业任务设置</string>
+    <string name="character_industry_aggregate">多人物聚合</string>
+    <string name="character_industry_aggregate_hint">显示所有已登录角色的排线</string>
+    <string name="character_industry_select_characters">选择角色</string>
+    <string name="character_industry_slot_details">清单详情</string>
+    <string name="character_industry_slots_unknown">—</string>
     <string name="corporation_assets">军团资产</string>
     <string name="corporation_assets_page_title">军团资产</string>
     <string name="corporation_assets_location_section">位置</string>

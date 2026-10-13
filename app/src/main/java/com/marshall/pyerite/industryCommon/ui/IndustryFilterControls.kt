@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.industry.ui
+package com.marshall.pyerite.industryCommon.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
 
 @Composable
-internal fun CorporationIndustrySelectAllButton(
+internal fun IndustrySelectAllButton(
     allSelected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -48,12 +48,12 @@ internal fun CorporationIndustrySelectAllButton(
             fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.width(labelGap))
-        CorporationIndustrySelectAllMark(selected = allSelected)
+        IndustrySelectAllMark(selected = allSelected)
     }
 }
 
 @Composable
-private fun CorporationIndustrySelectAllMark(selected: Boolean) {
+private fun IndustrySelectAllMark(selected: Boolean) {
     val checkSize = dimensionResource(R.dimen.corporation_wallet_select_all_check_size)
     val iconSize = dimensionResource(R.dimen.corporation_wallet_select_all_icon_size)
     val borderWidth = dimensionResource(R.dimen.corporation_wallet_select_all_border)
@@ -86,7 +86,7 @@ private fun CorporationIndustrySelectAllMark(selected: Boolean) {
 }
 
 @Composable
-internal fun CorporationIndustryItemCheck(selected: Boolean) {
+internal fun IndustryItemCheck(selected: Boolean) {
     val checkSize = dimensionResource(R.dimen.corporation_wallet_item_check_size)
     Box(
         modifier = Modifier.size(checkSize),

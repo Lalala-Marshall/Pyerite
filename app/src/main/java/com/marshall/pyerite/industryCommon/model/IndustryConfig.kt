@@ -1,9 +1,9 @@
-package com.marshall.pyerite.corporationModule.industry.model
+package com.marshall.pyerite.industryCommon.model
 
-/** Pagination, due-soon window, and list display for corporation industry jobs. */
-internal object CorporationIndustryConfig {
+/** Pagination, due-soon window, and list display shared by industry job pages. */
+internal object IndustryConfig {
     const val FIRST_PAGE = 1
-    /** ESI corporation industry-jobs page size used when `X-Pages` is absent. */
+    /** ESI industry-jobs page size used when `X-Pages` is absent. */
     const val JOBS_PAGE_SIZE = 1_000
     const val JOBS_MAX_PAGES = 20
     const val QUERY_CHUNK = 500

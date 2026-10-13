@@ -1,4 +1,4 @@
-package com.marshall.pyerite.corporationModule.industry.model
+package com.marshall.pyerite.industryCommon.model
 
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
@@ -11,7 +11,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-internal enum class CorporationIndustryFamily(
+internal enum class IndustryFamily(
     @param:ColorRes val colorRes: Int,
 ) {
     MANUFACTURING(R.color.corporation_industry_manufacturing),
@@ -19,57 +19,57 @@ internal enum class CorporationIndustryFamily(
     REACTION(R.color.corporation_industry_reaction),
 }
 
-internal enum class CorporationIndustryActivity(
+internal enum class IndustryActivity(
     val activityId: Int,
     @param:StringRes val titleRes: Int,
     @param:DrawableRes val iconRes: Int,
-    val family: CorporationIndustryFamily,
+    val family: IndustryFamily,
 ) {
     MANUFACTURING(
         activityId = 1,
         titleRes = R.string.corporation_industry_activity_manufacturing,
         iconRes = R.drawable.ic_industry_manufacturing,
-        family = CorporationIndustryFamily.MANUFACTURING,
+        family = IndustryFamily.MANUFACTURING,
     ),
     TIME_EFFICIENCY(
         activityId = 3,
         titleRes = R.string.corporation_industry_activity_time,
         iconRes = R.drawable.ic_industry_time_efficiency,
-        family = CorporationIndustryFamily.RESEARCH,
+        family = IndustryFamily.RESEARCH,
     ),
     MATERIAL_EFFICIENCY(
         activityId = 4,
         titleRes = R.string.corporation_industry_activity_material,
         iconRes = R.drawable.ic_industry_material_efficiency,
-        family = CorporationIndustryFamily.RESEARCH,
+        family = IndustryFamily.RESEARCH,
     ),
     COPYING(
         activityId = 5,
         titleRes = R.string.corporation_industry_activity_copying,
         iconRes = R.drawable.ic_industry_copying,
-        family = CorporationIndustryFamily.RESEARCH,
+        family = IndustryFamily.RESEARCH,
     ),
     INVENTION(
         activityId = 8,
         titleRes = R.string.corporation_industry_activity_invention,
         iconRes = R.drawable.ic_industry_invention,
-        family = CorporationIndustryFamily.RESEARCH,
+        family = IndustryFamily.RESEARCH,
     ),
     REACTION(
         activityId = 9,
         titleRes = R.string.corporation_industry_activity_reaction,
         iconRes = R.drawable.ic_industry_reaction,
-        family = CorporationIndustryFamily.REACTION,
+        family = IndustryFamily.REACTION,
     ),
     ;
 
     companion object {
-        fun fromId(activityId: Int): CorporationIndustryActivity? =
+        fun fromId(activityId: Int): IndustryActivity? =
             entries.firstOrNull { it.activityId == activityId }
     }
 }
 
-internal enum class CorporationIndustryJobStatus(
+internal enum class IndustryJobStatus(
     val wireValue: String,
     @param:StringRes val historyTitleRes: Int? = null,
 ) {
@@ -88,24 +88,24 @@ internal enum class CorporationIndustryJobStatus(
         get() = this == DELIVERED || this == CANCELLED || this == REVERTED
 
     companion object {
-        fun fromWire(value: String): CorporationIndustryJobStatus? =
+        fun fromWire(value: String): IndustryJobStatus? =
             entries.firstOrNull { it.wireValue == value }
     }
 }
 
-internal enum class CorporationIndustryBucket {
+internal enum class IndustryBucket {
     READY,
     DUE_SOON,
     ACTIVE,
     HISTORY,
 }
 
-internal class CorporationIndustryAccessException : Exception()
+internal class IndustryAccessException : Exception()
 
-internal data class CorporationIndustryJob(
+internal data class IndustryJob(
     val jobId: Long,
-    val activity: CorporationIndustryActivity,
-    val status: CorporationIndustryJobStatus,
+    val activity: IndustryActivity,
+    val status: IndustryJobStatus,
     val runs: Int,
     val detailTypeId: Int,
     val blueprintZhName: String?,
@@ -134,35 +134,35 @@ internal data class CorporationIndustryJob(
 
     /** Finished and waiting for delivery: ESI `ready`, or still `active` after `end_date`. */
     fun isDeliverable(nowMs: Long): Boolean {
-        if (status == CorporationIndustryJobStatus.READY) return true
-        if (status != CorporationIndustryJobStatus.ACTIVE) return false
+        if (status == IndustryJobStatus.READY) return true
+        if (status != IndustryJobStatus.ACTIVE) return false
         val end = endDateMillis ?: return false
         return end <= nowMs
     }
 
-    fun bucket(nowMs: Long): CorporationIndustryBucket = when {
-        status.isHistory -> CorporationIndustryBucket.HISTORY
-        isDeliverable(nowMs) -> CorporationIndustryBucket.READY
-        status == CorporationIndustryJobStatus.ACTIVE -> {
+    fun bucket(nowMs: Long): IndustryBucket = when {
+        status.isHistory -> IndustryBucket.HISTORY
+        isDeliverable(nowMs) -> IndustryBucket.READY
+        status == IndustryJobStatus.ACTIVE -> {
             val remaining = endDateMillis?.minus(nowMs)
             if (remaining != null &&
                 remaining > 0L &&
-                remaining <= CorporationIndustryConfig.DUE_SOON_WINDOW_MILLIS
+                remaining <= IndustryConfig.DUE_SOON_WINDOW_MILLIS
             ) {
-                CorporationIndustryBucket.DUE_SOON
+                IndustryBucket.DUE_SOON
             } else {
-                CorporationIndustryBucket.ACTIVE
+                IndustryBucket.ACTIVE
             }
         }
-        status == CorporationIndustryJobStatus.PAUSED -> CorporationIndustryBucket.ACTIVE
-        else -> CorporationIndustryBucket.HISTORY
+        status == IndustryJobStatus.PAUSED -> IndustryBucket.ACTIVE
+        else -> IndustryBucket.HISTORY
     }
 
     /** Remaining time for jobs that are still running. Paused jobs freeze at `pause_date`. */
     fun remainingMillis(nowMs: Long): Long? {
         if (isDeliverable(nowMs) || status.isHistory) return null
         val end = endDateMillis ?: return null
-        val cursor = if (status == CorporationIndustryJobStatus.PAUSED && pauseDateMillis != null) {
+        val cursor = if (status == IndustryJobStatus.PAUSED && pauseDateMillis != null) {
             pauseDateMillis
         } else {
             nowMs
@@ -171,14 +171,14 @@ internal data class CorporationIndustryJob(
     }
 
     fun progressFraction(nowMs: Long): Float {
-        if (isDeliverable(nowMs) || status == CorporationIndustryJobStatus.DELIVERED) {
-            return CorporationIndustryConfig.PROGRESS_COMPLETE
+        if (isDeliverable(nowMs) || status == IndustryJobStatus.DELIVERED) {
+            return IndustryConfig.PROGRESS_COMPLETE
         }
-        val start = startDateMillis ?: return CorporationIndustryConfig.PROGRESS_EMPTY
-        val end = endDateMillis ?: return CorporationIndustryConfig.PROGRESS_EMPTY
-        if (end <= start) return CorporationIndustryConfig.PROGRESS_EMPTY
+        val start = startDateMillis ?: return IndustryConfig.PROGRESS_EMPTY
+        val end = endDateMillis ?: return IndustryConfig.PROGRESS_EMPTY
+        if (end <= start) return IndustryConfig.PROGRESS_EMPTY
         val cursor = when {
-            status == CorporationIndustryJobStatus.PAUSED && pauseDateMillis != null ->
+            status == IndustryJobStatus.PAUSED && pauseDateMillis != null ->
                 pauseDateMillis
             status.isHistory && completedDateMillis != null -> completedDateMillis
             else -> nowMs
@@ -186,28 +186,28 @@ internal data class CorporationIndustryJob(
         val elapsed = (cursor - start).toFloat()
         val span = (end - start).toFloat()
         return (elapsed / span).coerceIn(
-            CorporationIndustryConfig.PROGRESS_EMPTY,
-            CorporationIndustryConfig.PROGRESS_COMPLETE,
+            IndustryConfig.PROGRESS_EMPTY,
+            IndustryConfig.PROGRESS_COMPLETE,
         )
     }
 
     fun historyTimeMillis(): Long? = completedDateMillis ?: endDateMillis
 }
 
-internal data class CorporationIndustrySnapshot(
-    val jobs: List<CorporationIndustryJob>,
+internal data class IndustrySnapshot(
+    val jobs: List<IndustryJob>,
 )
 
-internal data class CorporationIndustryFilter(
+internal data class IndustryFilter(
     val hideClosed: Boolean = true,
-    val excludedActivities: Set<CorporationIndustryActivity> = emptySet(),
+    val excludedActivities: Set<IndustryActivity> = emptySet(),
     val excludedInstallerIds: Set<Long> = emptySet(),
     val excludedSolarSystemIds: Set<Long> = emptySet(),
 ) {
     val allActivitiesSelected: Boolean
         get() = excludedActivities.isEmpty()
 
-    fun matches(job: CorporationIndustryJob): Boolean {
+    fun matches(job: IndustryJob): Boolean {
         if (hideClosed && job.status.isHistory) return false
         if (job.activity in excludedActivities) return false
         if (job.installerId in excludedInstallerIds) return false
@@ -216,7 +216,7 @@ internal data class CorporationIndustryFilter(
         return true
     }
 
-    fun toggleActivity(activity: CorporationIndustryActivity): CorporationIndustryFilter {
+    fun toggleActivity(activity: IndustryActivity): IndustryFilter {
         val next = if (activity in excludedActivities) {
             excludedActivities - activity
         } else {
@@ -225,9 +225,9 @@ internal data class CorporationIndustryFilter(
         return copy(excludedActivities = next)
     }
 
-    fun toggleAllActivities(): CorporationIndustryFilter =
+    fun toggleAllActivities(): IndustryFilter =
         if (allActivitiesSelected) {
-            copy(excludedActivities = CorporationIndustryActivity.entries.toSet())
+            copy(excludedActivities = IndustryActivity.entries.toSet())
         } else {
             copy(excludedActivities = emptySet())
         }
@@ -235,7 +235,7 @@ internal data class CorporationIndustryFilter(
     fun allInstallersSelected(optionIds: Set<Long>): Boolean =
         optionIds.none { it in excludedInstallerIds }
 
-    fun toggleInstaller(installerId: Long): CorporationIndustryFilter {
+    fun toggleInstaller(installerId: Long): IndustryFilter {
         val next = if (installerId in excludedInstallerIds) {
             excludedInstallerIds - installerId
         } else {
@@ -244,7 +244,7 @@ internal data class CorporationIndustryFilter(
         return copy(excludedInstallerIds = next)
     }
 
-    fun toggleAllInstallers(optionIds: Set<Long>): CorporationIndustryFilter =
+    fun toggleAllInstallers(optionIds: Set<Long>): IndustryFilter =
         if (allInstallersSelected(optionIds)) {
             copy(excludedInstallerIds = excludedInstallerIds + optionIds)
         } else {
@@ -254,7 +254,7 @@ internal data class CorporationIndustryFilter(
     fun allSystemsSelected(optionIds: Set<Long>): Boolean =
         optionIds.none { it in excludedSolarSystemIds }
 
-    fun toggleSystem(solarSystemId: Long): CorporationIndustryFilter {
+    fun toggleSystem(solarSystemId: Long): IndustryFilter {
         val next = if (solarSystemId in excludedSolarSystemIds) {
             excludedSolarSystemIds - solarSystemId
         } else {
@@ -263,7 +263,7 @@ internal data class CorporationIndustryFilter(
         return copy(excludedSolarSystemIds = next)
     }
 
-    fun toggleAllSystems(optionIds: Set<Long>): CorporationIndustryFilter =
+    fun toggleAllSystems(optionIds: Set<Long>): IndustryFilter =
         if (allSystemsSelected(optionIds)) {
             copy(excludedSolarSystemIds = excludedSolarSystemIds + optionIds)
         } else {
@@ -271,7 +271,7 @@ internal data class CorporationIndustryFilter(
         }
 }
 
-internal data class CorporationIndustrySummary(
+internal data class IndustrySummary(
     val manufacturing: Int,
     val research: Int,
     val reaction: Int,
@@ -280,13 +280,13 @@ internal data class CorporationIndustrySummary(
         get() = manufacturing == 0 && research == 0 && reaction == 0
 }
 
-internal data class CorporationIndustryInstallerOption(
+internal data class IndustryInstallerOption(
     val installerId: Long,
     val name: String,
     val portraitUrl: String,
 )
 
-internal data class CorporationIndustrySystemOption(
+internal data class IndustrySystemOption(
     val solarSystemId: Long,
     val systemZhName: String?,
     val systemEnName: String?,
@@ -297,14 +297,14 @@ internal data class CorporationIndustrySystemOption(
         localizedName(systemZhName, systemEnName, systemName, language)
 }
 
-internal data class CorporationIndustrySections(
-    val summary: CorporationIndustrySummary,
-    val ready: List<CorporationIndustryJob>,
-    val dueSoon: List<CorporationIndustryJob>,
-    val active: List<CorporationIndustryJob>,
-    val history: List<CorporationIndustryJob>,
-    val installers: List<CorporationIndustryInstallerOption>,
-    val systems: List<CorporationIndustrySystemOption>,
+internal data class IndustrySections(
+    val summary: IndustrySummary,
+    val ready: List<IndustryJob>,
+    val dueSoon: List<IndustryJob>,
+    val active: List<IndustryJob>,
+    val history: List<IndustryJob>,
+    val installers: List<IndustryInstallerOption>,
+    val systems: List<IndustrySystemOption>,
 ) {
     val isEmpty: Boolean
         get() = summary.isEmpty &&
@@ -314,23 +314,23 @@ internal data class CorporationIndustrySections(
             history.isEmpty()
 }
 
-internal fun List<CorporationIndustryJob>.toSections(
-    filter: CorporationIndustryFilter,
+internal fun List<IndustryJob>.toSections(
+    filter: IndustryFilter,
     nowMs: Long,
     language: ContentLanguage,
-): CorporationIndustrySections {
+): IndustrySections {
     val visible = filter { filter.matches(it) }
     val online = visible.filter { it.status.isOnline }
-    val summary = CorporationIndustrySummary(
-        manufacturing = online.count { it.activity.family == CorporationIndustryFamily.MANUFACTURING },
-        research = online.count { it.activity.family == CorporationIndustryFamily.RESEARCH },
-        reaction = online.count { it.activity.family == CorporationIndustryFamily.REACTION },
+    val summary = IndustrySummary(
+        manufacturing = online.count { it.activity.family == IndustryFamily.MANUFACTURING },
+        research = online.count { it.activity.family == IndustryFamily.RESEARCH },
+        reaction = online.count { it.activity.family == IndustryFamily.REACTION },
     )
-    val readyOrder = compareByDescending<CorporationIndustryJob> { it.jobId }
-    val upcomingOrder = compareBy<CorporationIndustryJob> {
+    val readyOrder = compareByDescending<IndustryJob> { it.jobId }
+    val upcomingOrder = compareBy<IndustryJob> {
         it.endDateMillis ?: Long.MAX_VALUE
     }.thenBy { it.jobId }
-    val historyOrder = compareByDescending<CorporationIndustryJob> {
+    val historyOrder = compareByDescending<IndustryJob> {
         it.historyTimeMillis() ?: Long.MIN_VALUE
     }.thenByDescending { it.jobId }
     val optionJobs = if (filter.hideClosed) {
@@ -338,21 +338,21 @@ internal fun List<CorporationIndustryJob>.toSections(
     } else {
         this
     }
-    return CorporationIndustrySections(
+    return IndustrySections(
         summary = summary,
-        ready = visible.filter { it.bucket(nowMs) == CorporationIndustryBucket.READY }.sortedWith(readyOrder),
-        dueSoon = visible.filter { it.bucket(nowMs) == CorporationIndustryBucket.DUE_SOON }.sortedWith(upcomingOrder),
-        active = visible.filter { it.bucket(nowMs) == CorporationIndustryBucket.ACTIVE }.sortedWith(upcomingOrder),
-        history = visible.filter { it.bucket(nowMs) == CorporationIndustryBucket.HISTORY }.sortedWith(historyOrder),
+        ready = visible.filter { it.bucket(nowMs) == IndustryBucket.READY }.sortedWith(readyOrder),
+        dueSoon = visible.filter { it.bucket(nowMs) == IndustryBucket.DUE_SOON }.sortedWith(upcomingOrder),
+        active = visible.filter { it.bucket(nowMs) == IndustryBucket.ACTIVE }.sortedWith(upcomingOrder),
+        history = visible.filter { it.bucket(nowMs) == IndustryBucket.HISTORY }.sortedWith(historyOrder),
         installers = optionJobs.installerOptions(),
         systems = optionJobs.systemOptions(language),
     )
 }
 
-private fun List<CorporationIndustryJob>.installerOptions(): List<CorporationIndustryInstallerOption> =
+private fun List<IndustryJob>.installerOptions(): List<IndustryInstallerOption> =
     distinctBy { it.installerId }
         .map { job ->
-            CorporationIndustryInstallerOption(
+            IndustryInstallerOption(
                 installerId = job.installerId,
                 name = job.installerName,
                 portraitUrl = job.installerPortraitUrl,
@@ -360,12 +360,12 @@ private fun List<CorporationIndustryJob>.installerOptions(): List<CorporationInd
         }
         .sortedWith(compareBy({ it.name.isBlank() }, { it.name.lowercase() }))
 
-private fun List<CorporationIndustryJob>.systemOptions(
+private fun List<IndustryJob>.systemOptions(
     language: ContentLanguage,
-): List<CorporationIndustrySystemOption> =
+): List<IndustrySystemOption> =
     mapNotNull { job ->
         val systemId = job.solarSystemId ?: return@mapNotNull null
-        CorporationIndustrySystemOption(
+        IndustrySystemOption(
             solarSystemId = systemId,
             systemZhName = job.systemZhName,
             systemEnName = job.systemEnName,
@@ -381,9 +381,9 @@ private fun List<CorporationIndustryJob>.systemOptions(
             ),
         )
 
-internal object CorporationIndustryDateFormatter {
+internal object IndustryDateFormatter {
     fun format(epochMs: Long): String =
-        SimpleDateFormat(CorporationIndustryConfig.DISPLAY_DATE_TIME_PATTERN, Locale.US).apply {
+        SimpleDateFormat(IndustryConfig.DISPLAY_DATE_TIME_PATTERN, Locale.US).apply {
             timeZone = TimeZone.getDefault()
         }.format(Date(epochMs))
 }
