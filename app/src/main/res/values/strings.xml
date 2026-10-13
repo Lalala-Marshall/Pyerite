@@ -1054,7 +1054,7 @@
     <string name="about_support_email">pyerite.support@gmail.com</string>
     <string name="about_copyright">版权与隐私说明</string>
     <string name="about_copyright_file">Copyright.md</string>
-    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/main/Copyright.md</string>
+    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/master/Copyright.md</string>
     <string name="about_thanks">致谢</string>
     <string name="about_thanks_hint">向我的合作伙伴 iDea Center 致谢</string>
 </resources>

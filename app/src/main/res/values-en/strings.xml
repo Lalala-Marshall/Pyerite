@@ -1052,7 +1052,7 @@
     <string name="about_support_email">pyerite.support@gmail.com</string>
     <string name="about_copyright">Copyright and privacy</string>
     <string name="about_copyright_file">Copyright.md</string>
-    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/main/Copyright.md</string>
+    <string name="about_copyright_url">https://github.com/Lalala-Marshall/Pyerite/blob/master/Copyright.md</string>
     <string name="about_thanks">Acknowledgements</string>
     <string name="about_thanks_hint">Thanks to my partner iDea Center</string>
 </resources>

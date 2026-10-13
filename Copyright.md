@@ -2,11 +2,11 @@
 
 ## 开发者信息 / Developer Information
 
-本应用由 IICHNIIMarshall Man 开发并发布。
-版权所有 © IICHNIIMarshall Man 2026。
+本应用由个人开发者满宇翔开发并发布。
+版权所有 © 满宇翔 2026。
 
-This application is developed and published by IICHNIIMarshall Man.
-Copyright © IICHNIIMarshall Man 2026.
+This application is developed and published by individual developer Yuxiang Man.
+Copyright © Yuxiang Man 2026.
 
 项目源代码托管于 GitHub，欢迎学习与贡献。
 The project source is hosted on GitHub and is open to learning and contributions.
