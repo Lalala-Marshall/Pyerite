@@ -1,6 +1,7 @@
 package com.marshall.pyerite.characterSheetModule.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.marshall.pyerite.R
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
@@ -11,6 +12,7 @@ import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 fun MainPageCharacterSheetItem(
     skillPointsHint: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     showDivider: Boolean = false,
 ) {
     BaseLazyColumnItem(
@@ -21,5 +23,6 @@ fun MainPageCharacterSheetItem(
             onClick = onClick,
         ),
         showDivider = showDivider,
+        modifier = modifier,
     )
 }

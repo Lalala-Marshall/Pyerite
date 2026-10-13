@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
@@ -25,11 +24,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -118,6 +119,7 @@ fun PyeritePageScaffold(
     showCollapsedTitle: Boolean,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
     startActions: List<PyeriteTopBarActionItem> = emptyList(),
     endActions: List<PyeriteTopBarActionItem> = emptyList(),
     content: @Composable (topBarPadding: PaddingValues) -> Unit,
@@ -134,6 +136,7 @@ fun PyeritePageScaffold(
             showTitle = showCollapsedTitle,
             showScrim = showCollapsedTitle,
             onBack = onBack,
+            leadingContent = leadingContent,
             startActions = startActions,
             endActions = endActions,
             modifier = Modifier
@@ -150,6 +153,7 @@ fun PyeriteTopBar(
     modifier: Modifier = Modifier,
     showScrim: Boolean = showTitle,
     onBack: (() -> Unit)? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
     startActions: List<PyeriteTopBarActionItem> = emptyList(),
     endActions: List<PyeriteTopBarActionItem> = emptyList(),
     pinnedSearch: (@Composable () -> Unit)? = null,
@@ -213,33 +217,30 @@ fun PyeriteTopBar(
                 .fillMaxWidth()
                 .statusBarsPadding(),
         ) {
-            Row(
+            TopBarNavRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(navRowHeight)
                     .padding(horizontal = dimensionResource(R.dimen.detail_card_horizontal_padding)),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier.wrapContentWidth(),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (leadingActions.isNotEmpty()) {
-                        PyeriteTopBarActions(actions = leadingActions)
+                leading = {
+                    if (leadingContent != null || leadingActions.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(
+                                dimensionResource(R.dimen.top_bar_end_action_gap),
+                            ),
+                        ) {
+                            leadingContent?.invoke()
+                            if (leadingActions.isNotEmpty()) {
+                                PyeriteTopBarActions(actions = leadingActions)
+                            }
+                        }
                     }
-                }
-
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
+                },
+                title = {
                     TopBarCenterTitle(title = title, showTitle = showTitle)
-                }
-
-                Box(
-                    modifier = Modifier.wrapContentWidth(),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
+                },
+                trailing = {
                     if (endActions.isNotEmpty()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -252,12 +253,52 @@ fun PyeriteTopBar(
                             }
                         }
                     }
-                }
-            }
+                },
+            )
 
             if (hasPinnedSearch) {
                 pinnedSearch.invoke()
             }
+        }
+    }
+}
+
+@Composable
+private fun TopBarNavRow(
+    leading: @Composable () -> Unit,
+    title: @Composable () -> Unit,
+    trailing: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Layout(
+        content = {
+            Box(contentAlignment = Alignment.CenterStart) { leading() }
+            Box(contentAlignment = Alignment.Center) { title() }
+            Box(contentAlignment = Alignment.CenterEnd) { trailing() }
+        },
+        modifier = modifier,
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val leadingPlaceable = measurables[0].measure(loose)
+        val trailingPlaceable = measurables[2].measure(loose)
+        val sideWidth = maxOf(leadingPlaceable.width, trailingPlaceable.width)
+        val titleMaxWidth = (constraints.maxWidth - sideWidth * 2).coerceAtLeast(0)
+        val titlePlaceable = measurables[1].measure(loose.copy(maxWidth = titleMaxWidth))
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        layout(width, height) {
+            titlePlaceable.placeRelative(
+                x = (width - titlePlaceable.width) / 2,
+                y = (height - titlePlaceable.height) / 2,
+            )
+            leadingPlaceable.placeRelative(
+                x = 0,
+                y = (height - leadingPlaceable.height) / 2,
+            )
+            trailingPlaceable.placeRelative(
+                x = width - trailingPlaceable.width,
+                y = (height - trailingPlaceable.height) / 2,
+            )
         }
     }
 }
@@ -279,7 +320,10 @@ private fun TopBarCenterTitle(
             color = colorResource(R.color.text_primary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 8.dp),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimensionResource(R.dimen.top_bar_end_action_gap)),
         )
     }
 }

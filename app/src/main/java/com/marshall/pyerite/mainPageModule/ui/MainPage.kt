@@ -10,17 +10,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -89,6 +97,7 @@ import com.marshall.pyerite.ui.golbalComponents.PageTitle
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
 import com.marshall.pyerite.ui.golbalComponents.PyeritePullToRefreshBox
 import com.marshall.pyerite.ui.golbalComponents.PyeriteTopBarActionItem
+import com.marshall.pyerite.ui.golbalComponents.PyeriteTopBarPortraitButton
 import com.marshall.pyerite.ui.golbalComponents.pyeritePullRefreshTopBarAction
 import com.marshall.pyerite.ui.golbalComponents.rememberLazyListTitleCollapsed
 import com.marshall.pyerite.util.NumberDisplayFormatter
@@ -114,6 +123,23 @@ fun MainPage(
     val refreshFailed by characterViewModel.refreshFailed.collectAsState()
     val listState = rememberLazyListState()
     val showCollapsedTitle = rememberLazyListTitleCollapsed(listState)
+    val characterSheetRowHeightPx = rememberSaveable { mutableIntStateOf(0) }
+    var showCharacterPortraitSaved by rememberSaveable { mutableStateOf(false) }
+    val characterSheetRowScrolledOff = remember(listState) {
+        derivedStateOf {
+            if (listState.layoutInfo.visibleItemsInfo.isEmpty()) {
+                null
+            } else {
+                listState.isCharacterSheetRowScrolledOff(characterSheetRowHeightPx.intValue)
+            }
+        }
+    }.value
+    SideEffect {
+        if (characterSheetRowScrolledOff != null) {
+            showCharacterPortraitSaved = characterSheetRowScrolledOff
+        }
+    }
+    val showCharacterPortrait = characterSheetRowScrolledOff ?: showCharacterPortraitSaved
     val nextCloneJumpEpochMs = clonesUiState.status.nextCloneJumpEpochMs
     val skillQueueStatus = skillsUiState.status
 
@@ -180,9 +206,28 @@ fun MainPage(
         }
     }
 
+    val selectedCharacter = currentCharacter
+    val characterPortraitLeading: (@Composable () -> Unit)? = if (selectedCharacter == null) {
+        null
+    } else {
+        {
+            PyeriteTopBarPortraitButton(
+                portraitUrl = selectedCharacter.portraitUrl,
+                contentDescription = stringResource(R.string.character_sheet),
+                visible = showCharacterPortrait,
+                onClick = {
+                    navController.navigate(
+                        CharacterSheetRoute.Sheet.create(selectedCharacter.characterId),
+                    )
+                },
+            )
+        }
+    }
+
     PyeritePageScaffold(
         title = pageTitle,
         showCollapsedTitle = showCollapsedTitle,
+        leadingContent = characterPortraitLeading,
         endActions = endActions,
     ) { topBarPadding ->
         PyeritePullToRefreshBox(
@@ -218,6 +263,9 @@ fun MainPage(
                     ) {
                         MainPageCharacterSheetItem(
                             skillPointsHint = characterSheetHint,
+                            modifier = Modifier.onSizeChanged { size ->
+                                characterSheetRowHeightPx.intValue = size.height
+                            },
                             showDivider = true,
                             onClick = {
                                 val characterId = currentCharacter?.characterId
@@ -553,4 +601,21 @@ private fun MainPageSectionCard(
     ) {
         content()
     }
+}
+
+private fun LazyListState.isCharacterSheetRowScrolledOff(rowHeightPx: Int): Boolean {
+    val sectionItem = layoutInfo.visibleItemsInfo.find { it.index == MainPageListIndex.CHARACTER_SECTION }
+    return if (sectionItem == null) {
+        val firstIndex = layoutInfo.visibleItemsInfo.firstOrNull()?.index
+        firstIndex != null && firstIndex > MainPageListIndex.CHARACTER_SECTION
+    } else if (rowHeightPx <= 0) {
+        false
+    } else {
+        sectionItem.offset + rowHeightPx <= 0
+    }
+}
+
+private object MainPageListIndex {
+    /** `character_section_entries`: page title, character card, section header, then this card. */
+    const val CHARACTER_SECTION = 3
 }

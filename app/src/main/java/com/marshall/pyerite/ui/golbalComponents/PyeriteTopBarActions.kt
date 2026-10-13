@@ -1,7 +1,12 @@
 package com.marshall.pyerite.ui.golbalComponents
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -41,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.colorResource
@@ -56,6 +62,48 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marshall.pyerite.R
+
+@Composable
+fun PyeriteTopBarPortraitButton(
+    portraitUrl: String?,
+    contentDescription: String,
+    onClick: () -> Unit,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val size = dimensionResource(R.dimen.top_bar_back_button_size)
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = fadeIn() + scaleIn(
+            initialScale = TopBarPortraitMotion.ENTER_SCALE,
+            transformOrigin = TopBarPortraitMotion.ORIGIN,
+        ),
+        exit = fadeOut() + scaleOut(
+            targetScale = TopBarPortraitMotion.ENTER_SCALE,
+            transformOrigin = TopBarPortraitMotion.ORIGIN,
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .topBarActionSurface(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onClick,
+                )
+                .semantics(mergeDescendants = true) { role = Role.Button },
+            contentAlignment = Alignment.Center,
+        ) {
+            CharacterAvatar(
+                portraitUrl = portraitUrl,
+                size = size,
+                contentDescription = contentDescription,
+            )
+        }
+    }
+}
 
 @Immutable
 data class PyeriteTopBarMenuItem(
@@ -408,6 +456,11 @@ private object TopBarActionSpinConfig {
     const val PROGRESS_MIN = 0f
     const val FULL_CIRCLE_DEGREES = 360f
     const val DURATION_MS = 1_000
+}
+
+private object TopBarPortraitMotion {
+    const val ENTER_SCALE = 0.72f
+    val ORIGIN = TransformOrigin(0f, 0.5f)
 }
 
 @Composable
