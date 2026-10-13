@@ -65,6 +65,8 @@ data class BaseLazyColumnItemHint(
     val iconFileName: String? = null,
     /** Larger hint (between title and default subtitle), e.g. LP store cost line. */
     val emphasized: Boolean = false,
+    /** When true, hint text wraps instead of ellipsizing on one line. */
+    val wrap: Boolean = false,
     val onClick: (() -> Unit)? = null,
 )
 
@@ -444,8 +446,12 @@ fun BaseLazyColumnItem(
                                                 },
                                             fontSize = lineFontSize,
                                             lineHeight = lineLineHeight,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = if (hint.wrap) Int.MAX_VALUE else 1,
+                                            overflow = if (hint.wrap) {
+                                                TextOverflow.Clip
+                                            } else {
+                                                TextOverflow.Ellipsis
+                                            },
                                             modifier = startModifier,
                                         )
                                     }

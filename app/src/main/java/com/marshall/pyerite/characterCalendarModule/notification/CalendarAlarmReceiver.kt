@@ -31,6 +31,7 @@ internal class CalendarAlarmReceiver : BroadcastReceiver() {
         val koin = GlobalContext.getOrNull() ?: return
         val store = koin.get<CalendarReminderStore>()
         val scheduler = koin.get<CalendarReminderScheduler>()
+        if (!scheduler.canPost()) return
         store.remove(characterId, eventId, lead)
         scheduler.ensureChannel()
 
