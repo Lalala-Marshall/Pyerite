@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """
-Download latest EstamelGG/EveSDE_2.0 release (sde.zip + icons.zip), refresh
-D:\\Coding\\sde.
+Download the latest EstamelGG/EveSDE_3.0 release (sde.zip + icons.zip).
 
-**Phase A (update check only):** Compare upstream ``EstamelGG/EveSDE_2.0`` release metadata to
+**Phase A (update check only):** Compare upstream EveSDE_3.0 release metadata to
 **this repo's latest GitHub Release** (``latest.json`` on Pyerite Releases). Bundled
 ``app/src/main/assets/latest.txt`` is only a fallback when no Release exists yet.
-No SQLite file diff; no comparing two DBs to decide whether to download.
 
-**Phase B (after a real update):** Unzip upstream DB, normalize for Room, write
-``app/src/main/assets/``, publish/update Pyerite GitHub Release, and ``--commit-assets``
-pushes bundled files so the next app release ships the same SDE build.
+**Phase B (after a real update):** Project the single 3.0 sqlite into zh/en
+databases that match the Room schema, normalize booleans, write uncompressed
+sqlite into ``app/src/main/assets/``, then publish gzipped databases plus
+``icons.zip`` to GitHub Releases and Gitee Releases.
 
-Requires: public GitHub for downloads. Use --yes to allow wiping eve_sde root.
+Requires: public GitHub for downloads. ``GITEE_TOKEN`` for the Gitee upload.
+Use --yes to allow wiping the eve_sde cache.
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import os
 import re
@@ -26,6 +28,7 @@ import subprocess
 import tempfile
 import time
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -36,9 +39,25 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 NORMALIZE_SCRIPT = REPO_ROOT / "tools" / "normalize_sqlite_boolean_to_integer.py"
 
 DEFAULT_EVE_SDE_ROOT = Path(os.environ.get("EVE_SDE_ROOT", str(REPO_ROOT / ".eve_sde_cache")))
-GITHUB_API_LATEST = "https://api.github.com/repos/EstamelGG/EveSDE_2.0/releases/latest"
-GITHUB_HTML_LATEST = "https://github.com/EstamelGG/EveSDE_2.0/releases/latest"
-USER_AGENT = "Pyerite-SDE-Sync/1.0 (github.com/EstamelGG/EveSDE_2.0 consumer)"
+UPSTREAM_REPO = "EstamelGG/EveSDE_3.0"
+GITHUB_API_LATEST = f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest"
+GITHUB_HTML_LATEST = f"https://github.com/{UPSTREAM_REPO}/releases/latest"
+USER_AGENT = f"Pyerite-SDE-Sync/1.0 (github.com/{UPSTREAM_REPO} consumer)"
+
+GITEE_OWNER = "lalala-marshall"
+GITEE_REPO = "pyerite-sde-source"
+GITEE_API_BASE = "https://gitee.com/api/v5"
+GITEE_MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
+GITEE_RELEASES_TO_KEEP = 4
+GITEE_UPLOAD_ATTEMPTS = 3
+GITEE_UPLOAD_RETRY_SECONDS = 5
+# One connection from a US-hosted runner into Gitee is slow; overlap the attachments.
+GITEE_UPLOAD_WORKERS = 4
+# Sized so one part still finishes inside the upload timeout when the link is only tens of KB/s.
+ICON_PART_BYTES = 8 * 1024 * 1024
+ICON_PART_DIGITS = 2
+GZIP_COMPRESS_LEVEL = 6
+HASH_CHUNK_BYTES = 1024 * 1024
 
 ASSET_SDE = "sde.zip"
 ASSET_ICONS_PRIMARY = "icons.zip"
@@ -57,40 +76,53 @@ APP_LATEST_JSON = APP_ASSETS_DIR / "latest.json"
 LEGACY_APP_LATEST = APP_DB_DIR / "latest.txt"
 APP_ICONS_ZIP = APP_ICONS_DIR / "icons.zip"
 
-PYERITE_RELEASE_ASSET_DB_ZH = "item_db_zh.sqlite"
-PYERITE_RELEASE_ASSET_DB_EN = "item_db_en.sqlite"
+PYERITE_RELEASE_ASSET_DB_ZH = "item_db_zh.sqlite.gz"
+PYERITE_RELEASE_ASSET_DB_EN = "item_db_en.sqlite.gz"
 PYERITE_RELEASE_ASSET_ICONS = "icons.zip"
+PYERITE_RELEASE_ASSET_ICON_PARTS = "icons.zip.parts"
 PYERITE_RELEASE_ASSET_META = "latest.json"
+GITHUB_ASSETS_REFRESHED_EACH_PUBLISH = (PYERITE_RELEASE_ASSET_META,)
 
 
-def _resolve_sde_db_root(eve: Path) -> Path:
-    nested = eve / "sde" / "db"
-    flat = eve / "db"
-    if (nested / "item_db_zh.sqlite").is_file():
-        return nested
-    if (flat / "item_db_zh.sqlite").is_file():
-        return flat
-    names = sorted(p.name for p in eve.iterdir()) if eve.is_dir() else []
-    raise SystemExit(
-        "Missing item_db_zh.sqlite after unzip. "
-        f"Tried {nested / 'item_db_zh.sqlite'} and {flat / 'item_db_zh.sqlite'}. "
-        f"Top-level in {eve!r}: {names!r}"
+class GiteePublishError(Exception):
+    """Gitee upload failed. GitHub may already have the same release."""
+
+
+def locate_sde3_inputs(eve: Path) -> tuple[Path, Path, Path]:
+    """item_db.sqlite, texts.zip, and latest.log after sde.zip is extracted."""
+    sqlite_candidates = (
+        eve / "db" / "item_db.sqlite",
+        eve / "sde" / "db" / "item_db.sqlite",
     )
+    sqlite_path = next((path for path in sqlite_candidates if path.is_file()), None)
+    if sqlite_path is None:
+        names = sorted(path.name for path in eve.iterdir()) if eve.is_dir() else []
+        raise SystemExit(f"Missing db/item_db.sqlite after unzip. Top-level in {eve!r}: {names!r}")
+    roots = (eve, sqlite_path.parent.parent)
+    texts_path = next((root / "texts.zip" for root in roots if (root / "texts.zip").is_file()), None)
+    if texts_path is None:
+        raise SystemExit(f"Missing texts.zip next to {sqlite_path}")
+    for root in roots:
+        for name in ("latest.log", "latest.txt"):
+            meta = root / name
+            if meta.is_file():
+                return sqlite_path, texts_path, meta
+    raise SystemExit(f"No latest.log or latest.txt under {eve} after unzip.")
 
 
-def find_remote_dbs_and_meta(eve: Path) -> tuple[Path, Path, Path]:
-    """Paths to zh/en SQLite and build metadata after *sde.zip* is extracted into *eve*."""
-    db_root = _resolve_sde_db_root(eve)
-    zh_db = db_root / "item_db_zh.sqlite"
-    en_db = db_root / "item_db_en.sqlite"
-    if not en_db.is_file():
-        raise SystemExit(f"Missing item_db_en.sqlite under {db_root} after unzip.")
-    meta_root = db_root.parent
-    for name in ("latest.txt", "latest.log"):
-        p = meta_root / name
-        if p.is_file():
-            return zh_db, en_db, p
-    raise SystemExit(f"No latest.txt or latest.log under {meta_root} after unzip.")
+def project_remote_language_dbs(sqlite_path: Path, texts_zip: Path, out_dir: Path) -> tuple[Path, Path]:
+    """Build Room-compatible zh/en sqlite files from the EveSDE 3.0 export."""
+    tools_dir = str(REPO_ROOT / "tools")
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
+    from project_sde3_language_db import project_language_db
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    zh_db = out_dir / APP_DB_ZH.name
+    en_db = out_dir / APP_DB_EN.name
+    project_language_db(sqlite_path, texts_zip, APP_DB_ZH, zh_db, "zh")
+    project_language_db(sqlite_path, texts_zip, APP_DB_ZH, en_db, "en")
+    return zh_db, en_db
 
 
 def _github_auth_headers() -> dict[str, str]:
@@ -183,7 +215,7 @@ def resolve_tag_from_releases_page() -> str:
 def direct_asset_urls(tag: str) -> tuple[str, str, str]:
     """Build browser_download-style URLs when the GitHub API is unavailable."""
     enc = urllib.parse.quote(tag, safe="")
-    base = f"https://github.com/EstamelGG/EveSDE_2.0/releases/download/{enc}"
+    base = f"https://github.com/{UPSTREAM_REPO}/releases/download/{enc}"
     sde_url = f"{base}/{ASSET_SDE}"
     primary = f"{base}/{ASSET_ICONS_PRIMARY}"
     alt = f"{base}/{ASSET_ICONS_ALT}"
@@ -386,7 +418,15 @@ def flatten_release_meta(raw: dict, published_at: str = "") -> dict:
         "release_date": rd,
         "completion_time": ct,
     }
-    for k in ("icon_version", "icon_sha256", "sde_sha256", "patch_number", "extra_db"):
+    for k in (
+        "icon_version",
+        "icon_sha256",
+        "sde_sha256",
+        "item_db_zh_sha256",
+        "item_db_en_sha256",
+        "patch_number",
+        "extra_db",
+    ):
         if k in raw and raw[k] is not None:
             out[k] = raw[k]
     return out
@@ -593,7 +633,10 @@ def refresh_bundled_from_published_release() -> bool:
             tmp = download_dir / asset_name
             print(f"[+] Downloading published {asset_name} ...")
             download_file(url, tmp)
-            replace_asset(tmp, dest)
+            if asset_name.endswith(".sqlite.gz"):
+                gunzip_file(tmp, dest)
+            else:
+                replace_asset(tmp, dest)
 
         core = flatten_release_meta(latest)
         APP_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
@@ -603,6 +646,14 @@ def refresh_bundled_from_published_release() -> bool:
         return True
     finally:
         shutil.rmtree(download_dir, ignore_errors=True)
+
+
+def gunzip_file(src: Path, dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.is_file():
+        dest.unlink()
+    with gzip.open(src, "rb") as inp, dest.open("wb") as out:
+        shutil.copyfileobj(inp, out)
 
 
 def replace_asset(src: Path, dest: Path) -> None:
@@ -666,8 +717,36 @@ def main() -> int:
         action="store_true",
         help="Commit app/src/main/assets to git and push (CI; requires GITHUB_TOKEN)",
     )
+    p.add_argument(
+        "--skip-gitee",
+        action="store_true",
+        help="Publish GitHub only, and write the Gitee file list for separate upload jobs",
+    )
+    p.add_argument(
+        "--gitee-file",
+        type=Path,
+        help="Upload this one file onto an existing or new Gitee release, then exit",
+    )
+    p.add_argument(
+        "--gitee-tag",
+        default="",
+        help="Gitee release tag used with --gitee-file",
+    )
     args = p.parse_args()
 
+    if args.gitee_file is not None:
+        tag = args.gitee_tag.strip()
+        if not tag:
+            print("--gitee-tag is required with --gitee-file", file=sys.stderr)
+            return 2
+        try:
+            upload_gitee_asset(args.gitee_file, tag)
+        except GiteePublishError as error:
+            print(f"[!] Gitee publish failed: {error}", file=sys.stderr)
+            return 1
+        return 0
+
+    print("[+] Sync started", flush=True)
     eve = args.eve_sde_root.resolve()
 
     if not args.dry_run and not args.yes:
@@ -788,7 +867,8 @@ def main() -> int:
     with zipfile.ZipFile(sde_zip) as zf:
         zf.extractall(eve)
 
-    remote_zh_db, remote_en_db, remote_latest = find_remote_dbs_and_meta(eve)
+    sqlite_path, texts_zip, remote_latest = locate_sde3_inputs(eve)
+    remote_zh_db, remote_en_db = project_remote_language_dbs(sqlite_path, texts_zip, eve / "projected")
 
     remote_meta = load_latest(remote_latest)
     if not remote_meta:
@@ -826,24 +906,6 @@ def bundled_assets_ready() -> bool:
     )
 
 
-def expected_release_asset_names() -> tuple[str, ...]:
-    return (
-        PYERITE_RELEASE_ASSET_META,
-        PYERITE_RELEASE_ASSET_DB_ZH,
-        PYERITE_RELEASE_ASSET_DB_EN,
-        PYERITE_RELEASE_ASSET_ICONS,
-    )
-
-
-def release_has_all_assets(release: dict) -> bool:
-    names = {
-        a.get("name")
-        for a in (release.get("assets") or [])
-        if isinstance(a, dict)
-    }
-    return all(name in names for name in expected_release_asset_names())
-
-
 def load_or_build_publish_meta(source_meta: dict) -> dict:
     if APP_LATEST_JSON.is_file():
         cached = load_latest(APP_LATEST_JSON)
@@ -852,14 +914,134 @@ def load_or_build_publish_meta(source_meta: dict) -> dict:
     return build_pyerite_release_meta(source_meta)
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(HASH_CHUNK_BYTES), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def attach_published_file_hashes(meta: dict) -> dict:
+    """SHA256 of the uncompressed sqlite files and the raw icons.zip we publish."""
+    out = dict(meta)
+    for key, path in (
+        ("item_db_zh_sha256", APP_DB_ZH),
+        ("item_db_en_sha256", APP_DB_EN),
+        ("icon_sha256", APP_ICONS_ZIP),
+    ):
+        if not path.is_file():
+            raise SystemExit(f"Missing file for {key}: {path}")
+        print(f"[+] Hashing {path.name} ...", flush=True)
+        out[key] = sha256_file(path)
+    return out
+
+
+def gzip_file(src: Path, dest: Path) -> None:
+    with src.open("rb") as inp, gzip.open(dest, "wb", compresslevel=GZIP_COMPRESS_LEVEL) as out:
+        shutil.copyfileobj(inp, out)
+
+
+def icon_part_name(index: int) -> str:
+    return f"{PYERITE_RELEASE_ASSET_ICONS}.part{index:0{ICON_PART_DIGITS}d}"
+
+
+def is_gitee_only_icon_asset(name: str) -> bool:
+    """Icon pieces published only on Gitee. GitHub Release keeps one icons.zip."""
+    if name == PYERITE_RELEASE_ASSET_ICON_PARTS:
+        return True
+    prefix = f"{PYERITE_RELEASE_ASSET_ICONS}.part"
+    if not name.startswith(prefix):
+        return False
+    return name.removeprefix(prefix).isdigit()
+
+
+def split_icon_parts(src: Path, dest_dir: Path) -> list[tuple[str, Path]]:
+    """Split icons.zip so each Gitee upload can finish on a slow link."""
+    total = src.stat().st_size
+    if total <= 0:
+        raise SystemExit(f"{src} is empty")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    parts: list[tuple[str, Path]] = []
+    with src.open("rb") as handle:
+        index = 0
+        while True:
+            chunk = handle.read(ICON_PART_BYTES)
+            if not chunk:
+                break
+            name = icon_part_name(index)
+            path = dest_dir / name
+            path.write_bytes(chunk)
+            parts.append((name, path))
+            index += 1
+    print(f"[+] Split {src.name} into {len(parts)} parts of up to {ICON_PART_BYTES // HASH_CHUNK_BYTES} MB", flush=True)
+    return parts
+
+
+def prepared_release_assets(work: Path) -> tuple[list[tuple[str, Path]], list[tuple[str, Path]], int]:
+    work.mkdir(parents=True, exist_ok=True)
+    zh_gz = work / PYERITE_RELEASE_ASSET_DB_ZH
+    en_gz = work / PYERITE_RELEASE_ASSET_DB_EN
+    print(f"[+] Gzipping {APP_DB_ZH.name} ...", flush=True)
+    gzip_file(APP_DB_ZH, zh_gz)
+    print(f"[+] Gzipping {APP_DB_EN.name} ...", flush=True)
+    gzip_file(APP_DB_EN, en_gz)
+    parts = split_icon_parts(APP_ICONS_ZIP, work)
+    manifest = work / PYERITE_RELEASE_ASSET_ICON_PARTS
+    manifest.write_text(f"{len(parts)}\n", encoding="utf-8")
+    databases = [
+        (PYERITE_RELEASE_ASSET_DB_ZH, zh_gz),
+        (PYERITE_RELEASE_ASSET_DB_EN, en_gz),
+    ]
+    github_files = [
+        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
+        *databases,
+        (PYERITE_RELEASE_ASSET_ICONS, APP_ICONS_ZIP),
+    ]
+    # The single icons.zip is too large for the slow Gitee hop. Parts replace it there.
+    gitee_files = [
+        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
+        *databases,
+        (PYERITE_RELEASE_ASSET_ICON_PARTS, manifest),
+        *parts,
+    ]
+    return github_files, gitee_files, len(parts)
+
+
 def finalize_publish_and_commit(publish_meta: dict, args: argparse.Namespace) -> int:
-    APP_LATEST_JSON.write_text(json.dumps(publish_meta, indent=2) + "\n", encoding="utf-8")
-    print(f"[+] Wrote {APP_LATEST_JSON}")
+    publish_meta = attach_published_file_hashes(publish_meta)
+    gitee_error: GiteePublishError | None = None
     if args.publish_release:
-        publish_pyerite_github_release(publish_meta)
+        work = Path(tempfile.mkdtemp(prefix="pyerite-sde-release-"))
+        try:
+            github_files, gitee_files, _ = prepared_release_assets(work)
+            _write_release_meta_files(publish_meta)
+            publish_pyerite_github_release(publish_meta, github_files)
+            if args.skip_gitee:
+                _write_pending_gitee_manifest(publish_meta, gitee_files)
+            else:
+                try:
+                    publish_pyerite_gitee_release(publish_meta, gitee_files)
+                except GiteePublishError as error:
+                    gitee_error = error
+                    print(f"[!] Gitee publish failed: {error}", file=sys.stderr)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+    else:
+        _write_release_meta_files(publish_meta)
     if args.commit_assets:
         commit_bundled_assets(str(publish_meta.get("build_number", "?")))
+    if gitee_error is not None:
+        return 1
     return 0
+
+
+def _write_release_meta_files(publish_meta: dict) -> None:
+    core = flatten_release_meta(publish_meta)
+    APP_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    APP_LATEST.write_text(json.dumps(core, indent=2) + "\n", encoding="utf-8")
+    APP_LATEST_JSON.write_text(json.dumps(publish_meta, indent=2) + "\n", encoding="utf-8")
+    print(f"[+] Wrote {APP_LATEST_JSON}")
 
 
 def finalize_from_existing_bundled(
@@ -953,6 +1135,20 @@ def _github_get_json(url: str, token: str) -> dict | list | None:
         raise
 
 
+def _github_delete_release_asset(api: str, asset_id: object, token: str) -> None:
+    delete_req = urllib.request.Request(
+        f"{api}/releases/assets/{asset_id}",
+        headers={
+            "User-Agent": USER_AGENT,
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+        },
+        method="DELETE",
+    )
+    with urllib.request.urlopen(delete_req, timeout=120):
+        pass
+
+
 def _github_upload_release_asset(upload_url_template: str, file_path: Path, token: str) -> None:
     upload_url = upload_url_template.split("{", 1)[0]
     name = urllib.parse.quote(file_path.name)
@@ -980,7 +1176,7 @@ def _github_upload_release_asset(upload_url_template: str, file_path: Path, toke
         ) from e
 
 
-def publish_pyerite_github_release(publish_meta: dict) -> None:
+def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple[str, Path]]) -> None:
     token = _require_github_token()
     tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
     bn = str(publish_meta.get("build_number", "?"))
@@ -1013,11 +1209,6 @@ def publish_pyerite_github_release(publish_meta: dict) -> None:
         if isinstance(refreshed, dict):
             release = refreshed
 
-    if release_has_all_assets(release) and not os.environ.get("SDE_FORCE_REPUBLISH"):
-        print(f"[=] GitHub release {tag} already has all assets; skipping upload")
-        print("    Set SDE_FORCE_REPUBLISH=1 to replace assets anyway.")
-        return
-
     upload_url = str(release.get("upload_url") or "")
     if not upload_url:
         raise SystemExit("GitHub release response missing upload_url")
@@ -1027,30 +1218,363 @@ def publish_pyerite_github_release(publish_meta: dict) -> None:
         for a in (release.get("assets") or [])
         if isinstance(a, dict)
     }
-    for name, path in (
-        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
-        (PYERITE_RELEASE_ASSET_DB_ZH, APP_DB_ZH),
-        (PYERITE_RELEASE_ASSET_DB_EN, APP_DB_EN),
-        (PYERITE_RELEASE_ASSET_ICONS, APP_ICONS_ZIP),
-    ):
+    for name, asset_id in list(assets.items()):
+        if not asset_id or not is_gitee_only_icon_asset(str(name)):
+            continue
+        _github_delete_release_asset(api, asset_id, token)
+        assets.pop(name, None)
+        print(f"[+] Removed {name} from GitHub release {tag}")
+    for name, path in release_files:
         if not path.is_file():
             raise SystemExit(f"Missing release asset file: {path}")
         asset_id = assets.get(name)
+        if asset_id and name not in GITHUB_ASSETS_REFRESHED_EACH_PUBLISH:
+            print(f"[=] {name} already on GitHub")
+            continue
         if asset_id:
-            delete_req = urllib.request.Request(
-                f"{api}/releases/assets/{asset_id}",
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Authorization": f"Bearer {token}",
-                    "Accept": "application/vnd.github+json",
-                },
-                method="DELETE",
-            )
-            with urllib.request.urlopen(delete_req, timeout=120):
-                pass
-        print(f"[+] Uploading {name} ...")
+            _github_delete_release_asset(api, asset_id, token)
+        print(f"[+] Uploading {name} ...", flush=True)
         _github_upload_release_asset(upload_url, path, token)
     print(f"[+] Published assets to GitHub release {tag}")
+
+
+def _redact_token(text: str, token: str) -> str:
+    return text.replace(token, "gitee_xxx")
+
+
+def _gitee_api_url(path: str, token: str | None = None, extra: dict[str, str] | None = None) -> str:
+    query = dict(extra or {})
+    if token:
+        query["access_token"] = token
+    url = f"{GITEE_API_BASE}/repos/{GITEE_OWNER}/{GITEE_REPO}/{path.lstrip('/')}"
+    if query:
+        url = f"{url}?{urllib.parse.urlencode(query)}"
+    return url
+
+
+def _gitee_public_url(path: str) -> str:
+    return f"{GITEE_API_BASE}/{path.lstrip('/')}"
+
+
+def _gitee_json(url: str, token: str, method: str = "GET", payload: dict | None = None):
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            return json.loads(raw.decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        body = _redact_token(error.read().decode("utf-8", errors="replace"), token)
+        safe_url = url.split("access_token=", 1)[0]
+        raise GiteePublishError(f"Gitee HTTP {error.code} {method} {safe_url}: {body}") from error
+
+
+def _gitee_default_branch() -> str:
+    """Public repo metadata. Do not reuse GitHub auth headers; Gitee rejects them."""
+    url = _gitee_public_url(f"repos/{GITEE_OWNER}/{GITEE_REPO}")
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            info = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as error:
+        raise GiteePublishError(f"Could not read Gitee repository: {error}") from error
+    if not isinstance(info, dict):
+        raise GiteePublishError("Gitee repository response was not an object")
+    branch = str(info.get("default_branch") or "").strip()
+    if not branch:
+        raise GiteePublishError("Gitee repository response has no default_branch")
+    return branch
+
+
+def _gitee_form(url: str, token: str, fields: dict[str, str]) -> dict | None:
+    """Gitee release create reads form fields, not a JSON body."""
+    payload = dict(fields)
+    payload["access_token"] = token
+    data = urllib.parse.urlencode(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            parsed = json.loads(raw.decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        body = _redact_token(error.read().decode("utf-8", errors="replace"), token)
+        raise GiteePublishError(f"Gitee HTTP {error.code} POST {url}: {body}") from error
+    if isinstance(parsed, dict):
+        return parsed
+    raise GiteePublishError("Gitee form response was not an object")
+
+
+def _gitee_list_releases(token: str) -> list[dict]:
+    url = _gitee_api_url("releases", token, {"page": "1", "per_page": "100"})
+    payload = _gitee_json(url, token)
+    if not isinstance(payload, list):
+        raise GiteePublishError("Gitee releases response was not a list")
+    return [item for item in payload if isinstance(item, dict)]
+
+
+def _gitee_asset_names(release: dict) -> set[str]:
+    names: set[str] = set()
+    for asset in release.get("assets") or []:
+        if isinstance(asset, dict) and asset.get("name"):
+            names.add(str(asset["name"]))
+    return names
+
+
+def _gitee_release_build(release: dict) -> int | None:
+    tag = str(release.get("tag_name") or "")
+    if not tag.startswith("sde-build-"):
+        return None
+    try:
+        return int(tag.removeprefix("sde-build-"))
+    except ValueError:
+        return None
+
+
+def _gitee_delete_release(token: str, release_id: object) -> None:
+    url = _gitee_api_url(f"releases/{release_id}", token)
+    _gitee_json(url, token, method="DELETE")
+
+
+def _multipart_file(token: str, file_path: Path) -> tuple[bytes, str]:
+    boundary = "----PyeriteSdeBoundary7f3a"
+    chunks: list[bytes] = [
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="access_token"\r\n\r\n'
+            f"{token}\r\n"
+        ).encode(),
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{file_path.name}"\r\n'
+            f"Content-Type: application/octet-stream\r\n\r\n"
+        ).encode(),
+        file_path.read_bytes(),
+        f"\r\n--{boundary}--\r\n".encode(),
+    ]
+    return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
+
+
+def _gitee_upload_file(token: str, release_id: object, file_path: Path) -> None:
+    url = _gitee_api_url(f"releases/{release_id}/attach_files")
+    last_error = "unknown error"
+    for attempt in range(GITEE_UPLOAD_ATTEMPTS):
+        body, content_type = _multipart_file(token, file_path)
+        request = urllib.request.Request(
+            url,
+            data=body,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Content-Type": content_type,
+                "Content-Length": str(len(body)),
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=1800) as resp:
+                resp.read()
+            return
+        except urllib.error.HTTPError as error:
+            err_body = _redact_token(error.read().decode("utf-8", errors="replace"), token)
+            last_error = f"HTTP {error.code}: {err_body}"
+            if error.code < 500 and error.code != 429:
+                break
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = repr(error)
+        if attempt + 1 < GITEE_UPLOAD_ATTEMPTS:
+            print(
+                f"[i] Gitee upload {file_path.name} attempt {attempt + 1} failed; retrying ...",
+                file=sys.stderr,
+            )
+            time.sleep(GITEE_UPLOAD_RETRY_SECONDS)
+    raise GiteePublishError(f"Upload failed for {file_path.name}: {last_error}")
+
+
+def _gitee_upload_files(token: str, release_id: object, files: list[tuple[str, Path]]) -> None:
+    if not files:
+        return
+    workers = min(GITEE_UPLOAD_WORKERS, len(files))
+    errors: list[str] = []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {}
+        for name, path in files:
+            size_mb = path.stat().st_size / HASH_CHUNK_BYTES
+            print(f"[+] Uploading {name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
+            futures[pool.submit(_gitee_upload_file, token, release_id, path)] = name
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except GiteePublishError as error:
+                errors.append(str(error))
+    if errors:
+        raise GiteePublishError("; ".join(errors))
+
+
+def _gitee_prune_releases(token: str) -> None:
+    ranked: list[tuple[int, object]] = []
+    for release in _gitee_list_releases(token):
+        build = _gitee_release_build(release)
+        release_id = release.get("id")
+        if build is None or release_id is None:
+            continue
+        ranked.append((build, release_id))
+    ranked.sort(reverse=True)
+    for build, release_id in ranked[GITEE_RELEASES_TO_KEEP:]:
+        print(f"[+] Deleting old Gitee release sde-build-{build}")
+        _gitee_delete_release(token, release_id)
+
+
+def _gitee_release_body(build_number: str) -> str:
+    return (
+        f"Pyerite SDE build {build_number}.\n\n"
+        "Files: latest.json, item_db_zh.sqlite.gz, item_db_en.sqlite.gz, "
+        "icons.zip.parts, and icons.zip.partNN."
+    )
+
+
+def _find_gitee_release(token: str, tag: str) -> dict | None:
+    return next((item for item in _gitee_list_releases(token) if item.get("tag_name") == tag), None)
+
+
+def _ensure_gitee_release(token: str, tag: str, build_number: str) -> dict:
+    existing = _find_gitee_release(token, tag)
+    if existing and existing.get("id") is not None:
+        print(f"[+] Resuming Gitee release {tag}")
+        return existing
+    try:
+        created = _gitee_form(
+            _gitee_api_url("releases"),
+            token,
+            {
+                "tag_name": tag,
+                "name": f"SDE build {build_number}",
+                "body": _gitee_release_body(build_number),
+                "target_commitish": _gitee_default_branch(),
+            },
+        )
+    except GiteePublishError:
+        existing = _find_gitee_release(token, tag)
+        if existing and existing.get("id") is not None:
+            print(f"[+] Resuming Gitee release {tag}")
+            return existing
+        raise
+    if not isinstance(created, dict) or created.get("id") is None:
+        raise GiteePublishError(f"Gitee did not return a release id for {tag}")
+    print(f"[+] Created Gitee release {tag}")
+    return created
+
+
+def _write_pending_gitee_manifest(publish_meta: dict, gitee_files: list[tuple[str, Path]]) -> None:
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
+    present: set[str] = set()
+    if token:
+        try:
+            release = _ensure_gitee_release(token, tag, str(publish_meta.get("build_number", "?")))
+            present = _gitee_asset_names(release)
+        except GiteePublishError as error:
+            print(f"[!] Could not prepare the Gitee release: {error}", file=sys.stderr)
+    pending = [name for name, _ in gitee_files if name not in present]
+    for name in pending:
+        print(f"[+] Gitee still needs {name}", flush=True)
+    manifest_path = os.environ.get("SDE_GITEE_MANIFEST", "").strip()
+    if manifest_path:
+        Path(manifest_path).write_text(
+            json.dumps({"tag": tag, "files": pending}) + "\n",
+            encoding="utf-8",
+        )
+        print(f"[+] Wrote Gitee upload list ({len(pending)} files)")
+    _stage_pending_gitee_files(gitee_files, pending)
+
+
+def _stage_pending_gitee_files(gitee_files: list[tuple[str, Path]], pending: list[str]) -> None:
+    """Copy pieces for the parallel Gitee jobs. They are not GitHub Release assets."""
+    dest = os.environ.get("SDE_GITEE_PARTS_DIR", "").strip()
+    if not dest:
+        return
+    folder = Path(dest)
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    wanted = set(pending)
+    staged = 0
+    for name, path in gitee_files:
+        if name not in wanted:
+            continue
+        shutil.copy2(path, folder / name)
+        staged += 1
+    print(f"[+] Staged {staged} Gitee files")
+
+
+def upload_gitee_asset(file_path: Path, tag: str) -> None:
+    if not file_path.is_file():
+        raise GiteePublishError(f"Missing release asset file: {file_path}")
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    if not token:
+        raise GiteePublishError("GITEE_TOKEN is not set")
+    build_number = tag.removeprefix("sde-build-") if tag.startswith("sde-build-") else tag
+    release = _ensure_gitee_release(token, tag, build_number)
+    if file_path.name in _gitee_asset_names(release):
+        print(f"[=] {file_path.name} already on Gitee")
+        return
+    release_id = release.get("id")
+    if release_id is None:
+        raise GiteePublishError(f"Gitee release {tag} has no id")
+    size_mb = file_path.stat().st_size / HASH_CHUNK_BYTES
+    print(f"[+] Uploading {file_path.name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
+    _gitee_upload_file(token, release_id, file_path)
+
+
+def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[str, Path]]) -> None:
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    if not token:
+        raise GiteePublishError("GITEE_TOKEN is not set")
+    for name, path in release_files:
+        if not path.is_file():
+            raise GiteePublishError(f"Missing release asset file: {path}")
+        size = path.stat().st_size
+        if size > GITEE_MAX_ATTACHMENT_BYTES:
+            raise GiteePublishError(
+                f"{name} is {size} bytes, over the Gitee 100MB attachment limit. "
+                "GitHub release was still published."
+            )
+
+    tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
+    bn = str(publish_meta.get("build_number", "?"))
+    release = _ensure_gitee_release(token, tag, bn)
+    present = _gitee_asset_names(release)
+    expected = {name for name, _ in release_files}
+    if expected <= present:
+        print(f"[=] Gitee release {tag} already has all assets")
+        _gitee_prune_releases(token)
+        return
+    release_id = release.get("id")
+    if release_id is None:
+        raise GiteePublishError(f"Gitee release {tag} has no id")
+    pending = [(name, path) for name, path in release_files if name not in present]
+    for name in expected & present:
+        print(f"[=] {name} already on Gitee")
+    _gitee_upload_files(token, release_id, pending)
+    _gitee_prune_releases(token)
+    print(f"[+] Published assets to Gitee release {tag}")
 
 
 def commit_bundled_assets(build_number: str) -> None:
@@ -1081,4 +1605,9 @@ def commit_bundled_assets(build_number: str) -> None:
 
 
 if __name__ == "__main__":
+    # Actions captures a pipe, so the default block buffer hides progress until exit.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(line_buffering=True)
     raise SystemExit(main())

@@ -25,19 +25,20 @@ val sdeModule = module {
     single {
         val base = get<OkHttpClient>()
         val metadataClient = createSdeOkHttpClient(
-            connectTimeoutSeconds = SdeRemoteDataSource.METADATA_CONNECT_TIMEOUT_SECONDS,
-            readTimeout = SdeRemoteDataSource.METADATA_READ_TIMEOUT_SECONDS,
+            connectTimeoutSeconds = SdeRemoteConfig.METADATA_CONNECT_TIMEOUT_SECONDS,
+            readTimeout = SdeRemoteConfig.METADATA_READ_TIMEOUT_SECONDS,
             base = base,
         )
         val downloadClient = createSdeOkHttpClient(
-            connectTimeoutSeconds = SdeRemoteDataSource.DOWNLOAD_CONNECT_TIMEOUT_SECONDS,
-            readTimeout = SdeRemoteDataSource.DOWNLOAD_READ_TIMEOUT_MINUTES,
+            connectTimeoutSeconds = SdeRemoteConfig.DOWNLOAD_CONNECT_TIMEOUT_SECONDS,
+            readTimeout = SdeRemoteConfig.DOWNLOAD_READ_TIMEOUT_MINUTES,
             readTimeoutUnit = TimeUnit.MINUTES,
             base = base,
+            followRedirects = false,
         )
         SdeRemoteDataSource(
             metadataApi = metadataClient.createApi<SdeRemoteApi>(SdeRemoteConfig.RETROFIT_BASE_URL),
-            downloadApi = downloadClient.createApi<SdeRemoteApi>(SdeRemoteConfig.RETROFIT_BASE_URL),
+            downloadClient = downloadClient,
         )
     }
     single {

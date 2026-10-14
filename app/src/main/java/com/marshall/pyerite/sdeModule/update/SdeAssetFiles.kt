@@ -4,11 +4,14 @@ import android.content.Context
 import com.marshall.pyerite.localization.SdeDatabase
 import java.io.File
 import java.io.FileOutputStream
+import java.util.zip.GZIPInputStream
 import java.util.zip.ZipInputStream
 
 object SdeAssetFiles {
 
     const val ICONS_DIR_NAME = "icons"
+    private const val GZIP_MAGIC_FIRST = 0x1f
+    private const val GZIP_MAGIC_SECOND = 0x8b
 
     fun deleteDatabase(context: Context, dbName: String) {
         val dbFile = context.getDatabasePath(dbName)
@@ -58,6 +61,25 @@ object SdeAssetFiles {
         val dbFile = context.getDatabasePath(dbName)
         dbFile.parentFile?.mkdirs()
         source.copyTo(dbFile, overwrite = true)
+    }
+
+    internal fun materializeSqlite(source: File, dest: File) {
+        dest.parentFile?.mkdirs()
+        if (isGzip(source)) {
+            GZIPInputStream(source.inputStream()).use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            }
+        } else {
+            source.copyTo(dest, overwrite = true)
+        }
+    }
+
+    private fun isGzip(file: File): Boolean {
+        file.inputStream().use { input ->
+            val first = input.read()
+            val second = input.read()
+            return first == GZIP_MAGIC_FIRST && second == GZIP_MAGIC_SECOND
+        }
     }
 
     fun extractIconsFromFile(context: Context, zipFile: File) {

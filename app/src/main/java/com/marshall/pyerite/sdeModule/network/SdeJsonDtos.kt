@@ -1,6 +1,7 @@
 package com.marshall.pyerite.sdeModule.network
 
 import com.marshall.pyerite.sdeModule.update.SdeReleaseMeta
+import com.marshall.pyerite.sdeModule.update.SdeRemoteConfig
 import com.marshall.pyerite.sdeModule.update.SdeRemotePackage
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -13,8 +14,10 @@ data class SdeLatestJsonDto(
     @SerialName("icon_version") val iconVersion: Int? = null,
     @SerialName("icon_sha256") val iconSha256: String? = null,
     @SerialName("sde_sha256") val sdeSha256: String? = null,
-    val assets: Map<String, String> = emptyMap(),
-    @SerialName("assets_base_url") val assetsBaseUrl: String = "",
+    @SerialName("item_db_zh_sha256") val dbZhSha256: String? = null,
+    @SerialName("item_db_en_sha256") val dbEnSha256: String? = null,
+    @SerialName("icon_part_count") val iconPartCount: Int = 0,
+    @SerialName("tag_name") val tagName: String = "",
 ) {
     fun toReleaseMeta(): SdeReleaseMeta = SdeReleaseMeta(
         buildNumber = buildNumber,
@@ -23,31 +26,15 @@ data class SdeLatestJsonDto(
         iconVersion = iconVersion?.takeIf { it >= 0 },
         iconSha256 = iconSha256?.ifBlank { null },
         sdeSha256 = sdeSha256?.ifBlank { null },
+        dbZhSha256 = dbZhSha256?.ifBlank { null },
+        dbEnSha256 = dbEnSha256?.ifBlank { null },
     )
 
-    fun toRemotePackage(): SdeRemotePackage {
-        val assetUrls = linkedMapOf<String, String>()
-        assets.forEach { (key, url) ->
-            val trimmed = url.trim()
-            if (trimmed.isNotEmpty()) assetUrls[key] = trimmed
-        }
-        val baseUrl = assetsBaseUrl.trim().removeSuffix("/")
-        if (baseUrl.isNotEmpty()) {
-            listOf(ASSET_DB_ZH, ASSET_DB_EN, ASSET_ICONS).forEach { name ->
-                assetUrls.putIfAbsent(name, "$baseUrl/$name")
-            }
-        }
-        return SdeRemotePackage(
-            meta = toReleaseMeta(),
-            assetUrls = assetUrls,
-        )
-    }
-
-    companion object {
-        private const val ASSET_DB_ZH = "item_db_zh.sqlite"
-        private const val ASSET_DB_EN = "item_db_en.sqlite"
-        private const val ASSET_ICONS = "icons.zip"
-    }
+    fun toRemotePackage(): SdeRemotePackage = SdeRemotePackage(
+        meta = toReleaseMeta(),
+        tagName = SdeRemoteConfig.releaseTag(buildNumber, tagName),
+        iconPartCount = iconPartCount,
+    )
 }
 
 @Serializable
@@ -59,4 +46,9 @@ data class GitHubReleaseDto(
 data class GitHubAssetDto(
     val name: String = "",
     @SerialName("browser_download_url") val browserDownloadUrl: String = "",
+)
+
+@Serializable
+data class GiteeReleaseDto(
+    @SerialName("tag_name") val tagName: String = "",
 )

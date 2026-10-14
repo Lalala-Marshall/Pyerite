@@ -14,8 +14,8 @@ The interface and interactions are used with authorization from EstamelGG, autho
 
 See [SDE sync](docs/sde-automation.md).
 
-1. Upstream is the latest Release of `EstamelGG/EveSDE_2.0`
-2. This repository publishes `latest.json`, the Chinese and English SQLite databases, and the icon pack
+1. Upstream is the latest Release of `EstamelGG/EveSDE_3.0`, projected into the existing Chinese and English databases
+2. GitHub Releases and Gitee (`lalala-marshall/pyerite-sde-source`) publish `latest.json`, gzipped databases, and the icon pack. The app tries Gitee first
 3. GitHub Actions checks upstream daily at 22:00 Beijing time, and updates the bundled copy under `app/src/main/assets/` when a new build is published
 4. On launch, the app upgrades the local database from the copy bundled in the APK. The home screen can also download a remote update
 

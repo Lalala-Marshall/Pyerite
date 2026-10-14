@@ -14,8 +14,8 @@ Pyerite 是 EVE Online 的 Android 伴侣应用。通过 EVE SSO 登录后，可
 
 自动同步流程见 [SDE 自动同步说明](docs/sde-automation.md)。
 
-1. 上游为 `EstamelGG/EveSDE_2.0` 的最新 Release
-2. 本仓库 GitHub Release 提供 `latest.json`、中英 SQLite 与图标包
+1. 上游为 `EstamelGG/EveSDE_3.0` 的最新 Release，投影成现有的中英数据库
+2. GitHub Release 和 Gitee（`lalala-marshall/pyerite-sde-source`）提供 `latest.json`、gzip 后的中英数据库与图标包。应用先从 Gitee 下载
 3. 每天北京时间 22:00 由 Actions 检查上游；有新 build 时发布 Release，并更新 `app/src/main/assets/` 兜底数据
 4. 应用启动时用 APK 内置版本升级本地库；首页也可检查并下载远端更新
 

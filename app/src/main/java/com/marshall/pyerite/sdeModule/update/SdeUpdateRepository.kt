@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -131,29 +132,84 @@ class SdeUpdateRepository(
                 mkdirs()
             }
 
+            val tag = remote.tagName.ifBlank {
+                SdeRemoteConfig.releaseTag(remote.meta.buildNumber)
+            }
+            val iconPartCount = if (needsIcons) {
+                readRemoteIconPartCount(tag, downloadDir)
+            } else {
+                0
+            }
             val steps = buildList {
                 if (needsDatabase) {
-                    val dbZhUrl = remote.urlFor(SdeDatabase.ZH_FILE_NAME)
-                        ?: error("Missing download URL for ${SdeDatabase.ZH_FILE_NAME}")
-                    val dbEnUrl = remote.urlFor(SdeDatabase.EN_FILE_NAME)
-                        ?: error("Missing download URL for ${SdeDatabase.EN_FILE_NAME}")
-                    add(dbZhUrl to File(downloadDir, SdeDatabase.ZH_FILE_NAME))
-                    add(dbEnUrl to File(downloadDir, SdeDatabase.EN_FILE_NAME))
+                    add(
+                        DownloadStep(
+                            urls = SdeRemoteConfig.databaseDownloadUrls(
+                                tag,
+                                SdeRemoteConfig.ASSET_DB_ZH_GZ,
+                                SdeRemoteConfig.ASSET_DB_ZH,
+                            ),
+                            downloaded = File(downloadDir, "${SdeRemoteConfig.ASSET_DB_ZH}.download"),
+                            installed = File(downloadDir, SdeDatabase.ZH_FILE_NAME),
+                            expectedSha256 = remote.meta.dbZhSha256,
+                        ),
+                    )
+                    add(
+                        DownloadStep(
+                            urls = SdeRemoteConfig.databaseDownloadUrls(
+                                tag,
+                                SdeRemoteConfig.ASSET_DB_EN_GZ,
+                                SdeRemoteConfig.ASSET_DB_EN,
+                            ),
+                            downloaded = File(downloadDir, "${SdeRemoteConfig.ASSET_DB_EN}.download"),
+                            installed = File(downloadDir, SdeDatabase.EN_FILE_NAME),
+                            expectedSha256 = remote.meta.dbEnSha256,
+                        ),
+                    )
                 }
                 if (needsIcons) {
-                    val iconsUrl = remote.urlFor("icons.zip")
-                        ?: error("Missing download URL for icons.zip")
-                    add(iconsUrl to File(downloadDir, "icons.zip"))
+                    val iconsFile = File(downloadDir, SdeRemoteConfig.ASSET_ICONS)
+                    add(
+                        DownloadStep(
+                            urls = SdeRemoteConfig.downloadUrls(tag, SdeRemoteConfig.ASSET_ICONS),
+                            downloaded = iconsFile,
+                            installed = iconsFile,
+                            expectedSha256 = remote.meta.iconSha256,
+                            iconPartCount = iconPartCount,
+                        ),
+                    )
                 }
             }
 
             val perStep = 100f / steps.size
-            steps.forEachIndexed { index, (url, dest) ->
-                SdeUpdateLog.d("Repository", "downloading ${dest.name} (${index + 1}/${steps.size})")
-                remoteDataSource.downloadToFile(url, dest) { stepProgress ->
+            steps.forEachIndexed { index, step ->
+                SdeUpdateLog.d("Repository", "downloading ${step.installed.name} (${index + 1}/${steps.size})")
+                val report = { stepProgress: Float ->
                     val total = ((index * perStep) + (stepProgress * perStep)).roundToInt().coerceIn(0, 100)
                     onProgress(total)
                 }
+                if (step.iconPartCount >= SdeRemoteConfig.MIN_ICON_PARTS) {
+                    try {
+                        downloadIconParts(tag, step.iconPartCount, downloadDir, step.installed, report)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        SdeUpdateLog.w(
+                            "Repository",
+                            "icon parts failed, downloading ${SdeRemoteConfig.ASSET_ICONS}",
+                            error,
+                        )
+                        if (step.installed.exists()) step.installed.delete()
+                        remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded, report)
+                    }
+                } else {
+                    remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded, report)
+                }
+                if (step.downloaded != step.installed) {
+                    SdeAssetFiles.materializeSqlite(step.downloaded, step.installed)
+                    step.downloaded.delete()
+                }
+                requireSha256(step.installed, step.expectedSha256, step.installed.name)
             }
 
             if (needsDatabase) {
@@ -165,7 +221,7 @@ class SdeUpdateRepository(
                 SdeAssetFiles.installDatabaseFromFile(context, SdeDatabase.EN_FILE_NAME, dbEnFile)
             }
             if (needsIcons) {
-                val iconsFile = File(downloadDir, "icons.zip")
+                val iconsFile = File(downloadDir, SdeRemoteConfig.ASSET_ICONS)
                 SdeAssetFiles.extractIconsFromFile(context, iconsFile)
                 iconManager.reload()
             } else {
@@ -185,8 +241,80 @@ class SdeUpdateRepository(
         }
     }
 
+    private suspend fun readRemoteIconPartCount(tag: String, downloadDir: File): Int {
+        val manifest = File(downloadDir, SdeRemoteConfig.ASSET_ICON_PARTS)
+        return try {
+            remoteDataSource.downloadFirstAvailable(
+                SdeRemoteConfig.giteeDownloadUrls(tag, SdeRemoteConfig.ASSET_ICON_PARTS),
+                manifest,
+            ) { _ -> }
+            val count = manifest.readText().trim().toInt()
+            if (count in SdeRemoteConfig.MIN_ICON_PARTS..SdeRemoteConfig.MAX_ICON_PARTS) count else 0
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            SdeUpdateLog.d("Repository", "icon parts manifest unavailable, using ${SdeRemoteConfig.ASSET_ICONS}")
+            0
+        }
+    }
+
+    private suspend fun downloadIconParts(
+        tag: String,
+        partCount: Int,
+        downloadDir: File,
+        assembled: File,
+        onProgress: (Float) -> Unit,
+    ) {
+        if (assembled.exists()) assembled.delete()
+        assembled.outputStream().use { output ->
+            for (index in 0 until partCount) {
+                val partName = SdeRemoteConfig.iconPartName(index)
+                val part = File(downloadDir, partName)
+                remoteDataSource.downloadFirstAvailable(
+                    SdeRemoteConfig.giteeDownloadUrls(tag, partName),
+                    part,
+                ) { partProgress ->
+                    onProgress(((index + partProgress) / partCount.toFloat()).coerceIn(0f, 1f))
+                }
+                part.inputStream().use { input -> input.copyTo(output) }
+                part.delete()
+            }
+        }
+    }
+
     companion object {
         private const val CHECK_MAX_ATTEMPTS = 3
         private const val CHECK_RETRY_DELAY_MS = 2_000L
+        private const val SHA_256 = "SHA-256"
+        private const val HEX_RADIX = 16
+        private const val HEX_DIGITS = 2
+        private const val BYTE_MASK = 0xff
+
+        private fun requireSha256(file: File, expected: String?, label: String) {
+            val want = expected?.trim()?.takeIf { it.isNotEmpty() } ?: return
+            val digest = MessageDigest.getInstance(SHA_256)
+            file.inputStream().use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read <= 0) break
+                    digest.update(buffer, 0, read)
+                }
+            }
+            val got = digest.digest().joinToString(separator = "") { byte ->
+                (byte.toInt() and BYTE_MASK).toString(HEX_RADIX).padStart(HEX_DIGITS, '0')
+            }
+            if (!got.equals(want, ignoreCase = true)) {
+                error("$label sha256 mismatch")
+            }
+        }
     }
+
+    private data class DownloadStep(
+        val urls: List<String>,
+        val downloaded: File,
+        val installed: File,
+        val expectedSha256: String?,
+        val iconPartCount: Int = 0,
+    )
 }
