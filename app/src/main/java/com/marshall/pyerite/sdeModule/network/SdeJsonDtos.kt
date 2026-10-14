@@ -16,6 +16,7 @@ data class SdeLatestJsonDto(
     @SerialName("sde_sha256") val sdeSha256: String? = null,
     @SerialName("item_db_zh_sha256") val dbZhSha256: String? = null,
     @SerialName("item_db_en_sha256") val dbEnSha256: String? = null,
+    @SerialName("icon_part_count") val iconPartCount: Int = 0,
     @SerialName("tag_name") val tagName: String = "",
 ) {
     fun toReleaseMeta(): SdeReleaseMeta = SdeReleaseMeta(
@@ -32,6 +33,7 @@ data class SdeLatestJsonDto(
     fun toRemotePackage(): SdeRemotePackage = SdeRemotePackage(
         meta = toReleaseMeta(),
         tagName = SdeRemoteConfig.releaseTag(buildNumber, tagName),
+        iconPartCount = iconPartCount,
     )
 }
 

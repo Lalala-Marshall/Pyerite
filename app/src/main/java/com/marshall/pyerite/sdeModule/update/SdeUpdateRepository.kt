@@ -135,6 +135,13 @@ class SdeUpdateRepository(
             val tag = remote.tagName.ifBlank {
                 SdeRemoteConfig.releaseTag(remote.meta.buildNumber)
             }
+            val iconPartCount = if (!needsIcons) {
+                0
+            } else {
+                remote.iconPartCount.takeIf { count ->
+                    count in SdeRemoteConfig.MIN_ICON_PARTS..SdeRemoteConfig.MAX_ICON_PARTS
+                } ?: readRemoteIconPartCount(tag, downloadDir)
+            }
             val steps = buildList {
                 if (needsDatabase) {
                     add(
@@ -170,6 +177,7 @@ class SdeUpdateRepository(
                             downloaded = iconsFile,
                             installed = iconsFile,
                             expectedSha256 = remote.meta.iconSha256,
+                            iconPartCount = iconPartCount,
                         ),
                     )
                 }
@@ -178,9 +186,14 @@ class SdeUpdateRepository(
             val perStep = 100f / steps.size
             steps.forEachIndexed { index, step ->
                 SdeUpdateLog.d("Repository", "downloading ${step.installed.name} (${index + 1}/${steps.size})")
-                remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded) { stepProgress ->
+                val report = { stepProgress: Float ->
                     val total = ((index * perStep) + (stepProgress * perStep)).roundToInt().coerceIn(0, 100)
                     onProgress(total)
+                }
+                if (step.iconPartCount >= SdeRemoteConfig.MIN_ICON_PARTS) {
+                    downloadIconParts(tag, step.iconPartCount, downloadDir, step.installed, report)
+                } else {
+                    remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded, report)
                 }
                 if (step.downloaded != step.installed) {
                     SdeAssetFiles.materializeSqlite(step.downloaded, step.installed)
@@ -218,6 +231,47 @@ class SdeUpdateRepository(
         }
     }
 
+    private suspend fun readRemoteIconPartCount(tag: String, downloadDir: File): Int {
+        val manifest = File(downloadDir, SdeRemoteConfig.ASSET_ICON_PARTS)
+        return try {
+            remoteDataSource.downloadFirstAvailable(
+                SdeRemoteConfig.downloadUrls(tag, SdeRemoteConfig.ASSET_ICON_PARTS),
+                manifest,
+            ) { _ -> }
+            val count = manifest.readText().trim().toInt()
+            if (count in SdeRemoteConfig.MIN_ICON_PARTS..SdeRemoteConfig.MAX_ICON_PARTS) count else 0
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            SdeUpdateLog.d("Repository", "icon parts manifest unavailable, using ${SdeRemoteConfig.ASSET_ICONS}")
+            0
+        }
+    }
+
+    private suspend fun downloadIconParts(
+        tag: String,
+        partCount: Int,
+        downloadDir: File,
+        assembled: File,
+        onProgress: (Float) -> Unit,
+    ) {
+        if (assembled.exists()) assembled.delete()
+        assembled.outputStream().use { output ->
+            for (index in 0 until partCount) {
+                val partName = SdeRemoteConfig.iconPartName(index)
+                val part = File(downloadDir, partName)
+                remoteDataSource.downloadFirstAvailable(
+                    SdeRemoteConfig.downloadUrls(tag, partName),
+                    part,
+                ) { partProgress ->
+                    onProgress(((index + partProgress) / partCount.toFloat()).coerceIn(0f, 1f))
+                }
+                part.inputStream().use { input -> input.copyTo(output) }
+                part.delete()
+            }
+        }
+    }
+
     companion object {
         private const val CHECK_MAX_ATTEMPTS = 3
         private const val CHECK_RETRY_DELAY_MS = 2_000L
@@ -251,5 +305,6 @@ class SdeUpdateRepository(
         val downloaded: File,
         val installed: File,
         val expectedSha256: String?,
+        val iconPartCount: Int = 0,
     )
 }

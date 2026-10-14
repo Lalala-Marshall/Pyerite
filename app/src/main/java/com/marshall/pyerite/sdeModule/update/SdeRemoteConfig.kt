@@ -18,6 +18,10 @@ object SdeRemoteConfig {
     const val ASSET_DB_ZH_GZ = "$ASSET_DB_ZH.gz"
     const val ASSET_DB_EN_GZ = "$ASSET_DB_EN.gz"
     const val ASSET_ICONS = "icons.zip"
+    const val ASSET_ICON_PARTS = "icons.zip.parts"
+    const val ICON_PART_DIGITS = 2
+    const val MIN_ICON_PARTS = 2
+    const val MAX_ICON_PARTS = 32
     const val RELEASE_TAG_PREFIX = "sde-build-"
 
     const val LATEST_JSON_URL =
@@ -59,6 +63,11 @@ object SdeRemoteConfig {
         giteeDownloadUrl(tag, fileName),
         githubDownloadUrl(tag, fileName),
     )
+
+    fun iconPartName(index: Int): String {
+        val suffix = index.toString().padStart(ICON_PART_DIGITS, '0')
+        return "$ASSET_ICONS.part$suffix"
+    }
 
     fun databaseDownloadUrls(tag: String, gzName: String, plainName: String): List<String> =
         downloadUrls(tag, gzName) + downloadUrls(tag, plainName)

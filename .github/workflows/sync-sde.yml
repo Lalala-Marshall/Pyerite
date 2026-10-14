@@ -12,6 +12,9 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.manifest.outputs.tag }}
+      files: ${{ steps.manifest.outputs.files }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -23,11 +26,63 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Sync upstream SDE, bundle assets, publish release
+      - name: Sync upstream SDE, bundle assets, publish GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           PYTHONUNBUFFERED: "1"
-        run: python -u tools/sync_sde_release.py --yes --publish-release --commit-assets
+          SDE_GITEE_MANIFEST: ${{ runner.temp }}/gitee-manifest.json
+        run: python -u tools/sync_sde_release.py --yes --publish-release --commit-assets --skip-gitee
+
+      - name: Read Gitee upload list
+        id: manifest
+        env:
+          SDE_GITEE_MANIFEST: ${{ runner.temp }}/gitee-manifest.json
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          manifest = os.environ["SDE_GITEE_MANIFEST"]
+          data = json.load(open(manifest, encoding="utf-8"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"tag={data['tag']}\n")
+              handle.write("files=" + json.dumps(data["files"]) + "\n")
+          PY
+
+  # One US connection into Gitee is only tens of KB/s. Each file gets its own runner.
+  gitee:
+    needs: sync
+    if: needs.sync.outputs.files != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+    matrix:
+      file: ${{ fromJson(needs.sync.outputs.files) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Download asset from GitHub
+        env:
+          ASSET_NAME: ${{ matrix.file }}
+          RELEASE_TAG: ${{ needs.sync.outputs.tag }}
+        run: curl -fL --retry 3 --retry-delay 5 -o "$ASSET_NAME" "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
+
+      - name: Upload asset to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+          ASSET_NAME: ${{ matrix.file }}
+          RELEASE_TAG: ${{ needs.sync.outputs.tag }}
+        run: python -u tools/sync_sde_release.py --gitee-file "$ASSET_NAME" --gitee-tag "$RELEASE_TAG"

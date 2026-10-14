@@ -53,6 +53,9 @@ GITEE_UPLOAD_ATTEMPTS = 3
 GITEE_UPLOAD_RETRY_SECONDS = 5
 # One connection from a US-hosted runner into Gitee is slow; overlap the attachments.
 GITEE_UPLOAD_WORKERS = 4
+# Sized so one part still finishes inside the upload timeout when the link is only tens of KB/s.
+ICON_PART_BYTES = 8 * 1024 * 1024
+ICON_PART_DIGITS = 2
 GZIP_COMPRESS_LEVEL = 6
 HASH_CHUNK_BYTES = 1024 * 1024
 
@@ -76,7 +79,12 @@ APP_ICONS_ZIP = APP_ICONS_DIR / "icons.zip"
 PYERITE_RELEASE_ASSET_DB_ZH = "item_db_zh.sqlite.gz"
 PYERITE_RELEASE_ASSET_DB_EN = "item_db_en.sqlite.gz"
 PYERITE_RELEASE_ASSET_ICONS = "icons.zip"
+PYERITE_RELEASE_ASSET_ICON_PARTS = "icons.zip.parts"
 PYERITE_RELEASE_ASSET_META = "latest.json"
+GITHUB_ASSETS_REFRESHED_EACH_PUBLISH = (
+    PYERITE_RELEASE_ASSET_META,
+    PYERITE_RELEASE_ASSET_ICON_PARTS,
+)
 
 
 class GiteePublishError(Exception):
@@ -712,7 +720,34 @@ def main() -> int:
         action="store_true",
         help="Commit app/src/main/assets to git and push (CI; requires GITHUB_TOKEN)",
     )
+    p.add_argument(
+        "--skip-gitee",
+        action="store_true",
+        help="Publish GitHub only, and write the Gitee file list for separate upload jobs",
+    )
+    p.add_argument(
+        "--gitee-file",
+        type=Path,
+        help="Upload this one file onto an existing or new Gitee release, then exit",
+    )
+    p.add_argument(
+        "--gitee-tag",
+        default="",
+        help="Gitee release tag used with --gitee-file",
+    )
     args = p.parse_args()
+
+    if args.gitee_file is not None:
+        tag = args.gitee_tag.strip()
+        if not tag:
+            print("--gitee-tag is required with --gitee-file", file=sys.stderr)
+            return 2
+        try:
+            upload_gitee_asset(args.gitee_file, tag)
+        except GiteePublishError as error:
+            print(f"[!] Gitee publish failed: {error}", file=sys.stderr)
+            return 1
+        return 0
 
     print("[+] Sync started", flush=True)
     eve = args.eve_sde_root.resolve()
@@ -874,24 +909,6 @@ def bundled_assets_ready() -> bool:
     )
 
 
-def expected_release_asset_names() -> tuple[str, ...]:
-    return (
-        PYERITE_RELEASE_ASSET_META,
-        PYERITE_RELEASE_ASSET_DB_ZH,
-        PYERITE_RELEASE_ASSET_DB_EN,
-        PYERITE_RELEASE_ASSET_ICONS,
-    )
-
-
-def release_has_all_assets(release: dict) -> bool:
-    names = {
-        a.get("name")
-        for a in (release.get("assets") or [])
-        if isinstance(a, dict)
-    }
-    return all(name in names for name in expected_release_asset_names())
-
-
 def load_or_build_publish_meta(source_meta: dict) -> dict:
     if APP_LATEST_JSON.is_file():
         cached = load_latest(APP_LATEST_JSON)
@@ -928,7 +945,33 @@ def gzip_file(src: Path, dest: Path) -> None:
         shutil.copyfileobj(inp, out)
 
 
-def prepared_release_assets(work: Path) -> list[tuple[str, Path]]:
+def icon_part_name(index: int) -> str:
+    return f"{PYERITE_RELEASE_ASSET_ICONS}.part{index:0{ICON_PART_DIGITS}d}"
+
+
+def split_icon_parts(src: Path, dest_dir: Path) -> list[tuple[str, Path]]:
+    """Split icons.zip so each Gitee upload can finish on a slow link."""
+    total = src.stat().st_size
+    if total <= 0:
+        raise SystemExit(f"{src} is empty")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    parts: list[tuple[str, Path]] = []
+    with src.open("rb") as handle:
+        index = 0
+        while True:
+            chunk = handle.read(ICON_PART_BYTES)
+            if not chunk:
+                break
+            name = icon_part_name(index)
+            path = dest_dir / name
+            path.write_bytes(chunk)
+            parts.append((name, path))
+            index += 1
+    print(f"[+] Split {src.name} into {len(parts)} parts of up to {ICON_PART_BYTES // HASH_CHUNK_BYTES} MB", flush=True)
+    return parts
+
+
+def prepared_release_assets(work: Path) -> tuple[list[tuple[str, Path]], list[tuple[str, Path]], int]:
     work.mkdir(parents=True, exist_ok=True)
     zh_gz = work / PYERITE_RELEASE_ASSET_DB_ZH
     en_gz = work / PYERITE_RELEASE_ASSET_DB_EN
@@ -936,39 +979,64 @@ def prepared_release_assets(work: Path) -> list[tuple[str, Path]]:
     gzip_file(APP_DB_ZH, zh_gz)
     print(f"[+] Gzipping {APP_DB_EN.name} ...", flush=True)
     gzip_file(APP_DB_EN, en_gz)
-    return [
-        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
+    parts = split_icon_parts(APP_ICONS_ZIP, work)
+    manifest = work / PYERITE_RELEASE_ASSET_ICON_PARTS
+    manifest.write_text(f"{len(parts)}\n", encoding="utf-8")
+    databases = [
         (PYERITE_RELEASE_ASSET_DB_ZH, zh_gz),
         (PYERITE_RELEASE_ASSET_DB_EN, en_gz),
-        (PYERITE_RELEASE_ASSET_ICONS, APP_ICONS_ZIP),
     ]
+    github_files = [
+        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
+        *databases,
+        (PYERITE_RELEASE_ASSET_ICONS, APP_ICONS_ZIP),
+        (PYERITE_RELEASE_ASSET_ICON_PARTS, manifest),
+        *parts,
+    ]
+    # The single icons.zip is too large for the slow Gitee hop. Parts replace it there.
+    gitee_files = [
+        *databases,
+        (PYERITE_RELEASE_ASSET_ICON_PARTS, manifest),
+        *parts,
+    ]
+    return github_files, gitee_files, len(parts)
 
 
 def finalize_publish_and_commit(publish_meta: dict, args: argparse.Namespace) -> int:
     publish_meta = attach_published_file_hashes(publish_meta)
-    core = flatten_release_meta(publish_meta)
-    APP_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    APP_LATEST.write_text(json.dumps(core, indent=2) + "\n", encoding="utf-8")
-    APP_LATEST_JSON.write_text(json.dumps(publish_meta, indent=2) + "\n", encoding="utf-8")
-    print(f"[+] Wrote {APP_LATEST_JSON}")
     gitee_error: GiteePublishError | None = None
     if args.publish_release:
         work = Path(tempfile.mkdtemp(prefix="pyerite-sde-release-"))
         try:
-            release_files = prepared_release_assets(work)
-            publish_pyerite_github_release(publish_meta, release_files)
-            try:
-                publish_pyerite_gitee_release(publish_meta, release_files)
-            except GiteePublishError as error:
-                gitee_error = error
-                print(f"[!] Gitee publish failed: {error}", file=sys.stderr)
+            github_files, gitee_files, part_count = prepared_release_assets(work)
+            publish_meta["icon_part_count"] = part_count
+            _write_release_meta_files(publish_meta)
+            publish_pyerite_github_release(publish_meta, github_files)
+            if args.skip_gitee:
+                _write_pending_gitee_manifest(publish_meta, gitee_files)
+            else:
+                try:
+                    publish_pyerite_gitee_release(publish_meta, gitee_files)
+                except GiteePublishError as error:
+                    gitee_error = error
+                    print(f"[!] Gitee publish failed: {error}", file=sys.stderr)
         finally:
             shutil.rmtree(work, ignore_errors=True)
+    else:
+        _write_release_meta_files(publish_meta)
     if args.commit_assets:
         commit_bundled_assets(str(publish_meta.get("build_number", "?")))
     if gitee_error is not None:
         return 1
     return 0
+
+
+def _write_release_meta_files(publish_meta: dict) -> None:
+    core = flatten_release_meta(publish_meta)
+    APP_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    APP_LATEST.write_text(json.dumps(core, indent=2) + "\n", encoding="utf-8")
+    APP_LATEST_JSON.write_text(json.dumps(publish_meta, indent=2) + "\n", encoding="utf-8")
+    print(f"[+] Wrote {APP_LATEST_JSON}")
 
 
 def finalize_from_existing_bundled(
@@ -1122,11 +1190,6 @@ def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple
         if isinstance(refreshed, dict):
             release = refreshed
 
-    if release_has_all_assets(release) and not os.environ.get("SDE_FORCE_REPUBLISH"):
-        print(f"[=] GitHub release {tag} already has all assets; skipping upload")
-        print("    Set SDE_FORCE_REPUBLISH=1 to replace assets anyway.")
-        return
-
     upload_url = str(release.get("upload_url") or "")
     if not upload_url:
         raise SystemExit("GitHub release response missing upload_url")
@@ -1140,6 +1203,9 @@ def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple
         if not path.is_file():
             raise SystemExit(f"Missing release asset file: {path}")
         asset_id = assets.get(name)
+        if asset_id and name not in GITHUB_ASSETS_REFRESHED_EACH_PUBLISH:
+            print(f"[=] {name} already on GitHub")
+            continue
         if asset_id:
             delete_req = urllib.request.Request(
                 f"{api}/releases/assets/{asset_id}",
@@ -1152,7 +1218,7 @@ def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple
             )
             with urllib.request.urlopen(delete_req, timeout=120):
                 pass
-        print(f"[+] Uploading {name} ...")
+        print(f"[+] Uploading {name} ...", flush=True)
         _github_upload_release_asset(upload_url, path, token)
     print(f"[+] Published assets to GitHub release {tag}")
 
@@ -1361,6 +1427,88 @@ def _gitee_prune_releases(token: str) -> None:
         _gitee_delete_release(token, release_id)
 
 
+def _gitee_release_body(build_number: str) -> str:
+    return (
+        f"Pyerite SDE build {build_number}.\n\n"
+        "Files: latest.json, item_db_zh.sqlite.gz, item_db_en.sqlite.gz, "
+        "icons.zip.parts, and icons.zip.partNN."
+    )
+
+
+def _find_gitee_release(token: str, tag: str) -> dict | None:
+    return next((item for item in _gitee_list_releases(token) if item.get("tag_name") == tag), None)
+
+
+def _ensure_gitee_release(token: str, tag: str, build_number: str) -> dict:
+    existing = _find_gitee_release(token, tag)
+    if existing and existing.get("id") is not None:
+        print(f"[+] Resuming Gitee release {tag}")
+        return existing
+    try:
+        created = _gitee_form(
+            _gitee_api_url("releases"),
+            token,
+            {
+                "tag_name": tag,
+                "name": f"SDE build {build_number}",
+                "body": _gitee_release_body(build_number),
+                "target_commitish": _gitee_default_branch(),
+            },
+        )
+    except GiteePublishError:
+        existing = _find_gitee_release(token, tag)
+        if existing and existing.get("id") is not None:
+            print(f"[+] Resuming Gitee release {tag}")
+            return existing
+        raise
+    if not isinstance(created, dict) or created.get("id") is None:
+        raise GiteePublishError(f"Gitee did not return a release id for {tag}")
+    print(f"[+] Created Gitee release {tag}")
+    return created
+
+
+def _write_pending_gitee_manifest(publish_meta: dict, gitee_files: list[tuple[str, Path]]) -> None:
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
+    present: set[str] = set()
+    if token:
+        try:
+            release = _ensure_gitee_release(token, tag, str(publish_meta.get("build_number", "?")))
+            present = _gitee_asset_names(release)
+        except GiteePublishError as error:
+            print(f"[!] Could not prepare the Gitee release: {error}", file=sys.stderr)
+    pending = [name for name, _ in gitee_files if name not in present]
+    for name in pending:
+        print(f"[+] Gitee still needs {name}", flush=True)
+    manifest_path = os.environ.get("SDE_GITEE_MANIFEST", "").strip()
+    if not manifest_path:
+        return
+    Path(manifest_path).write_text(
+        json.dumps({"tag": tag, "files": pending}) + "\n",
+        encoding="utf-8",
+    )
+    print(f"[+] Wrote Gitee upload list ({len(pending)} files)")
+
+
+def upload_gitee_asset(file_path: Path, tag: str) -> None:
+    if not file_path.is_file():
+        raise GiteePublishError(f"Missing release asset file: {file_path}")
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    if not token:
+        raise GiteePublishError("GITEE_TOKEN is not set")
+    build_number = tag.removeprefix("sde-build-") if tag.startswith("sde-build-") else tag
+    release = _ensure_gitee_release(token, tag, build_number)
+    if file_path.name in _gitee_asset_names(release):
+        print(f"[=] {file_path.name} already on Gitee")
+        return
+    release_id = release.get("id")
+    if release_id is None:
+        raise GiteePublishError(f"Gitee release {tag} has no id")
+    size_mb = file_path.stat().st_size / HASH_CHUNK_BYTES
+    print(f"[+] Uploading {file_path.name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
+    _gitee_upload_file(token, release_id, file_path)
+
+
 def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[str, Path]]) -> None:
     token = os.environ.get("GITEE_TOKEN", "").strip()
     if not token:
@@ -1377,35 +1525,16 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
 
     tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
     bn = str(publish_meta.get("build_number", "?"))
-    expected = set(expected_release_asset_names())
-    existing = next((item for item in _gitee_list_releases(token) if item.get("tag_name") == tag), None)
-    present = _gitee_asset_names(existing) if existing else set()
-    if existing and expected <= present:
+    release = _ensure_gitee_release(token, tag, bn)
+    present = _gitee_asset_names(release)
+    expected = {name for name, _ in release_files}
+    if expected <= present:
         print(f"[=] Gitee release {tag} already has all assets")
         _gitee_prune_releases(token)
         return
-    if existing and existing.get("id") is not None:
-        release_id = existing["id"]
-        print(f"[+] Resuming Gitee release {tag}")
-    else:
-        created = _gitee_form(
-            _gitee_api_url("releases"),
-            token,
-            {
-                "tag_name": tag,
-                "name": f"SDE build {bn}",
-                "body": (
-                    f"Pyerite SDE build {bn}.\n\n"
-                    "Files: latest.json, item_db_zh.sqlite.gz, item_db_en.sqlite.gz, icons.zip."
-                ),
-                "target_commitish": _gitee_default_branch(),
-            },
-        )
-        if not isinstance(created, dict) or created.get("id") is None:
-            raise GiteePublishError(f"Gitee did not return a release id for {tag}")
-        release_id = created["id"]
-        present = set()
-        print(f"[+] Created Gitee release {tag}")
+    release_id = release.get("id")
+    if release_id is None:
+        raise GiteePublishError(f"Gitee release {tag} has no id")
     pending = [(name, path) for name, path in release_files if name not in present]
     for name in expected & present:
         print(f"[=] {name} already on Gitee")
