@@ -28,6 +28,7 @@ import subprocess
 import tempfile
 import time
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -50,6 +51,8 @@ GITEE_MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
 GITEE_RELEASES_TO_KEEP = 4
 GITEE_UPLOAD_ATTEMPTS = 3
 GITEE_UPLOAD_RETRY_SECONDS = 5
+# One connection from a US-hosted runner into Gitee is slow; overlap the attachments.
+GITEE_UPLOAD_WORKERS = 4
 GZIP_COMPRESS_LEVEL = 6
 HASH_CHUNK_BYTES = 1024 * 1024
 
@@ -1324,6 +1327,26 @@ def _gitee_upload_file(token: str, release_id: object, file_path: Path) -> None:
     raise GiteePublishError(f"Upload failed for {file_path.name}: {last_error}")
 
 
+def _gitee_upload_files(token: str, release_id: object, files: list[tuple[str, Path]]) -> None:
+    if not files:
+        return
+    workers = min(GITEE_UPLOAD_WORKERS, len(files))
+    errors: list[str] = []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {}
+        for name, path in files:
+            size_mb = path.stat().st_size / HASH_CHUNK_BYTES
+            print(f"[+] Uploading {name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
+            futures[pool.submit(_gitee_upload_file, token, release_id, path)] = name
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except GiteePublishError as error:
+                errors.append(str(error))
+    if errors:
+        raise GiteePublishError("; ".join(errors))
+
+
 def _gitee_prune_releases(token: str) -> None:
     ranked: list[tuple[int, object]] = []
     for release in _gitee_list_releases(token):
@@ -1356,35 +1379,37 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
     bn = str(publish_meta.get("build_number", "?"))
     expected = set(expected_release_asset_names())
     existing = next((item for item in _gitee_list_releases(token) if item.get("tag_name") == tag), None)
-    if existing and expected <= _gitee_asset_names(existing):
+    present = _gitee_asset_names(existing) if existing else set()
+    if existing and expected <= present:
         print(f"[=] Gitee release {tag} already has all assets")
         _gitee_prune_releases(token)
         return
     if existing and existing.get("id") is not None:
-        print(f"[+] Replacing incomplete Gitee release {tag}")
-        _gitee_delete_release(token, existing["id"])
-
-    created = _gitee_form(
-        _gitee_api_url("releases"),
-        token,
-        {
-            "tag_name": tag,
-            "name": f"SDE build {bn}",
-            "body": (
-                f"Pyerite SDE build {bn}.\n\n"
-                "Files: latest.json, item_db_zh.sqlite.gz, item_db_en.sqlite.gz, icons.zip."
-            ),
-            "target_commitish": _gitee_default_branch(),
-        },
-    )
-    if not isinstance(created, dict) or created.get("id") is None:
-        raise GiteePublishError(f"Gitee did not return a release id for {tag}")
-    release_id = created["id"]
-    print(f"[+] Created Gitee release {tag}")
-    for name, path in release_files:
-        size_mb = path.stat().st_size / HASH_CHUNK_BYTES
-        print(f"[+] Uploading {name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
-        _gitee_upload_file(token, release_id, path)
+        release_id = existing["id"]
+        print(f"[+] Resuming Gitee release {tag}")
+    else:
+        created = _gitee_form(
+            _gitee_api_url("releases"),
+            token,
+            {
+                "tag_name": tag,
+                "name": f"SDE build {bn}",
+                "body": (
+                    f"Pyerite SDE build {bn}.\n\n"
+                    "Files: latest.json, item_db_zh.sqlite.gz, item_db_en.sqlite.gz, icons.zip."
+                ),
+                "target_commitish": _gitee_default_branch(),
+            },
+        )
+        if not isinstance(created, dict) or created.get("id") is None:
+            raise GiteePublishError(f"Gitee did not return a release id for {tag}")
+        release_id = created["id"]
+        present = set()
+        print(f"[+] Created Gitee release {tag}")
+    pending = [(name, path) for name, path in release_files if name not in present]
+    for name in expected & present:
+        print(f"[=] {name} already on Gitee")
+    _gitee_upload_files(token, release_id, pending)
     _gitee_prune_releases(token)
     print(f"[+] Published assets to Gitee release {tag}")
 
