@@ -711,6 +711,7 @@ def main() -> int:
     )
     args = p.parse_args()
 
+    print("[+] Sync started", flush=True)
     eve = args.eve_sde_root.resolve()
 
     if not args.dry_run and not args.yes:
@@ -914,6 +915,7 @@ def attach_published_file_hashes(meta: dict) -> dict:
     ):
         if not path.is_file():
             raise SystemExit(f"Missing file for {key}: {path}")
+        print(f"[+] Hashing {path.name} ...", flush=True)
         out[key] = sha256_file(path)
     return out
 
@@ -927,7 +929,9 @@ def prepared_release_assets(work: Path) -> list[tuple[str, Path]]:
     work.mkdir(parents=True, exist_ok=True)
     zh_gz = work / PYERITE_RELEASE_ASSET_DB_ZH
     en_gz = work / PYERITE_RELEASE_ASSET_DB_EN
+    print(f"[+] Gzipping {APP_DB_ZH.name} ...", flush=True)
     gzip_file(APP_DB_ZH, zh_gz)
+    print(f"[+] Gzipping {APP_DB_EN.name} ...", flush=True)
     gzip_file(APP_DB_EN, en_gz)
     return [
         (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
@@ -1378,7 +1382,8 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
     release_id = created["id"]
     print(f"[+] Created Gitee release {tag}")
     for name, path in release_files:
-        print(f"[+] Uploading {name} to Gitee ...")
+        size_mb = path.stat().st_size / HASH_CHUNK_BYTES
+        print(f"[+] Uploading {name} to Gitee ({size_mb:.1f} MB) ...", flush=True)
         _gitee_upload_file(token, release_id, path)
     _gitee_prune_releases(token)
     print(f"[+] Published assets to Gitee release {tag}")
@@ -1412,4 +1417,9 @@ def commit_bundled_assets(build_number: str) -> None:
 
 
 if __name__ == "__main__":
+    # Actions captures a pipe, so the default block buffer hides progress until exit.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(line_buffering=True)
     raise SystemExit(main())
