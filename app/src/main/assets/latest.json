@@ -15,5 +15,6 @@
     "icons.zip": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3607705/icons.zip"
   },
   "item_db_zh_sha256": "55c5598fcef740a9cc6479f58abd50173bf4faf95a30671c504b7121a8899837",
-  "item_db_en_sha256": "cdca172284a233ffb67dab31458302318350ffc862176d6e1231bd180640186a"
+  "item_db_en_sha256": "cdca172284a233ffb67dab31458302318350ffc862176d6e1231bd180640186a",
+  "icon_part_count": 11
 }
