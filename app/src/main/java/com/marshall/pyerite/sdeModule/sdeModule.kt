@@ -34,6 +34,7 @@ val sdeModule = module {
             readTimeout = SdeRemoteConfig.DOWNLOAD_READ_TIMEOUT_MINUTES,
             readTimeoutUnit = TimeUnit.MINUTES,
             base = base,
+            followRedirects = false,
         )
         SdeRemoteDataSource(
             metadataApi = metadataClient.createApi<SdeRemoteApi>(SdeRemoteConfig.RETROFIT_BASE_URL),

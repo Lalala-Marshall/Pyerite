@@ -40,11 +40,16 @@ object SdeRemoteConfig {
     const val DOWNLOAD_URL_ATTEMPTS = 2
 
     const val HEADER_RANGE = "Range"
-    const val HEADER_CONTENT_TYPE = "Content-Type"
-    const val CONTENT_TYPE_HTML = "text/html"
     const val HTTP_OK = 200
     const val HTTP_PARTIAL = 206
     const val HTTP_RANGE_NOT_SATISFIABLE = 416
+    const val HTTP_MOVED = 301
+    const val HTTP_FOUND = 302
+    const val HTTP_SEE_OTHER = 303
+    const val HTTP_TEMPORARY_REDIRECT = 307
+    const val HTTP_PERMANENT_REDIRECT = 308
+    const val MAX_DOWNLOAD_REDIRECTS = 5
+    const val HEADER_LOCATION = "Location"
     const val HTML_SNIFF_BYTES = 64
 
     /** Dummy base URL; calls use absolute retrofit `@Url` values. */
@@ -63,6 +68,16 @@ object SdeRemoteConfig {
         giteeDownloadUrl(tag, fileName),
         githubDownloadUrl(tag, fileName),
     )
+
+    /** Icon pieces are only attached to the Gitee release. */
+    fun giteeDownloadUrls(tag: String, fileName: String): List<String> =
+        listOf(giteeDownloadUrl(tag, fileName))
+
+    fun isDownloadRedirect(code: Int): Boolean = code == HTTP_MOVED ||
+        code == HTTP_FOUND ||
+        code == HTTP_SEE_OTHER ||
+        code == HTTP_TEMPORARY_REDIRECT ||
+        code == HTTP_PERMANENT_REDIRECT
 
     fun iconPartName(index: Int): String {
         val suffix = index.toString().padStart(ICON_PART_DIGITS, '0')

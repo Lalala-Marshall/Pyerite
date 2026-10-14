@@ -92,7 +92,7 @@ class SdeRemoteDataSource(
         return validatePackage(metadataApi.fetchLatestPackage(url).toRemotePackage())
     }
 
-    private suspend fun fetchFromLatestDownload(): SdeRemotePackage? {
+    private suspend fun fetchFromLatestDownload(): SdeRemotePackage {
         return validatePackage(
             metadataApi.fetchLatestPackage(SdeRemoteConfig.LATEST_JSON_URL).toRemotePackage(),
         )
@@ -109,50 +109,61 @@ class SdeRemoteDataSource(
         return validatePackage(metadataApi.fetchLatestPackage(downloadUrl).toRemotePackage())
     }
 
-    private fun downloadOnce(url: String, dest: File, onProgress: (Float) -> Unit) {
+    private fun downloadOnce(startUrl: String, dest: File, onProgress: (Float) -> Unit) {
+        var url = startUrl
+        var redirects = 0
         val existing = dest.takeIf { it.isFile }?.length() ?: 0L
-        val request = Request.Builder().url(url).apply {
-            if (existing > 0L) {
-                header(SdeRemoteConfig.HEADER_RANGE, SdeRemoteConfig.rangeValue(existing))
-            }
-        }.build()
-        downloadClient.newCall(request).execute().use { response ->
-            if (response.code == SdeRemoteConfig.HTTP_RANGE_NOT_SATISFIABLE && existing > 0L) {
-                onProgress(1f)
-                return
-            }
-            if (response.code != SdeRemoteConfig.HTTP_OK && response.code != SdeRemoteConfig.HTTP_PARTIAL) {
-                error("HTTP ${response.code} for $url")
-            }
-            val contentType = response.header(SdeRemoteConfig.HEADER_CONTENT_TYPE).orEmpty()
-            if (contentType.contains(SdeRemoteConfig.CONTENT_TYPE_HTML, ignoreCase = true)) {
-                error("HTML response for $url")
-            }
-            val body = response.body ?: error("Empty body for $url")
-            val append = response.code == SdeRemoteConfig.HTTP_PARTIAL && existing > 0L
-            val bodyLength = body.contentLength().takeIf { it > 0L }
-            val total = when {
-                append && bodyLength != null -> existing + bodyLength
-                bodyLength != null -> bodyLength
-                else -> null
-            }
-            dest.parentFile?.mkdirs()
-            body.byteStream().use { input ->
-                FileOutputStream(dest, append).use { output ->
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                    var downloaded = if (append) existing else 0L
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read <= 0) break
-                        output.write(buffer, 0, read)
-                        downloaded += read
-                        if (total != null) {
-                            onProgress((downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f))
+        while (true) {
+            val request = Request.Builder().url(url).apply {
+                if (existing > 0L && redirects == 0) {
+                    header(SdeRemoteConfig.HEADER_RANGE, SdeRemoteConfig.rangeValue(existing))
+                }
+            }.build()
+            downloadClient.newCall(request).execute().use { response ->
+                if (SdeRemoteConfig.isDownloadRedirect(response.code)) {
+                    val location = response.header(SdeRemoteConfig.HEADER_LOCATION)
+                        ?: error("HTTP ${response.code} for $startUrl")
+                    if (redirects >= SdeRemoteConfig.MAX_DOWNLOAD_REDIRECTS) {
+                        error("HTTP ${response.code} for $startUrl")
+                    }
+                    redirects += 1
+                    url = response.request.url.resolve(location).toString()
+                    return@use
+                }
+                if (response.code == SdeRemoteConfig.HTTP_RANGE_NOT_SATISFIABLE && existing > 0L) {
+                    onProgress(1f)
+                    return
+                }
+                if (response.code != SdeRemoteConfig.HTTP_OK && response.code != SdeRemoteConfig.HTTP_PARTIAL) {
+                    error("HTTP ${response.code} for $startUrl")
+                }
+                val body = response.body
+                val append = response.code == SdeRemoteConfig.HTTP_PARTIAL && existing > 0L
+                val bodyLength = body.contentLength().takeIf { it > 0L }
+                val total = when {
+                    append && bodyLength != null -> existing + bodyLength
+                    bodyLength != null -> bodyLength
+                    else -> null
+                }
+                dest.parentFile?.mkdirs()
+                body.byteStream().use { input ->
+                    FileOutputStream(dest, append).use { output ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        var downloaded = if (append) existing else 0L
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read <= 0) break
+                            output.write(buffer, 0, read)
+                            downloaded += read
+                            if (total != null) {
+                                onProgress((downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f))
+                            }
                         }
                     }
                 }
+                if (total == null) onProgress(1f)
+                return
             }
-            if (total == null) onProgress(1f)
         }
     }
 

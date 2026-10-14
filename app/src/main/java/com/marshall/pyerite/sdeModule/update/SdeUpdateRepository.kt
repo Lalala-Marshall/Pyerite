@@ -135,12 +135,10 @@ class SdeUpdateRepository(
             val tag = remote.tagName.ifBlank {
                 SdeRemoteConfig.releaseTag(remote.meta.buildNumber)
             }
-            val iconPartCount = if (!needsIcons) {
-                0
+            val iconPartCount = if (needsIcons) {
+                readRemoteIconPartCount(tag, downloadDir)
             } else {
-                remote.iconPartCount.takeIf { count ->
-                    count in SdeRemoteConfig.MIN_ICON_PARTS..SdeRemoteConfig.MAX_ICON_PARTS
-                } ?: readRemoteIconPartCount(tag, downloadDir)
+                0
             }
             val steps = buildList {
                 if (needsDatabase) {
@@ -247,7 +245,7 @@ class SdeUpdateRepository(
         val manifest = File(downloadDir, SdeRemoteConfig.ASSET_ICON_PARTS)
         return try {
             remoteDataSource.downloadFirstAvailable(
-                SdeRemoteConfig.downloadUrls(tag, SdeRemoteConfig.ASSET_ICON_PARTS),
+                SdeRemoteConfig.giteeDownloadUrls(tag, SdeRemoteConfig.ASSET_ICON_PARTS),
                 manifest,
             ) { _ -> }
             val count = manifest.readText().trim().toInt()
@@ -273,7 +271,7 @@ class SdeUpdateRepository(
                 val partName = SdeRemoteConfig.iconPartName(index)
                 val part = File(downloadDir, partName)
                 remoteDataSource.downloadFirstAvailable(
-                    SdeRemoteConfig.downloadUrls(tag, partName),
+                    SdeRemoteConfig.giteeDownloadUrls(tag, partName),
                     part,
                 ) { partProgress ->
                     onProgress(((index + partProgress) / partCount.toFloat()).coerceIn(0f, 1f))

@@ -24,7 +24,7 @@
 2. 投影成 Room 仍在使用的 `item_db_zh.sqlite` / `item_db_en.sqlite`。缺了 App 要读的列就停止，不发布。
 3. 把 `BOOLEAN` 收成 `INTEGER`。
 4. 未压缩的 sqlite 写入 `app/src/main/assets/`，并 commit。
-5. 发布 gzip 后的数据库、`latest.json` 和单个 `icons.zip` 到 GitHub。Gitee 不传整包图标：美国 runner 到 Gitee 单连接太慢，整包会超过上传时限。图标切成约 8MB 的 `icons.zip.partNN`，外加一行块数的 `icons.zip.parts`，只出现在 Gitee，由多台 runner 并行上传。这些分块不是 GitHub Release 的附件。Gitee 只保留最近 4 个 `sde-build-*` Release。单个文件超过 100MB 时跳过 Gitee，GitHub 仍然发布。
+5. 发布 gzip 后的数据库、`latest.json` 和单个 `icons.zip` 到 GitHub。同一份 `latest.json` 和两个 `.sqlite.gz` 也发到 Gitee。Gitee 不传整包图标：美国 runner 到 Gitee 单连接太慢，整包会超过上传时限。图标切成约 8MB 的 `icons.zip.partNN`，外加一行块数的 `icons.zip.parts`，只出现在 Gitee，由多台 runner 并行上传。这些分块不是 GitHub Release 的附件。Gitee 只保留最近 4 个 `sde-build-*` Release。单个文件超过 100MB 时跳过 Gitee，GitHub 仍然发布。
 
 `latest.json` 里的 `item_db_zh_sha256` / `item_db_en_sha256` 是解压后 sqlite 的 SHA256，`icon_sha256` 是 `icons.zip` 的 SHA256。
 
@@ -33,7 +33,7 @@
 1. GitHub Actions secret 名为 `GITEE_TOKEN`（Gitee 私人令牌，权限包含 projects）。不要把令牌写进仓库。
 2. 推送 workflow 与脚本。
 3. 打开 **Actions → Sync SDE → Run workflow**，手动跑一次。
-4. 确认 GitHub 最新 Release 只有 `latest.json`、两个 `.sqlite.gz` 和一个 `icons.zip`。Gitee 上有两个 `.sqlite.gz`、`icons.zip.parts` 和全部分块，没有整包 `icons.zip`。
+4. 确认 GitHub 最新 Release 只有 `latest.json`、两个 `.sqlite.gz` 和一个 `icons.zip`。Gitee 上有 `latest.json`、两个 `.sqlite.gz`、`icons.zip.parts` 和全部分块，没有整包 `icons.zip`。
 
 之后每天 **北京时间 22:00**（UTC 14:00）自动检查上游。
 
@@ -60,8 +60,8 @@ python tools/sync_sde_release.py --yes --publish-release --commit-assets
 - 启动时：`BundledSdeUpdater` 用 APK 内置版本升级手机本地库。
 - 检查更新：先 Gitee 的 `latest.json`，失败再试 GitHub。下载地址按仓库和 tag 自己拼，不使用 `latest.json` 里的任意主机。
 - 数据库先下 `.sqlite.gz`，没有再下旧的 `.sqlite`。解压后核对 SHA256，再交给 Room。
-- 图标先从 Gitee 按 `icons.zip.parts` 的块数逐块下载，拼回 `icons.zip` 后核对 SHA256。分块失败，或没有分块清单时，改下整包 `icons.zip`（在 GitHub Release 上）。
-- 下载顺序是 Gitee，失败再 GitHub。中断后同一地址用 Range 续传。
+- 图标块数只看 Gitee 上的 `icons.zip.parts`，不看 `latest.json` 里的 `icon_part_count`。分块只向 Gitee 要，不会去 GitHub 请求 `icons.zip.partNN`。拼回 `icons.zip` 后核对 SHA256。清单或任一块失败时，改下整包 `icons.zip`（Gitee 没有则用 GitHub）。
+- 数据库和整包图标的下载顺序是 Gitee，失败再 GitHub。中断后同一地址用 Range 续传。
 
 ## 注意
 

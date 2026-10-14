@@ -1000,6 +1000,7 @@ def prepared_release_assets(work: Path) -> tuple[list[tuple[str, Path]], list[tu
     ]
     # The single icons.zip is too large for the slow Gitee hop. Parts replace it there.
     gitee_files = [
+        (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
         *databases,
         (PYERITE_RELEASE_ASSET_ICON_PARTS, manifest),
         *parts,
@@ -1013,8 +1014,7 @@ def finalize_publish_and_commit(publish_meta: dict, args: argparse.Namespace) ->
     if args.publish_release:
         work = Path(tempfile.mkdtemp(prefix="pyerite-sde-release-"))
         try:
-            github_files, gitee_files, part_count = prepared_release_assets(work)
-            publish_meta["icon_part_count"] = part_count
+            github_files, gitee_files, _ = prepared_release_assets(work)
             _write_release_meta_files(publish_meta)
             publish_pyerite_github_release(publish_meta, github_files)
             if args.skip_gitee:
