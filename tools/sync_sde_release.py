@@ -81,10 +81,7 @@ PYERITE_RELEASE_ASSET_DB_EN = "item_db_en.sqlite.gz"
 PYERITE_RELEASE_ASSET_ICONS = "icons.zip"
 PYERITE_RELEASE_ASSET_ICON_PARTS = "icons.zip.parts"
 PYERITE_RELEASE_ASSET_META = "latest.json"
-GITHUB_ASSETS_REFRESHED_EACH_PUBLISH = (
-    PYERITE_RELEASE_ASSET_META,
-    PYERITE_RELEASE_ASSET_ICON_PARTS,
-)
+GITHUB_ASSETS_REFRESHED_EACH_PUBLISH = (PYERITE_RELEASE_ASSET_META,)
 
 
 class GiteePublishError(Exception):
@@ -949,6 +946,16 @@ def icon_part_name(index: int) -> str:
     return f"{PYERITE_RELEASE_ASSET_ICONS}.part{index:0{ICON_PART_DIGITS}d}"
 
 
+def is_gitee_only_icon_asset(name: str) -> bool:
+    """Icon pieces published only on Gitee. GitHub Release keeps one icons.zip."""
+    if name == PYERITE_RELEASE_ASSET_ICON_PARTS:
+        return True
+    prefix = f"{PYERITE_RELEASE_ASSET_ICONS}.part"
+    if not name.startswith(prefix):
+        return False
+    return name.removeprefix(prefix).isdigit()
+
+
 def split_icon_parts(src: Path, dest_dir: Path) -> list[tuple[str, Path]]:
     """Split icons.zip so each Gitee upload can finish on a slow link."""
     total = src.stat().st_size
@@ -990,8 +997,6 @@ def prepared_release_assets(work: Path) -> tuple[list[tuple[str, Path]], list[tu
         (PYERITE_RELEASE_ASSET_META, APP_LATEST_JSON),
         *databases,
         (PYERITE_RELEASE_ASSET_ICONS, APP_ICONS_ZIP),
-        (PYERITE_RELEASE_ASSET_ICON_PARTS, manifest),
-        *parts,
     ]
     # The single icons.zip is too large for the slow Gitee hop. Parts replace it there.
     gitee_files = [
@@ -1130,6 +1135,20 @@ def _github_get_json(url: str, token: str) -> dict | list | None:
         raise
 
 
+def _github_delete_release_asset(api: str, asset_id: object, token: str) -> None:
+    delete_req = urllib.request.Request(
+        f"{api}/releases/assets/{asset_id}",
+        headers={
+            "User-Agent": USER_AGENT,
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+        },
+        method="DELETE",
+    )
+    with urllib.request.urlopen(delete_req, timeout=120):
+        pass
+
+
 def _github_upload_release_asset(upload_url_template: str, file_path: Path, token: str) -> None:
     upload_url = upload_url_template.split("{", 1)[0]
     name = urllib.parse.quote(file_path.name)
@@ -1199,6 +1218,12 @@ def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple
         for a in (release.get("assets") or [])
         if isinstance(a, dict)
     }
+    for name, asset_id in list(assets.items()):
+        if not asset_id or not is_gitee_only_icon_asset(str(name)):
+            continue
+        _github_delete_release_asset(api, asset_id, token)
+        assets.pop(name, None)
+        print(f"[+] Removed {name} from GitHub release {tag}")
     for name, path in release_files:
         if not path.is_file():
             raise SystemExit(f"Missing release asset file: {path}")
@@ -1207,17 +1232,7 @@ def publish_pyerite_github_release(publish_meta: dict, release_files: list[tuple
             print(f"[=] {name} already on GitHub")
             continue
         if asset_id:
-            delete_req = urllib.request.Request(
-                f"{api}/releases/assets/{asset_id}",
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Authorization": f"Bearer {token}",
-                    "Accept": "application/vnd.github+json",
-                },
-                method="DELETE",
-            )
-            with urllib.request.urlopen(delete_req, timeout=120):
-                pass
+            _github_delete_release_asset(api, asset_id, token)
         print(f"[+] Uploading {name} ...", flush=True)
         _github_upload_release_asset(upload_url, path, token)
     print(f"[+] Published assets to GitHub release {tag}")
@@ -1481,13 +1496,32 @@ def _write_pending_gitee_manifest(publish_meta: dict, gitee_files: list[tuple[st
     for name in pending:
         print(f"[+] Gitee still needs {name}", flush=True)
     manifest_path = os.environ.get("SDE_GITEE_MANIFEST", "").strip()
-    if not manifest_path:
+    if manifest_path:
+        Path(manifest_path).write_text(
+            json.dumps({"tag": tag, "files": pending}) + "\n",
+            encoding="utf-8",
+        )
+        print(f"[+] Wrote Gitee upload list ({len(pending)} files)")
+    _stage_pending_gitee_files(gitee_files, pending)
+
+
+def _stage_pending_gitee_files(gitee_files: list[tuple[str, Path]], pending: list[str]) -> None:
+    """Copy pieces for the parallel Gitee jobs. They are not GitHub Release assets."""
+    dest = os.environ.get("SDE_GITEE_PARTS_DIR", "").strip()
+    if not dest:
         return
-    Path(manifest_path).write_text(
-        json.dumps({"tag": tag, "files": pending}) + "\n",
-        encoding="utf-8",
-    )
-    print(f"[+] Wrote Gitee upload list ({len(pending)} files)")
+    folder = Path(dest)
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    wanted = set(pending)
+    staged = 0
+    for name, path in gitee_files:
+        if name not in wanted:
+            continue
+        shutil.copy2(path, folder / name)
+        staged += 1
+    print(f"[+] Staged {staged} Gitee files")
 
 
 def upload_gitee_asset(file_path: Path, tag: str) -> None:

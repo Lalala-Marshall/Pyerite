@@ -34,6 +34,7 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           PYTHONUNBUFFERED: "1"
           SDE_GITEE_MANIFEST: ${{ runner.temp }}/gitee-manifest.json
+          SDE_GITEE_PARTS_DIR: ${{ runner.temp }}/gitee-parts
         run: python -u tools/sync_sde_release.py --yes --publish-release --commit-assets --skip-gitee
 
       - name: Read Gitee upload list
@@ -50,6 +51,14 @@ jobs:
               handle.write(f"tag={data['tag']}\n")
               handle.write("files=" + json.dumps(data["files"]) + "\n")
           PY
+
+      - name: Upload Gitee part files
+        if: steps.manifest.outputs.files != '[]'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitee-parts
+          path: ${{ runner.temp }}/gitee-parts
+          if-no-files-found: error
 
   # One US connection into Gitee is only tens of KB/s. Each file gets its own runner.
   gitee:
@@ -73,11 +82,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Download asset from GitHub
-        env:
-          ASSET_NAME: ${{ matrix.file }}
-          RELEASE_TAG: ${{ needs.sync.outputs.tag }}
-        run: curl -fL --retry 3 --retry-delay 5 -o "$ASSET_NAME" "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
+      - name: Download Gitee part files
+        uses: actions/download-artifact@v4
+        with:
+          name: gitee-parts
+          path: gitee-parts
 
       - name: Upload asset to Gitee
         env:
@@ -85,4 +94,4 @@ jobs:
           PYTHONUNBUFFERED: "1"
           ASSET_NAME: ${{ matrix.file }}
           RELEASE_TAG: ${{ needs.sync.outputs.tag }}
-        run: python -u tools/sync_sde_release.py --gitee-file "$ASSET_NAME" --gitee-tag "$RELEASE_TAG"
+        run: python -u tools/sync_sde_release.py --gitee-file "gitee-parts/$ASSET_NAME" --gitee-tag "$RELEASE_TAG"

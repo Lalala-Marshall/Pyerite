@@ -191,7 +191,19 @@ class SdeUpdateRepository(
                     onProgress(total)
                 }
                 if (step.iconPartCount >= SdeRemoteConfig.MIN_ICON_PARTS) {
-                    downloadIconParts(tag, step.iconPartCount, downloadDir, step.installed, report)
+                    try {
+                        downloadIconParts(tag, step.iconPartCount, downloadDir, step.installed, report)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        SdeUpdateLog.w(
+                            "Repository",
+                            "icon parts failed, downloading ${SdeRemoteConfig.ASSET_ICONS}",
+                            error,
+                        )
+                        if (step.installed.exists()) step.installed.delete()
+                        remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded, report)
+                    }
                 } else {
                     remoteDataSource.downloadFirstAvailable(step.urls, step.downloaded, report)
                 }
