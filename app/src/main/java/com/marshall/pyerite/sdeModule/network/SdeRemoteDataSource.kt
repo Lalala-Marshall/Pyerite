@@ -4,13 +4,12 @@ import com.marshall.pyerite.sdeModule.update.SdeRemoteConfig
 import com.marshall.pyerite.sdeModule.update.SdeRemotePackage
 import com.marshall.pyerite.sdeModule.update.SdeUpdateLog
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import retrofit2.HttpException
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -18,90 +17,152 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class SdeRemoteDataSource(
     private val metadataApi: SdeRemoteApi,
-    private val downloadApi: SdeRemoteApi,
+    private val downloadClient: OkHttpClient,
 ) {
 
     suspend fun fetchLatestPackage(): SdeRemotePackage = withContext(Dispatchers.IO) {
         SdeUpdateLog.d("Remote", "fetchLatestPackage started")
-        coroutineScope {
-            val winner = CompletableDeferred<SdeRemotePackage>()
-            launch {
-                fetchFromLatestDownload()?.let {
-                    SdeUpdateLog.d("Remote", "metadata from latest.json build=${it.meta.buildNumber}")
-                    winner.complete(it)
+        var lastError: Exception? = null
+        for (source in metadataSources()) {
+            repeat(SdeRemoteConfig.METADATA_SOURCE_ATTEMPTS) { attempt ->
+                try {
+                    val pkg = withTimeout(SdeRemoteConfig.METADATA_SOURCE_TIMEOUT_MILLIS.milliseconds) {
+                        source.fetch()
+                    }
+                    if (pkg != null) {
+                        SdeUpdateLog.d(
+                            "Remote",
+                            "metadata from ${source.name} build=${pkg.meta.buildNumber} tag=${pkg.tagName}",
+                        )
+                        return@withContext pkg
+                    }
+                    SdeUpdateLog.w("Remote", "${source.name} returned no package")
+                } catch (error: TimeoutCancellationException) {
+                    lastError = error
+                    SdeUpdateLog.w("Remote", "${source.name} timed out (attempt ${attempt + 1})", error)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    lastError = error
+                    SdeUpdateLog.w("Remote", "${source.name} failed (attempt ${attempt + 1})", error)
                 }
-            }
-            launch {
-                fetchFromGitHubApi()?.let {
-                    SdeUpdateLog.d("Remote", "metadata from GitHub API build=${it.meta.buildNumber}")
-                    winner.complete(it)
-                }
-            }
-            try {
-                withTimeout(METADATA_TOTAL_TIMEOUT) {
-                    winner.await()
-                }
-            } catch (error: CancellationException) {
-                SdeUpdateLog.w("Remote", "fetchLatestPackage cancelled: ${error.javaClass.simpleName}")
-                throw error
-            } catch (error: Exception) {
-                SdeUpdateLog.w("Remote", "fetchLatestPackage failed", error)
-                throw IOException("Unable to fetch remote SDE metadata")
             }
         }
+        throw lastError ?: IOException("Unable to fetch remote SDE metadata")
     }
 
-    suspend fun downloadToFile(
-        url: String,
+    suspend fun downloadFirstAvailable(
+        urls: List<String>,
         dest: File,
         onProgress: (Float) -> Unit,
     ) = withContext(Dispatchers.IO) {
-        try {
-            downloadApi.downloadBody(url).use { responseBody ->
-                val total = responseBody.contentLength().takeIf { it > 0L }
-                dest.parentFile?.mkdirs()
-                responseBody.byteStream().use { input ->
-                    FileOutputStream(dest).use { output ->
-                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                        var downloaded = 0L
-                        while (true) {
-                            val read = input.read(buffer)
-                            if (read <= 0) break
-                            output.write(buffer, 0, read)
-                            downloaded += read
-                            if (total != null) {
-                                onProgress((downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f))
-                            }
-                        }
+        var lastError: Exception? = null
+        for (url in urls) {
+            if (dest.exists()) dest.delete()
+            repeat(SdeRemoteConfig.DOWNLOAD_URL_ATTEMPTS) { attempt ->
+                try {
+                    downloadOnce(url, dest, onProgress)
+                    if (!dest.isFile || dest.length() <= 0L || fileLooksLikeHtml(dest)) {
+                        dest.delete()
+                        error("Unexpected response for $url")
                     }
+                    return@withContext
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    lastError = error
+                    SdeUpdateLog.w("Remote", "download failed ${dest.name} attempt ${attempt + 1}", error)
                 }
-                if (total == null) onProgress(1f)
             }
-        } catch (e: HttpException) {
-            error("HTTP ${e.code()} for $url")
         }
+        throw lastError ?: IOException("Unable to download ${dest.name}")
+    }
+
+    private fun metadataSources(): List<MetadataSource> = listOf(
+        MetadataSource("Gitee") { fetchFromGitee() },
+        MetadataSource("GitHub latest.json") { fetchFromLatestDownload() },
+        MetadataSource("GitHub API") { fetchFromGitHubApi() },
+    )
+
+    private suspend fun fetchFromGitee(): SdeRemotePackage? {
+        val release = metadataApi.fetchGiteeRelease(SdeRemoteConfig.GITEE_API_LATEST_RELEASE_URL)
+        val tag = release.tagName.trim()
+        if (tag.isEmpty()) return null
+        val url = SdeRemoteConfig.giteeDownloadUrl(tag, SdeRemoteConfig.LATEST_JSON_ASSET)
+        return validatePackage(metadataApi.fetchLatestPackage(url).toRemotePackage())
     }
 
     private suspend fun fetchFromLatestDownload(): SdeRemotePackage? {
-        return try {
-            validatePackage(metadataApi.fetchLatestPackage(SdeRemoteConfig.LATEST_JSON_URL).toRemotePackage())
-        } catch (_: Exception) {
-            null
-        }
+        return validatePackage(
+            metadataApi.fetchLatestPackage(SdeRemoteConfig.LATEST_JSON_URL).toRemotePackage(),
+        )
     }
 
     private suspend fun fetchFromGitHubApi(): SdeRemotePackage? {
-        return try {
-            val release = metadataApi.fetchGitHubRelease(SdeRemoteConfig.GITHUB_API_LATEST_RELEASE_URL)
-            val downloadUrl = release.assets
-                .firstOrNull { it.name == SdeRemoteConfig.LATEST_JSON_ASSET }
-                ?.browserDownloadUrl
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
-                ?: return null
-            validatePackage(metadataApi.fetchLatestPackage(downloadUrl).toRemotePackage())
-        } catch (_: Exception) {
-            null
+        val release = metadataApi.fetchGitHubRelease(SdeRemoteConfig.GITHUB_API_LATEST_RELEASE_URL)
+        val downloadUrl = release.assets
+            .firstOrNull { it.name == SdeRemoteConfig.LATEST_JSON_ASSET }
+            ?.browserDownloadUrl
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: return null
+        return validatePackage(metadataApi.fetchLatestPackage(downloadUrl).toRemotePackage())
+    }
+
+    private fun downloadOnce(url: String, dest: File, onProgress: (Float) -> Unit) {
+        val existing = dest.takeIf { it.isFile }?.length() ?: 0L
+        val request = Request.Builder().url(url).apply {
+            if (existing > 0L) {
+                header(SdeRemoteConfig.HEADER_RANGE, SdeRemoteConfig.rangeValue(existing))
+            }
+        }.build()
+        downloadClient.newCall(request).execute().use { response ->
+            if (response.code == SdeRemoteConfig.HTTP_RANGE_NOT_SATISFIABLE && existing > 0L) {
+                onProgress(1f)
+                return
+            }
+            if (response.code != SdeRemoteConfig.HTTP_OK && response.code != SdeRemoteConfig.HTTP_PARTIAL) {
+                error("HTTP ${response.code} for $url")
+            }
+            val contentType = response.header(SdeRemoteConfig.HEADER_CONTENT_TYPE).orEmpty()
+            if (contentType.contains(SdeRemoteConfig.CONTENT_TYPE_HTML, ignoreCase = true)) {
+                error("HTML response for $url")
+            }
+            val body = response.body ?: error("Empty body for $url")
+            val append = response.code == SdeRemoteConfig.HTTP_PARTIAL && existing > 0L
+            val bodyLength = body.contentLength().takeIf { it > 0L }
+            val total = when {
+                append && bodyLength != null -> existing + bodyLength
+                bodyLength != null -> bodyLength
+                else -> null
+            }
+            dest.parentFile?.mkdirs()
+            body.byteStream().use { input ->
+                FileOutputStream(dest, append).use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var downloaded = if (append) existing else 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read <= 0) break
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        if (total != null) {
+                            onProgress((downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f))
+                        }
+                    }
+                }
+            }
+            if (total == null) onProgress(1f)
+        }
+    }
+
+    private fun fileLooksLikeHtml(file: File): Boolean {
+        if (!file.isFile || file.length() <= 0L) return false
+        file.inputStream().use { input ->
+            val buffer = ByteArray(SdeRemoteConfig.HTML_SNIFF_BYTES)
+            val read = input.read(buffer)
+            if (read <= 0) return false
+            return buffer.decodeToString(endIndex = read).trimStart().startsWith("<")
         }
     }
 
@@ -113,11 +174,8 @@ class SdeRemoteDataSource(
         return pkg
     }
 
-    companion object {
-        private val METADATA_TOTAL_TIMEOUT = 15_000.milliseconds
-        const val METADATA_CONNECT_TIMEOUT_SECONDS = 8L
-        const val METADATA_READ_TIMEOUT_SECONDS = 12L
-        const val DOWNLOAD_CONNECT_TIMEOUT_SECONDS = 30L
-        const val DOWNLOAD_READ_TIMEOUT_MINUTES = 30L
-    }
+    private class MetadataSource(
+        val name: String,
+        val fetch: suspend () -> SdeRemotePackage?,
+    )
 }

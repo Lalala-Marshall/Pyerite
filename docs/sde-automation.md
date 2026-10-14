@@ -1,40 +1,45 @@
-# SDE 自动同步（GitHub Releases + App 兜底）
+# SDE 自动同步（Gitee + GitHub Releases）
 
 ## 三层数据
 
 | 层级 | 位置 | 作用 |
 |------|------|------|
 | 手机本地 | `databases/` + `files/icons/` | 用户实际使用的数据 |
-| APK 内置 | `app/src/main/assets/` | 安装/升级后的兜底版本 |
-| GitHub Release | `Lalala-Marshall/Pyerite` Releases | 远端增量更新源 |
+| APK 内置 | `app/src/main/assets/` | 安装/升级后的兜底版本。数据库是未压缩的 sqlite |
+| Gitee Release | `lalala-marshall/pyerite-sde-source` | 国内下载。数据库是 `.sqlite.gz` |
+| GitHub Release | `Lalala-Marshall/Pyerite` | 国外和 Gitee 失败时的下载。文件与 Gitee 相同 |
 
 ## CI 如何判断「有新 build」
 
-比较的是 **两份 GitHub Release 的元数据**，不是 assets：
+比较的是 **两份 Release 的元数据**，不是文件内容：
 
 | 一端 | 来源 |
 |------|------|
-| **上游** | `EstamelGG/EveSDE_2.0` 最新 Release（`metadata.json` / release body / tag） |
+| **上游** | `EstamelGG/EveSDE_3.0` 最新 Release（`metadata.json` / release body / tag） |
 | **已发布** | `Lalala-Marshall/Pyerite` 最新 Release 的 `latest.json` |
 
-上游 `build_number` 更大 → 下载、normalize、发 Pyerite Release、**commit & push `main/assets`**。
+上游 `build_number` 更大时：
 
-若上游未更新，但 **assets 落后于 Pyerite Release** → 从 Release 下载文件刷新 assets 并 commit（保证下次发版 APK 兜底是最新的）。
+1. 下载 `sde.zip`（单个 `db/item_db.sqlite` + `texts.zip`）和 `icons.zip`。
+2. 投影成 Room 仍在使用的 `item_db_zh.sqlite` / `item_db_en.sqlite`。缺了 App 要读的列就停止，不发布。
+3. 把 `BOOLEAN` 收成 `INTEGER`。
+4. 未压缩的 sqlite 写入 `app/src/main/assets/`，并 commit。
+5. 发布 gzip 后的数据库、`icons.zip`、`latest.json` 到 GitHub，再上传到 Gitee。Gitee 只保留最近 4 个 `sde-build-*` Release。单个文件超过 100MB 时跳过 Gitee，GitHub 仍然发布。
 
-`app/src/main/assets/` 仅在 **尚无 Pyerite Release** 时作为首次比较的兜底。
+`latest.json` 里的 `item_db_zh_sha256` / `item_db_en_sha256` 是解压后 sqlite 的 SHA256，`icon_sha256` 是 `icons.zip` 的 SHA256。
 
 ## 一次性设置
 
-1. **推送本仓库到 GitHub**（若尚未推送 workflow 与脚本变更）。
-2. 打开 **Actions → Sync SDE → Run workflow**，手动跑一次。
-   - 若 bundled 已是最新，也会从 `app/src/main/assets/` **发布 GitHub Release**（首次必需）
-   - 检测 `EstamelGG/EveSDE_2.0` 是否有新版本
-   - 下载、normalize、写入 `app/src/main/assets/`
-   - 创建/更新 GitHub Release（`sde-build-<build_number>`）
-   - 自动 commit + push 兜底 assets 到 `main`
-3. 确认 Releases 页出现 `latest.json`、`item_db_zh.sqlite`、`item_db_en.sqlite`、`icons.zip`。
+1. GitHub Actions secret 名为 `GITEE_TOKEN`（Gitee 私人令牌，权限包含 projects）。不要把令牌写进仓库。
+2. 推送 workflow 与脚本。
+3. 打开 **Actions → Sync SDE → Run workflow**，手动跑一次。
+4. 确认 GitHub 和 Gitee 的最新 Release 都有：
+   - `latest.json`
+   - `item_db_zh.sqlite.gz`
+   - `item_db_en.sqlite.gz`
+   - `icons.zip`
 
-之后每天 **北京时间 22:00**（UTC 14:00）会自动检查上游；有新 SDE 时重复上述步骤，无需手动操作。
+之后每天 **北京时间 22:00**（UTC 14:00）自动检查上游。
 
 ## 本地手动同步（开发）
 
@@ -42,12 +47,13 @@
 python tools/sync_sde_release.py --yes
 ```
 
-仅更新本机 `app/src/main/assets/`，不发布 Release。
+只更新本机 `app/src/main/assets/`，不发布 Release。
 
-发布 Release 并 push 兜底（需 `GITHUB_TOKEN`）：
+发布到 GitHub 和 Gitee，并 push 兜底：
 
 ```bash
 set GITHUB_TOKEN=ghp_xxx
+set GITEE_TOKEN=gitee_xxx
 set GITHUB_REPOSITORY=Lalala-Marshall/Pyerite
 set GITHUB_REF_NAME=main
 python tools/sync_sde_release.py --yes --publish-release --commit-assets
@@ -55,12 +61,12 @@ python tools/sync_sde_release.py --yes --publish-release --commit-assets
 
 ## App 行为
 
-- 启动时：`BundledSdeUpdater` 用 APK 内置 `latest.txt` / `latest.json` 升级手机本地库（若 bundled 更新）。
-- 主页右上角：检查 `https://github.com/Lalala-Marshall/Pyerite/releases/latest/download/latest.json`。
-- 有更新时显示角标；点击下载 ~260MB，应用后自动关闭 Room 缓存、重建图标索引，**无需清缓存或重启**。
+- 启动时：`BundledSdeUpdater` 用 APK 内置版本升级手机本地库。
+- 检查更新：先 Gitee 的 `latest.json`，失败再试 GitHub。下载地址按仓库和 tag 自己拼，不使用 `latest.json` 里的任意主机。
+- 数据库先下 `.sqlite.gz`，没有再下旧的 `.sqlite`。解压后核对 SHA256，再交给 Room。
+- 下载顺序是 Gitee，失败再 GitHub。中断后同一地址用 Range 续传。
 
 ## 注意
 
-- 单个 sqlite 约 90MB，Git 历史会变大；用户量大时可考虑 Git LFS。
-- Workflow 仅在 `schedule` / `workflow_dispatch` 触发，**不要在 push 时触发**，避免 commit 循环。
-- 兜底资源仅维护在 `app/src/main/assets/`（Debug / Release 共用）。
+- Workflow 只在 `schedule` / `workflow_dispatch` 触发，不要在 push 时触发。
+- 兜底资源只在 `app/src/main/assets/`（Debug / Release 共用），里面仍是未压缩 sqlite。

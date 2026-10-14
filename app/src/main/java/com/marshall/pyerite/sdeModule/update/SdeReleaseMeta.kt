@@ -24,6 +24,8 @@ data class SdeReleaseMeta(
     val iconVersion: Int?,
     val iconSha256: String?,
     val sdeSha256: String?,
+    val dbZhSha256: String? = null,
+    val dbEnSha256: String? = null,
 ) {
 
     fun versionKey(): SdeVersionKey = SdeVersionKey(
