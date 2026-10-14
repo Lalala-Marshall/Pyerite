@@ -1187,15 +1187,52 @@ def _gitee_json(url: str, token: str, method: str = "GET", payload: dict | None 
 
 
 def _gitee_default_branch() -> str:
+    """Public repo metadata. Do not reuse GitHub auth headers; Gitee rejects them."""
     url = _gitee_public_url(f"repos/{GITEE_OWNER}/{GITEE_REPO}")
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
     try:
-        info = http_json(url)
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            info = json.loads(resp.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as error:
         raise GiteePublishError(f"Could not read Gitee repository: {error}") from error
+    if not isinstance(info, dict):
+        raise GiteePublishError("Gitee repository response was not an object")
     branch = str(info.get("default_branch") or "").strip()
     if not branch:
         raise GiteePublishError("Gitee repository response has no default_branch")
     return branch
+
+
+def _gitee_form(url: str, token: str, fields: dict[str, str]) -> dict | None:
+    """Gitee release create reads form fields, not a JSON body."""
+    payload = dict(fields)
+    payload["access_token"] = token
+    data = urllib.parse.urlencode(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            parsed = json.loads(raw.decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        body = _redact_token(error.read().decode("utf-8", errors="replace"), token)
+        raise GiteePublishError(f"Gitee HTTP {error.code} POST {url}: {body}") from error
+    if isinstance(parsed, dict):
+        return parsed
+    raise GiteePublishError("Gitee form response was not an object")
 
 
 def _gitee_list_releases(token: str) -> list[dict]:
@@ -1323,11 +1360,10 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
         print(f"[+] Replacing incomplete Gitee release {tag}")
         _gitee_delete_release(token, existing["id"])
 
-    created = _gitee_json(
-        _gitee_api_url("releases", token),
+    created = _gitee_form(
+        _gitee_api_url("releases"),
         token,
-        method="POST",
-        payload={
+        {
             "tag_name": tag,
             "name": f"SDE build {bn}",
             "body": (
