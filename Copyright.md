@@ -8,8 +8,8 @@
 This application is developed and published by individual developer Yuxiang Man.
 Copyright © Yuxiang Man 2026.
 
-项目源代码托管于 GitHub，欢迎学习与贡献。
-The project source is hosted on GitHub and is open to learning and contributions.
+项目源代码托管于 GitHub，仅供学习与查阅。未经版权人书面许可，不得运行、编译、修改、分发或将源代码用于其他用途。许可全文见仓库根目录 [LICENSE](LICENSE)。
+The project source is hosted on GitHub for educational and review purposes only. You may not run, compile, modify, distribute, or use this source code for any other purpose without explicit written permission from the copyright holder. The full terms are in [LICENSE](LICENSE) at the repository root.
 
 https://github.com/Lalala-Marshall/Pyerite
 
