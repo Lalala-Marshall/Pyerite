@@ -16,7 +16,7 @@
 | 一端 | 来源 |
 |------|------|
 | **上游** | `EstamelGG/EveSDE_3.0` 最新 Release（`metadata.json` / release body / tag） |
-| **已发布** | `Lalala-Marshall/Pyerite` 最新 Release 的 `latest.json` |
+| **已发布** | `Lalala-Marshall/Pyerite` 最新 `sde-build-*` Release 的 `latest.json`。`app-v*` 安装包不参与比较 |
 
 上游 `build_number` 更大时：
 
@@ -66,4 +66,5 @@ python tools/sync_sde_release.py --yes --publish-release --commit-assets
 ## 注意
 
 - Workflow 只在 `schedule` / `workflow_dispatch` 触发，不要在 push 时触发。
+- 应用安装包走另一条 Release：tag 是 `app-v*`，并标成 prerelease。GitHub 的 `/releases/latest` 因此仍指向 `sde-build-*`。已安装的旧版本靠这个地址下载 `latest.json`。
 - 兜底资源只在 `app/src/main/assets/`（Debug / Release 共用），里面仍是未压缩 sqlite。

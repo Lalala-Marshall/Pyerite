@@ -1,0 +1,216 @@
+# App packages use tags app-v*. They are prereleases so GitHub /releases/latest
+# stays on sde-build-* (see docs/sde-automation.md).
+#
+# Required Actions secrets (repository settings, never commit the values):
+#   ANDROID_KEYSTORE_BASE64   base64 of the release .keystore
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+#   EVE_SSO_CLIENT_ID
+# Optional:
+#   EVE_SSO_REDIRECT_URI
+
+name: Release app
+
+on:
+  push:
+    tags:
+      - "app-v*"
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name, for example 1.0"
+        required: true
+        default: "1.0"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-app
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      APP_TAG_PREFIX: app-v
+      APK_BASENAME: pyerite
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version_name }}"
+          else
+            version="${GITHUB_REF_NAME#"$APP_TAG_PREFIX"}"
+          fi
+          if ! [[ "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "Version must look like 1.0 or 1.2.3, got: $version"
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "tag=${APP_TAG_PREFIX}${version}"
+            echo "apk=${APK_BASENAME}-${version}.apk"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Require release secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EVE_SSO_CLIENT_ID: ${{ secrets.EVE_SSO_CLIENT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "$ANDROID_KEYSTORE_BASE64" ] || missing+=("ANDROID_KEYSTORE_BASE64")
+          [ -n "$ANDROID_KEYSTORE_PASSWORD" ] || missing+=("ANDROID_KEYSTORE_PASSWORD")
+          [ -n "$ANDROID_KEY_ALIAS" ] || missing+=("ANDROID_KEY_ALIAS")
+          [ -n "$ANDROID_KEY_PASSWORD" ] || missing+=("ANDROID_KEY_PASSWORD")
+          [ -n "$EVE_SSO_CLIENT_ID" ] || missing+=("EVE_SSO_CLIENT_ID")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing GitHub Actions secrets: ${missing[*]}"
+            echo "Create a release keystore locally, then add the secrets listed in this workflow."
+            exit 1
+          fi
+
+      - name: Write signing keystore and SSO config
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          EVE_SSO_CLIENT_ID: ${{ secrets.EVE_SSO_CLIENT_ID }}
+          EVE_SSO_REDIRECT_URI: ${{ secrets.EVE_SSO_REDIRECT_URI }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pyerite-release.keystore"
+          printf 'EVE_SSO_CLIENT_ID=%s\n' "$EVE_SSO_CLIENT_ID" > local.properties
+          if [ -n "$EVE_SSO_REDIRECT_URI" ]; then
+            printf 'EVE_SSO_REDIRECT_URI=%s\n' "$EVE_SSO_REDIRECT_URI" >> local.properties
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        env:
+          PYERITE_KEYSTORE_PATH: ${{ runner.temp }}/pyerite-release.keystore
+          PYERITE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PYERITE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          PYERITE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease --stacktrace \
+            -Ppyerite.versionName="${{ steps.version.outputs.version }}" \
+            -Ppyerite.versionCode="${{ github.run_number }}" \
+            -Ppyerite.requireReleaseSigning=true
+          signed="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$signed" ]; then
+            echo "Signed APK was not produced"
+            ls -la app/build/outputs/apk/release || true
+            exit 1
+          fi
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [ -z "$sdk" ]; then
+            echo "ANDROID_HOME is not set"
+            exit 1
+          fi
+          apksigner="$(find "$sdk" -path '*/build-tools/*/apksigner' | sort | tail -n 1)"
+          if [ -z "$apksigner" ]; then
+            echo "apksigner was not found under the Android SDK"
+            exit 1
+          fi
+          "$apksigner" verify --print-certs "$signed"
+          cp "$signed" "${{ steps.version.outputs.apk }}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          APP_TAG: ${{ steps.version.outputs.tag }}
+          APP_APK: ${{ steps.version.outputs.apk }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          Pyerite Android ${APP_VERSION}.
+
+          This is the installable APK. SDE databases stay on tags named sde-build-*.
+
+          The file downloads without a GitHub account.
+          EOF
+          if gh release view "$APP_TAG" >/dev/null 2>&1; then
+            gh release upload "$APP_TAG" "$APP_APK" --clobber
+            gh release edit "$APP_TAG" \
+              --prerelease \
+              --latest=false \
+              --title "Pyerite ${APP_VERSION}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$APP_TAG" "$APP_APK" \
+              --prerelease \
+              --latest=false \
+              --target "${{ github.sha }}" \
+              --title "Pyerite ${APP_VERSION}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+
+      - name: Point README at this APK
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          default_branch="${{ github.event.repository.default_branch }}"
+          git fetch origin "$default_branch"
+          git checkout "$default_branch"
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          version = os.environ["APP_VERSION"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          url = f"https://github.com/{repo}/releases/download/app-v{version}/pyerite-{version}.apk"
+          link = f"[Pyerite {version} APK]({url})"
+          pattern = re.compile(
+              r"\[Pyerite [0-9.]+ APK\]\(https://github\.com/[^)]+/releases/download/app-v[^)]+\)"
+          )
+          for name in ("Readme.md", "Readme.en.md"):
+              path = pathlib.Path(name)
+              text = path.read_text(encoding="utf-8")
+              updated, count = pattern.subn(link, text, count=1)
+              if count != 1:
+                  raise SystemExit(f"Expected one app download link in {name}")
+              path.write_text(updated, encoding="utf-8")
+          PY
+          if git diff --quiet -- Readme.md Readme.en.md; then
+            echo "README already points at this version"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Readme.md Readme.en.md
+          git commit -m "Point the app download links at app-v${APP_VERSION}."
+          git push origin "HEAD:${default_branch}"
