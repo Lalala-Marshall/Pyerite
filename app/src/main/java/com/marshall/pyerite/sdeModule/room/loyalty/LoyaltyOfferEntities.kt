@@ -9,7 +9,11 @@ import androidx.room.PrimaryKey
     tableName = "loyalty_offers",
     primaryKeys = ["corporation_id", "offer_id"],
     indices = [
-        Index(value = ["corporation_id"], name = "idx_loyalty_offers_corporation_id"),
+        // WITHOUT ROWID: SQLite appends the remaining PK column; Room reads it via index_xinfo.
+        Index(
+            value = ["corporation_id", "offer_id"],
+            name = "idx_loyalty_offers_corporation_id",
+        ),
     ],
 )
 data class LoyaltyOfferEntity(
@@ -40,8 +44,15 @@ data class LoyaltyOfferOutputEntity(
     tableName = "loyalty_offer_requirements",
     primaryKeys = ["offer_id", "required_type_id"],
     indices = [
-        Index(value = ["offer_id"], name = "idx_loyalty_offer_requirements_offer_id"),
-        Index(value = ["required_type_id"], name = "idx_loyalty_offer_requirements_type_id"),
+        // WITHOUT ROWID: SQLite appends the other PK column; Room reads it via index_xinfo.
+        Index(
+            value = ["offer_id", "required_type_id"],
+            name = "idx_loyalty_offer_requirements_offer_id",
+        ),
+        Index(
+            value = ["required_type_id", "offer_id"],
+            name = "idx_loyalty_offer_requirements_type_id",
+        ),
     ],
 )
 data class LoyaltyOfferRequirementEntity(
