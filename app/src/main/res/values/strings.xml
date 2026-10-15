@@ -275,6 +275,9 @@
     <string name="type_detail_role_bonus_header">- 特有加成</string>
     <string name="type_detail_skill_bonus_header_suffix"> 每级技能加成</string>
     <string name="type_detail_skill_bonus_unknown_name">技能 #%1$d</string>
+    <string name="type_detail_copy_name_label">物品名称</string>
+    <string name="type_detail_copy_name_action">复制名称</string>
+    <string name="type_detail_copy_name_success">已复制名称</string>
 
     <string name="type_detail_section_market">市场</string>
     <string name="type_detail_market_buy_column_title">买单</string>

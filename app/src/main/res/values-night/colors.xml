@@ -3,6 +3,7 @@
 
     <color name="main_background">#1E1E1E</color>
     <color name="second_background">#2A2A2A</color>
+    <color name="copy_name_menu_background">#4A5164</color>
     <color name="skill_plan_dialog_button_background">#3A3A3A</color>
 
     <color name="border">#353535</color>

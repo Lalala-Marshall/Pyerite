@@ -274,6 +274,9 @@
     <string name="type_detail_role_bonus_header">- Role bonus</string>
     <string name="type_detail_skill_bonus_header_suffix"> — bonus per skill level</string>
     <string name="type_detail_skill_bonus_unknown_name">Skill #%1$d</string>
+    <string name="type_detail_copy_name_label">Item name</string>
+    <string name="type_detail_copy_name_action">Copy name</string>
+    <string name="type_detail_copy_name_success">Name copied</string>
 
     <string name="type_detail_section_market">Market</string>
     <string name="type_detail_market_buy_column_title">Buy orders</string>

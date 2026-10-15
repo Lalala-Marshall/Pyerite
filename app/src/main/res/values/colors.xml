@@ -13,6 +13,8 @@
 
     <color name="main_background">#ADADAD</color>
     <color name="second_background">#FFFFFF</color>
+    <!-- Copy menu floats over white cards; keep it visibly separate from second_background -->
+    <color name="copy_name_menu_background">#D5D9E4</color>
     <!-- Dialog controls: near second_background, still distinct on main_background -->
     <color name="skill_plan_dialog_button_background">#E3E3E8</color>
 

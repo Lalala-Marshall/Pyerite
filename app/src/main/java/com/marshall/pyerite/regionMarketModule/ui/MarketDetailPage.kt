@@ -52,6 +52,7 @@ import com.marshall.pyerite.regionMarketModule.viewModel.MarketLocationViewModel
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
+import com.marshall.pyerite.ui.golbalComponents.CopyNameLongPressHost
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
 import com.marshall.pyerite.ui.golbalComponents.PyeritePullToRefreshBox
@@ -125,17 +126,22 @@ internal fun MarketDetailPage(
                 PageTitle(text = ui.typeName)
                 val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
                 BaseContainer(useSystemBarsPadding = false) {
-                    BaseLazyColumnItem(
-                        model = BaseLazyColumnItemModel(
-                            iconFile = iconManager.getIconFile(ui.iconFileName),
-                            iconSize = dimensionResource(R.dimen.type_detail_summary_icon_size),
-                            itemName = ui.typeName,
-                            itemNameBold = true,
-                            itemHint = caption,
-                            showChevron = true,
-                            onClick = { navController.navigate(DatabaseRoute.TypeDetail.create(typeId)) },
-                        ),
-                        showDivider = false,
+                    CopyNameLongPressHost(
+                        name = ui.typeName,
+                        header = {
+                            BaseLazyColumnItem(
+                                model = BaseLazyColumnItemModel(
+                                    iconFile = iconManager.getIconFile(ui.iconFileName),
+                                    iconSize = dimensionResource(R.dimen.type_detail_summary_icon_size),
+                                    itemName = ui.typeName,
+                                    itemNameBold = true,
+                                    itemHint = caption,
+                                    showChevron = true,
+                                    onClick = { navController.navigate(DatabaseRoute.TypeDetail.create(typeId)) },
+                                ),
+                                showDivider = false,
+                            )
+                        },
                     )
                 }
                 Spacer(modifier = Modifier.height(sectionGap))
