@@ -1,24 +1,35 @@
 package com.marshall.pyerite.databaseHierarchyModule.typeDetailPage
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import com.marshall.pyerite.R
+import com.marshall.pyerite.regionMarketModule.watchlist.ui.MarketWatchlistPickerDialog
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
-import androidx.compose.ui.res.stringResource
 
 @Composable
 internal fun TypeDetailMarketSlot(
+    typeId: Int,
     onOpenRegionMarket: () -> Unit,
 ) {
-    TypeDetailMarketSection(onOpenRegionMarket = onOpenRegionMarket)
+    TypeDetailMarketSection(
+        typeId = typeId,
+        onOpenRegionMarket = onOpenRegionMarket,
+    )
 }
 
 @Composable
 fun TypeDetailMarketSection(
+    typeId: Int,
     onOpenRegionMarket: () -> Unit = {},
 ) {
+    var showWatchlistPicker by remember { mutableStateOf(false) }
     BaseContainer(useSystemBarsPadding = false) {
         BaseLazyColumnItem(
             model = BaseLazyColumnItemModel(
@@ -34,10 +45,16 @@ fun TypeDetailMarketSection(
             model = BaseLazyColumnItemModel(
                 showLeadingIcon = false,
                 itemName = stringResource(R.string.market_add_watchlist),
-                showChevron = false,
-                onClick = null,
+                showChevron = true,
+                onClick = { showWatchlistPicker = true },
             ),
             showDivider = false,
+        )
+    }
+    if (showWatchlistPicker) {
+        MarketWatchlistPickerDialog(
+            typeId = typeId,
+            onDismiss = { showWatchlistPicker = false },
         )
     }
 }

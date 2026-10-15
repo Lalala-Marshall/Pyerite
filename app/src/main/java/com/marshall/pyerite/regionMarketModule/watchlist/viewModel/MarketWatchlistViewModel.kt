@@ -46,10 +46,19 @@ internal class MarketWatchlistViewModel(
         viewModelScope.launch { reload(repository.lists.value) }
     }
 
-    fun create(title: String): String = repository.create(
+    fun create(title: String): String = create(
         title = title,
         marketKey = selectionStore.selection.value.persistKey,
     )
+
+    fun create(title: String, marketKey: String): String {
+        val key = marketKey.ifBlank { selectionStore.selection.value.persistKey }
+        return repository.create(title = title, marketKey = key)
+    }
+
+    /** @return false when the type is already in the list. */
+    fun addType(listId: String, typeId: Int): Boolean =
+        repository.addItems(listId, listOf(typeId))
 
     fun rename(id: String, title: String) {
         repository.rename(id, title)

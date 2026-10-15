@@ -298,6 +298,7 @@
     <string name="market_watchlist">市场关注列表</string>
     <string name="market_watchlist_empty">暂无关注列表</string>
     <string name="market_watchlist_add">添加关注列表</string>
+    <string name="market_watchlist_already_in_list">已在该列表中</string>
     <string name="market_watchlist_name">列表名称</string>
     <string name="market_watchlist_search_title">搜索列表名称</string>
     <string name="market_watchlist_search_items">搜索物品</string>

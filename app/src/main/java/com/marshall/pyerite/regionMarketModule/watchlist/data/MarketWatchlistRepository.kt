@@ -61,8 +61,10 @@ internal class MarketWatchlistRepository(
         }
     }
 
-    fun addItems(id: String, typeIds: List<Int>) {
-        if (typeIds.isEmpty()) return
+    /** @return true when at least one type was newly appended. */
+    fun addItems(id: String, typeIds: List<Int>): Boolean {
+        if (typeIds.isEmpty()) return false
+        var added = false
         update(id) { list ->
             val existing = list.items.map { it.typeId }.toSet()
             val appended = typeIds
@@ -74,8 +76,14 @@ internal class MarketWatchlistRepository(
                         quantity = MarketWatchlistConfig.DEFAULT_QUANTITY,
                     )
                 }
-            if (appended.isEmpty()) list else list.copy(items = list.items + appended)
+            if (appended.isEmpty()) {
+                list
+            } else {
+                added = true
+                list.copy(items = list.items + appended)
+            }
         }
+        return added
     }
 
     suspend fun locationName(selection: MarketSelection): String =

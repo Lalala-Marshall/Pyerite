@@ -293,7 +293,7 @@ private object HorizontallyCenteredPopupPositionProvider : PopupPositionProvider
 }
 
 @Composable
-private fun MarketWatchlistAddDialog(
+internal fun MarketWatchlistAddDialog(
     heading: String,
     initialTitle: String = "",
     onDismiss: () -> Unit,
