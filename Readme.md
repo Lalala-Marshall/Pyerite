@@ -42,6 +42,6 @@ python tools/sync_sde_release.py --yes
 
 # 获取应用
 
-Android 安装包发布在 GitHub Release，标签为 `app-v*`，与 SDE 数据的 `sde-build-*` 分开。公开链接可以直接下载，不需要登录。第一次跑完 Actions 里的 **Release app** 之后，下面的链接即可下载。
+下载 Android 安装包并安装。
 
 - [Pyerite 1.0 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0/pyerite-1.0.apk)

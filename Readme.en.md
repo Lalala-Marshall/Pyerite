@@ -42,6 +42,6 @@ Compiled with Android Studio (AGP 9.2.1, Kotlin 2.4.10, minSdk 24, compileSdk 37
 
 # Get App
 
-The Android package is a GitHub Release tagged `app-v*`, separate from SDE data tags `sde-build-*`. The public link downloads without signing in. It works after the **Release app** workflow has published once.
+Download and install the Android package.
 
 - [Pyerite 1.0 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0/pyerite-1.0.apk)
