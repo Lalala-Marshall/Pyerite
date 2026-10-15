@@ -81,7 +81,7 @@ class SdeRemoteDataSource(
     private fun metadataSources(): List<MetadataSource> = listOf(
         MetadataSource("Gitee") { fetchFromGitee() },
         MetadataSource("GitHub latest.json") { fetchFromLatestDownload() },
-        MetadataSource("GitHub API") { fetchFromGitHubApi() },
+        MetadataSource("GitHub sde-build") { fetchFromGitHubApi() },
     )
 
     private suspend fun fetchFromGitee(): SdeRemotePackage? {
@@ -99,7 +99,9 @@ class SdeRemoteDataSource(
     }
 
     private suspend fun fetchFromGitHubApi(): SdeRemotePackage? {
-        val release = metadataApi.fetchGitHubRelease(SdeRemoteConfig.GITHUB_API_LATEST_RELEASE_URL)
+        val release = metadataApi.fetchGitHubReleases(SdeRemoteConfig.GITHUB_API_RELEASES_URL)
+            .firstOrNull { it.tagName.startsWith(SdeRemoteConfig.RELEASE_TAG_PREFIX) }
+            ?: return null
         val downloadUrl = release.assets
             .firstOrNull { it.name == SdeRemoteConfig.LATEST_JSON_ASSET }
             ?.browserDownloadUrl

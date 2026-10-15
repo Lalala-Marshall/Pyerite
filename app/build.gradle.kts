@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -18,6 +19,31 @@ val localProperties = Properties().apply {
 fun localProp(name: String, default: String = ""): String =
     (localProperties.getProperty(name) ?: default).replace("\"", "\\\"")
 
+fun envOrLocal(name: String): String {
+    val fromEnv = System.getenv(name)?.trim().orEmpty()
+    if (fromEnv.isNotEmpty()) return fromEnv
+    return localProperties.getProperty(name)?.trim().orEmpty()
+}
+
+val pyeriteVersionCode = providers.gradleProperty("pyerite.versionCode").orNull?.let { raw ->
+    raw.toIntOrNull() ?: error("pyerite.versionCode must be an integer")
+} ?: 1
+
+val pyeriteVersionName = providers.gradleProperty("pyerite.versionName").orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: "1.0"
+
+val releaseKeystore = envOrLocal("PYERITE_KEYSTORE_PATH").takeIf { it.isNotEmpty() }?.let { raw ->
+    val candidate = File(raw)
+    if (candidate.isAbsolute) candidate else rootProject.file(raw)
+}?.takeIf { it.isFile }
+
+val requireReleaseSigning = providers.gradleProperty("pyerite.requireReleaseSigning").orNull == "true"
+if (requireReleaseSigning && releaseKeystore == null) {
+    error("Release signing keystore was not found. Set PYERITE_KEYSTORE_PATH.")
+}
+
 android {
     namespace = "com.marshall.pyerite"
     compileSdk {
@@ -28,8 +54,8 @@ android {
         applicationId = "com.marshall.pyerite"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = pyeriteVersionCode
+        versionName = pyeriteVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -41,8 +67,21 @@ android {
         )
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = envOrLocal("PYERITE_KEYSTORE_PASSWORD")
+                keyAlias = envOrLocal("PYERITE_KEY_ALIAS")
+                keyPassword = envOrLocal("PYERITE_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

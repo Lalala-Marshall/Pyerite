@@ -39,6 +39,7 @@ data class SdeLatestJsonDto(
 
 @Serializable
 data class GitHubReleaseDto(
+    @SerialName("tag_name") val tagName: String = "",
     val assets: List<GitHubAssetDto> = emptyList(),
 )
 

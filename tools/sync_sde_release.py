@@ -3,8 +3,9 @@
 Download the latest EstamelGG/EveSDE_3.0 release (sde.zip + icons.zip).
 
 **Phase A (update check only):** Compare upstream EveSDE_3.0 release metadata to
-**this repo's latest GitHub Release** (``latest.json`` on Pyerite Releases). Bundled
-``app/src/main/assets/latest.txt`` is only a fallback when no Release exists yet.
+**this repo's newest ``sde-build-*`` GitHub Release** (``latest.json``). App packages
+tagged ``app-v*`` are ignored. Bundled ``app/src/main/assets/latest.txt`` is only a
+fallback when no SDE Release exists yet.
 
 **Phase B (after a real update):** Project the single 3.0 sqlite into zh/en
 databases that match the Room schema, normalize booleans, write uncompressed
@@ -43,6 +44,8 @@ UPSTREAM_REPO = "EstamelGG/EveSDE_3.0"
 GITHUB_API_LATEST = f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest"
 GITHUB_HTML_LATEST = f"https://github.com/{UPSTREAM_REPO}/releases/latest"
 USER_AGENT = f"Pyerite-SDE-Sync/1.0 (github.com/{UPSTREAM_REPO} consumer)"
+SDE_RELEASE_TAG_PREFIX = "sde-build-"
+PYERITE_RELEASE_LIST_PAGE_SIZE = 100
 
 GITEE_OWNER = "lalala-marshall"
 GITEE_REPO = "pyerite-sde-source"
@@ -394,8 +397,8 @@ def _extract_json_fence_from_body(body: str) -> dict | None:
 
 
 def _tag_build_number(tag: str) -> str:
-    if tag.startswith("sde-build-"):
-        return tag.removeprefix("sde-build-").strip()
+    if tag.startswith(SDE_RELEASE_TAG_PREFIX):
+        return tag.removeprefix(SDE_RELEASE_TAG_PREFIX).strip()
     return "0"
 
 
@@ -527,22 +530,37 @@ def load_app_release_meta() -> dict | None:
     )
 
 
-def fetch_pyerite_github_release() -> dict | None:
-    url = f"{_github_repo_api_base()}/releases/latest"
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+def _github_json(url: str) -> dict | list | None:
+    request = urllib.request.Request(url, headers=_github_auth_headers())
     try:
-        if token:
-            rel = _github_get_json(url, token)
-            return rel if isinstance(rel, dict) else None
-        return http_json(url)
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            parsed = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
             return None
         raise
+    if isinstance(parsed, (dict, list)):
+        return parsed
+    return None
+
+
+def fetch_pyerite_github_release() -> dict | None:
+    """Newest published ``sde-build-*`` release. ``app-v*`` packages are skipped."""
+    url = f"{_github_repo_api_base()}/releases?per_page={PYERITE_RELEASE_LIST_PAGE_SIZE}"
+    payload = _github_json(url)
+    if not isinstance(payload, list):
+        return None
+    for item in payload:
+        if not isinstance(item, dict) or item.get("draft"):
+            continue
+        tag = str(item.get("tag_name") or "")
+        if tag.startswith(SDE_RELEASE_TAG_PREFIX):
+            return item
+    return None
 
 
 def load_pyerite_release_latest_json() -> dict | None:
-    """Raw ``latest.json`` from this repo's newest GitHub Release asset."""
+    """Raw ``latest.json`` from this repo's newest ``sde-build-*`` Release."""
     release = fetch_pyerite_github_release()
     if not release:
         return None
@@ -569,7 +587,7 @@ def load_pyerite_github_release_meta() -> dict | None:
     if body_meta is not None:
         return body_meta
     tag = str(release.get("tag_name") or "")
-    if tag.startswith("sde-build-"):
+    if tag.startswith(SDE_RELEASE_TAG_PREFIX):
         return flatten_release_meta(
             {"build_number": _tag_build_number(tag)},
             str(release.get("published_at") or ""),
@@ -1071,7 +1089,7 @@ def pyerite_repo_slug() -> str:
 
 
 def pyerite_release_tag(build_number: str) -> str:
-    return f"sde-build-{build_number}"
+    return f"{SDE_RELEASE_TAG_PREFIX}{build_number}"
 
 
 def build_pyerite_release_meta(merged: dict) -> dict:
@@ -1341,10 +1359,10 @@ def _gitee_asset_names(release: dict) -> set[str]:
 
 def _gitee_release_build(release: dict) -> int | None:
     tag = str(release.get("tag_name") or "")
-    if not tag.startswith("sde-build-"):
+    if not tag.startswith(SDE_RELEASE_TAG_PREFIX):
         return None
     try:
-        return int(tag.removeprefix("sde-build-"))
+        return int(tag.removeprefix(SDE_RELEASE_TAG_PREFIX))
     except ValueError:
         return None
 
@@ -1438,7 +1456,7 @@ def _gitee_prune_releases(token: str) -> None:
         ranked.append((build, release_id))
     ranked.sort(reverse=True)
     for build, release_id in ranked[GITEE_RELEASES_TO_KEEP:]:
-        print(f"[+] Deleting old Gitee release sde-build-{build}")
+        print(f"[+] Deleting old Gitee release {SDE_RELEASE_TAG_PREFIX}{build}")
         _gitee_delete_release(token, release_id)
 
 
@@ -1530,7 +1548,7 @@ def upload_gitee_asset(file_path: Path, tag: str) -> None:
     token = os.environ.get("GITEE_TOKEN", "").strip()
     if not token:
         raise GiteePublishError("GITEE_TOKEN is not set")
-    build_number = tag.removeprefix("sde-build-") if tag.startswith("sde-build-") else tag
+    build_number = tag.removeprefix(SDE_RELEASE_TAG_PREFIX) if tag.startswith(SDE_RELEASE_TAG_PREFIX) else tag
     release = _ensure_gitee_release(token, tag, build_number)
     if file_path.name in _gitee_asset_names(release):
         print(f"[=] {file_path.name} already on Gitee")

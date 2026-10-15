@@ -9,7 +9,7 @@ interface SdeRemoteApi {
     suspend fun fetchLatestPackage(@Url url: String): SdeLatestJsonDto
 
     @GET
-    suspend fun fetchGitHubRelease(@Url url: String): GitHubReleaseDto
+    suspend fun fetchGitHubReleases(@Url url: String): List<GitHubReleaseDto>
 
     @GET
     suspend fun fetchGiteeRelease(@Url url: String): GiteeReleaseDto

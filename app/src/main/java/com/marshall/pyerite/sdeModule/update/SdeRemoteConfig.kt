@@ -24,10 +24,13 @@ object SdeRemoteConfig {
     const val MAX_ICON_PARTS = 32
     const val RELEASE_TAG_PREFIX = "sde-build-"
 
+    /** GitHub lists at most 100 releases per page. One page still reaches the newest sde-build-* tag. */
+    const val RELEASE_LIST_QUERY = "per_page=100"
+
     const val LATEST_JSON_URL =
         "${GITHUB_BASE_URL}$GITHUB_REPO/releases/latest/download/$LATEST_JSON_ASSET"
-    const val GITHUB_API_LATEST_RELEASE_URL =
-        "${GITHUB_API_BASE_URL}repos/$GITHUB_REPO/releases/latest"
+    const val GITHUB_API_RELEASES_URL =
+        "${GITHUB_API_BASE_URL}repos/$GITHUB_REPO/releases?$RELEASE_LIST_QUERY"
     const val GITEE_API_LATEST_RELEASE_URL =
         "${GITEE_BASE_URL}api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases/latest"
 
