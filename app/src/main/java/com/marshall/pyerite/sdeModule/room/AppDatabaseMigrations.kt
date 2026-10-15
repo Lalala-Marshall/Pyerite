@@ -59,4 +59,10 @@ internal object AppDatabaseMigrations {
             // MarketGroupEntity registered; `marketGroups` already present in the SDE file.
         }
     }
+
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Loyalty WITHOUT ROWID indexes: Room index_xinfo includes the appended PK columns.
+        }
+    }
 }

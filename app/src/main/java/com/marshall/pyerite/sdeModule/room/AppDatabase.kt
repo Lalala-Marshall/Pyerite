@@ -85,7 +85,7 @@ import com.marshall.pyerite.sdeModule.room.type.TypeEntity
         TypeSkillRequirementEntity::class,
         MarketGroupEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
