@@ -1,9 +1,11 @@
 pluginManagement {
     repositories {
-        // Prefer mirrors when Google Maven is unreachable (common in CN networks).
-        maven(url = "https://maven.aliyun.com/repository/google")
-        maven(url = "https://maven.aliyun.com/repository/public")
-        maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
+        // GitHub-hosted runners cannot reach Aliyun reliably. Local builds still prefer the mirrors.
+        if (System.getenv("CI") != "true") {
+            maven(url = "https://maven.aliyun.com/repository/google")
+            maven(url = "https://maven.aliyun.com/repository/public")
+            maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -18,8 +20,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        maven(url = "https://maven.aliyun.com/repository/google")
-        maven(url = "https://maven.aliyun.com/repository/public")
+        if (System.getenv("CI") != "true") {
+            maven(url = "https://maven.aliyun.com/repository/google")
+            maven(url = "https://maven.aliyun.com/repository/public")
+        }
         google()
         mavenCentral()
     }
