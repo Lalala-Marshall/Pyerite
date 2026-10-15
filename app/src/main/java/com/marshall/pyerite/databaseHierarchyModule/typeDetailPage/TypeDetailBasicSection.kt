@@ -35,6 +35,7 @@ import com.marshall.pyerite.sdeModule.room.dogma.TypeTraitDetail
 import com.marshall.pyerite.databaseHierarchyModule.util.formatTraitBonusAnnotated
 import com.marshall.pyerite.databaseHierarchyModule.util.formatTypeDescriptionAnnotated
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
+import com.marshall.pyerite.ui.golbalComponents.CopyNameLongPressHost
 import com.marshall.pyerite.ui.golbalComponents.PyeriteIconShape
 import org.koin.compose.koinInject
 
@@ -82,9 +83,13 @@ fun TypeSummarySection(
     val innerGapLarge = dimensionResource(R.dimen.type_detail_section_inner_gap_large)
     val innerGapMedium = dimensionResource(R.dimen.type_detail_section_inner_gap_medium)
     val innerGapSmall = dimensionResource(R.dimen.type_detail_section_inner_gap_small)
+    val typeName = entity.displayName(localeController)
 
     BaseContainer(useSystemBarsPadding = false) {
-        Column(modifier = Modifier.padding(cardPadding)) {
+        CopyNameLongPressHost(
+            name = typeName,
+            modifier = Modifier.padding(cardPadding),
+            header = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     modifier = Modifier
@@ -99,7 +104,7 @@ fun TypeSummarySection(
                 Spacer(modifier = Modifier.width(summaryContentGap))
                 Column {
                     Text(
-                        text = entity.displayName(localeController),
+                        text = typeName,
                         fontSize = summaryTitleTextSize,
                         fontWeight = FontWeight.Bold,
                         color = colorResource(R.color.text_primary)
@@ -111,7 +116,8 @@ fun TypeSummarySection(
                     )
                 }
             }
-
+            },
+        ) {
             val desc = entity.description
             if (!desc.isNullOrBlank()) {
                 HorizontalDivider(
