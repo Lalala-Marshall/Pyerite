@@ -187,11 +187,9 @@ jobs:
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/release-notes.md" <<EOF
-          Pyerite Android ${APP_VERSION}.
+          Pyerite 是 EVE Online 的 Android 伴侣应用。下载安装包后直接安装。
 
-          This is the installable APK. SDE databases stay on tags named sde-build-*.
-
-          The file downloads without a GitHub account.
+          Pyerite is an Android companion for EVE Online. Download the package and install it.
           EOF
           if gh release view "$APP_TAG" >/dev/null 2>&1; then
             gh release upload "$APP_TAG" "$APP_APK" --clobber
