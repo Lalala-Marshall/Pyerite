@@ -337,6 +337,7 @@ private fun TypeDetailSlotContent(
 
         TypeDetailSlot.Summary -> TypeSummarySectionItem(typeId = typeId, entity = entity)
         TypeDetailSlot.Market -> TypeDetailMarketSlot(
+            typeId = typeId,
             onOpenRegionMarket = {
                 navController.navigate(
                     com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute.Detail.create(typeId),

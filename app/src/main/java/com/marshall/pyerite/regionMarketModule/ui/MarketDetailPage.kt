@@ -46,6 +46,7 @@ import com.marshall.pyerite.regionMarketModule.model.MarketConfig
 import com.marshall.pyerite.regionMarketModule.model.MarketHistoryRange
 import com.marshall.pyerite.regionMarketModule.model.MarketSelection
 import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
+import com.marshall.pyerite.regionMarketModule.watchlist.ui.MarketWatchlistPickerDialog
 import com.marshall.pyerite.regionMarketModule.viewModel.MarketDetailViewModel
 import com.marshall.pyerite.regionMarketModule.viewModel.MarketLocationViewModel
 import com.marshall.pyerite.ui.golbalComponents.BaseContainer
@@ -77,6 +78,7 @@ internal fun MarketDetailPage(
     val showCollapsedTitle = rememberScrollTitleCollapsed(scrollState)
     val onBack = navController.rememberNavigateUpAction()
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    var showWatchlistPicker by rememberSaveable { mutableStateOf(false) }
     val placeholder = stringResource(R.string.type_detail_market_placeholder_value)
     val caption = stringResource(
         R.string.market_type_caption,
@@ -188,8 +190,8 @@ internal fun MarketDetailPage(
                         model = BaseLazyColumnItemModel(
                             showLeadingIcon = false,
                             itemName = stringResource(R.string.market_add_watchlist),
-                            showChevron = false,
-                            onClick = null,
+                            showChevron = true,
+                            onClick = { showWatchlistPicker = true },
                         ),
                         showDivider = false,
                     )
@@ -226,6 +228,14 @@ internal fun MarketDetailPage(
                 }
             }
         }
+    }
+
+    if (showWatchlistPicker) {
+        MarketWatchlistPickerDialog(
+            typeId = typeId,
+            marketKey = ui.displayPlaceKey,
+            onDismiss = { showWatchlistPicker = false },
+        )
     }
 
     if (showPicker && !ui.hideLocations) {

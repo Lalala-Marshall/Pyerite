@@ -297,6 +297,7 @@
     <string name="market_watchlist">Market watchlists</string>
     <string name="market_watchlist_empty">No watchlists</string>
     <string name="market_watchlist_add">Add watchlist</string>
+    <string name="market_watchlist_already_in_list">Already in this list</string>
     <string name="market_watchlist_name">List name</string>
     <string name="market_watchlist_search_title">Search list names</string>
     <string name="market_watchlist_search_items">Search items</string>
