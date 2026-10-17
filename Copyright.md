@@ -91,20 +91,23 @@ If a rights holder has concerns about this application, please contact the devel
 我们致力于保护你的隐私和数据安全。
 We are committed to protecting your privacy and data security.
 
-- 数据存储：个人数据只保存在你的设备本地。
-  Data storage: personal data stays on your device.
+- 传输的数据：登录后，角色名、角色 ID，以及你在应用里发送的邮件，会通过 HTTPS 传给 EVE Online，用于 ESI 功能。
+  Data sent: after you sign in, your character name, character ID, and mail you send in the app are transmitted to EVE Online over HTTPS so the app can use the ESI API.
+
+- 数据存储：Pyerite 没有开发者服务器，不会保存这些数据。为了提供功能，一份副本会保存在你的设备上。
+  Data storage: Pyerite has no developer server and does not keep this data. A copy is stored on your device to provide app features.
 
 - ESI 授权：只有在你明确授权之后，才会访问 EVE Online ESI。
   ESI authorization: the EVE Online ESI API is accessed only after you give explicit consent.
 
-- 数据使用：游戏数据只用于提供应用功能，不用于其他目的。
-  Data use: game data is used only to provide app features.
+- 数据使用：这些数据只用于提供应用功能，不用于广告或分析。
+  Data use: this data is used only to provide app features, not for advertising or analytics.
 
-- 第三方共享：我们不会把你的个人数据分享给第三方。
-  Third-party sharing: we do not share your personal data with third parties.
+- 第三方共享：我们不会把你的个人数据出售或转交给广告、分析或其他第三方服务。登录和发信是你主动交给 EVE Online 的。
+  Third-party sharing: we do not sell or transfer your personal data to advertising, analytics, or other third-party services. Sign-in and outgoing mail are sent to EVE Online because you chose to do so.
 
-- 数据删除：你可以随时撤销授权并删除本地数据。
-  Data deletion: you can revoke authorization and delete local data at any time.
+- 数据删除：你可以在应用中移除角色。移除会立即撤销该角色的登录并删除本机上的相关数据。步骤、删除范围和保留范围见 [数据删除说明](docs/data-deletion.md)。
+  Data deletion: you can remove a character in the app. Removal immediately revokes that character's sign-in and deletes the related data stored on the device. Steps, deleted data, and retained data are described in the [data deletion notice](docs/data-deletion.md).
 
 ---
 
