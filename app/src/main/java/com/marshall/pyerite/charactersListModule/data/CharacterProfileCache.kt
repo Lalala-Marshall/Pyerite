@@ -66,7 +66,6 @@ private data class CachedCharacterProfile(
     val skillQueue: CachedSkillQueueProgress? = null,
     val grantedScopeValues: List<String> = emptyList(),
     val corporationId: Long? = null,
-    val hasCorporationManagementAccess: Boolean = false,
 ) {
     fun toLoggedInCharacter(): LoggedInCharacter = LoggedInCharacter(
         characterId = characterId,
@@ -84,7 +83,6 @@ private data class CachedCharacterProfile(
         skillQueue = skillQueue?.toModel(),
         grantedScopes = EveSsoScope.parseGranted(grantedScopeValues),
         corporationId = corporationId,
-        hasCorporationManagementAccess = hasCorporationManagementAccess,
     )
 
     companion object {
@@ -104,7 +102,6 @@ private data class CachedCharacterProfile(
             skillQueue = character.skillQueue?.let(CachedSkillQueueProgress::from),
             grantedScopeValues = character.grantedScopes.map { it.apiValue },
             corporationId = character.corporationId,
-            hasCorporationManagementAccess = character.hasCorporationManagementAccess,
         )
     }
 }

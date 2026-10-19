@@ -67,7 +67,7 @@ import com.marshall.pyerite.R
 fun PyeriteTopBarPortraitButton(
     portraitUrl: String?,
     contentDescription: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     visible: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -88,12 +88,19 @@ fun PyeriteTopBarPortraitButton(
             modifier = Modifier
                 .size(size)
                 .topBarActionSurface(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick,
-                )
-                .semantics(mergeDescendants = true) { role = Role.Button },
+                .then(
+                    if (onClick != null) {
+                        Modifier
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onClick,
+                            )
+                            .semantics(mergeDescendants = true) { role = Role.Button }
+                    } else {
+                        Modifier
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             CharacterAvatar(

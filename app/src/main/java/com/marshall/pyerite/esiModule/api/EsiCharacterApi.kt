@@ -17,7 +17,6 @@ import com.marshall.pyerite.esiModule.model.EsiCharacterLocationDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterMedalDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterOnlineDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterOrderDto
-import com.marshall.pyerite.esiModule.model.EsiCharacterRolesDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterShipDto
 import com.marshall.pyerite.esiModule.model.EsiCharacterSkillsDto
 import com.marshall.pyerite.esiModule.model.EsiIndustryJobDto
@@ -88,13 +87,6 @@ internal interface EsiCharacterApi {
         @Path("character_id") characterId: Long,
         @Header("Authorization") authorization: String,
     ): Response<List<EsiCharacterWalletTransactionDto>>
-
-    @Headers("Accept: application/json")
-    @GET("characters/{character_id}/roles")
-    suspend fun fetchRoles(
-        @Path("character_id") characterId: Long,
-        @Header("Authorization") authorization: String,
-    ): EsiCharacterRolesDto
 
     @Headers("Accept: application/json")
     @GET("characters/{character_id}/industry/jobs")

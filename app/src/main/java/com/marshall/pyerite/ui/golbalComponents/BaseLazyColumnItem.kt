@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -223,9 +226,19 @@ fun BaseLazyColumnItem(
     val trailingColor = model.trailingValueColor ?: defaultHintColor
     val showHintLeadingColumn = titleLeadingContent != null ||
         (model.alignHintLeadingColumn && hints.any { it.hasLeadingIcon() })
+    val rowEdit = LocalMainPageRowEdit.current
+    val rowOnClick = rowEdit?.onToggle ?: model.onClick
+    val rowOnLongClick = if (rowEdit != null) null else model.onLongClick
 
     val rootModifier = modifier
         .fillMaxWidth()
+        .then(
+            if (rowEdit?.hidden == true) {
+                Modifier.alpha(MainPageRowEditConfig.HIDDEN_CONTENT_ALPHA)
+            } else {
+                Modifier
+            },
+        )
         .then(
             if (backgroundBrush != null) {
                 Modifier.background(backgroundBrush)
@@ -233,7 +246,7 @@ fun BaseLazyColumnItem(
                 Modifier
             },
         )
-        .rowClickModifier(model.onClick, model.onLongClick)
+        .rowClickModifier(rowOnClick, rowOnLongClick)
 
     Column(modifier = rootModifier) {
         Row(
@@ -496,7 +509,19 @@ fun BaseLazyColumnItem(
                         )
                     }
 
-                    if (model.showChevron) {
+                    if (rowEdit != null) {
+                        Spacer(modifier = Modifier.width(trailingGap))
+                        Icon(
+                            modifier = Modifier.size(chevronSize),
+                            imageVector = if (rowEdit.hidden) {
+                                Icons.Outlined.VisibilityOff
+                            } else {
+                                Icons.Outlined.Visibility
+                            },
+                            contentDescription = rowEdit.contentDescription,
+                            tint = colorResource(R.color.hint_text),
+                        )
+                    } else if (model.showChevron) {
                         Spacer(modifier = Modifier.width(trailingGap))
                         Icon(
                             modifier = Modifier.size(chevronSize),

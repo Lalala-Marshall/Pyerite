@@ -1010,6 +1010,10 @@
     <string name="corporation_contracts_detail_price_value">%1$s ISK（%2$s ISK）</string>
 
     <string name="main_section_other">其他</string>
+    <string name="main_page_too_many_features">功能太多？</string>
+    <string name="main_page_exit_edit">退出编辑模式</string>
+    <string name="main_page_entry_visible">显示</string>
+    <string name="main_page_entry_hidden">隐藏</string>
     <string name="settings">设置</string>
     <string name="settings_section_appearance">外观</string>
     <string name="settings_color_mode">颜色模式</string>

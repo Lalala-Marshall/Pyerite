@@ -1,8 +1,12 @@
 package com.marshall.pyerite.mainPageModule.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +19,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -90,9 +98,12 @@ import com.marshall.pyerite.settingsModule.navHost.SettingsRoute
 import com.marshall.pyerite.settingsModule.ui.MainPageSettingsItem
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
 import com.marshall.pyerite.infra.prefs.HomeLayoutPreferences
+import com.marshall.pyerite.mainPageModule.model.HomePageEntry
 import com.marshall.pyerite.regionMarketModule.navHost.RegionMarketRoute
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItem
 import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
+import com.marshall.pyerite.ui.golbalComponents.LocalMainPageRowEdit
+import com.marshall.pyerite.ui.golbalComponents.MainPageRowEdit
 import com.marshall.pyerite.ui.golbalComponents.PageTitle
 import com.marshall.pyerite.ui.golbalComponents.PyeritePageScaffold
 import com.marshall.pyerite.ui.golbalComponents.PyeritePullToRefreshBox
@@ -125,21 +136,6 @@ fun MainPage(
     val showCollapsedTitle = rememberLazyListTitleCollapsed(listState)
     val characterSheetRowHeightPx = rememberSaveable { mutableIntStateOf(0) }
     var showCharacterPortraitSaved by rememberSaveable { mutableStateOf(false) }
-    val characterSheetRowScrolledOff = remember(listState) {
-        derivedStateOf {
-            if (listState.layoutInfo.visibleItemsInfo.isEmpty()) {
-                null
-            } else {
-                listState.isCharacterSheetRowScrolledOff(characterSheetRowHeightPx.intValue)
-            }
-        }
-    }.value
-    SideEffect {
-        if (characterSheetRowScrolledOff != null) {
-            showCharacterPortraitSaved = characterSheetRowScrolledOff
-        }
-    }
-    val showCharacterPortrait = characterSheetRowScrolledOff ?: showCharacterPortraitSaved
     val nextCloneJumpEpochMs = clonesUiState.status.nextCloneJumpEpochMs
     val skillQueueStatus = skillsUiState.status
 
@@ -184,25 +180,106 @@ fun MainPage(
     val otherSectionTitle = stringResource(R.string.main_section_other)
     val homeLayoutPreferences: HomeLayoutPreferences = koinInject()
     val showCorporationAffairs by homeLayoutPreferences.showCorporationAffairs.collectAsState()
-    val showCorporationSection =
-        currentLoggedInCharacter?.hasCorporationManagementAccess == true &&
-            showCorporationAffairs
+    val hiddenEntryKeys by homeLayoutPreferences.hiddenEntryKeys.collectAsState()
+    val savedHiddenEntries = remember(hiddenEntryKeys) {
+        hiddenEntryKeys.mapNotNull(HomePageEntry::fromStorageKey).toSet()
+    }
+    var editingHome by remember { mutableStateOf(false) }
+    var draftHiddenEntries by remember { mutableStateOf<Set<HomePageEntry>>(emptySet()) }
+    val activeHiddenEntries = if (editingHome) draftHiddenEntries else savedHiddenEntries
+    val characterSheetShown = isHomeEntryShown(
+        entry = HomePageEntry.CHARACTER_SHEET,
+        editing = editingHome,
+        hidden = activeHiddenEntries,
+    )
+    val portraitAnchorKey = if (characterSheetShown) {
+        MainPageListKey.CHARACTER_SECTION
+    } else {
+        MainPageListKey.CURRENT_CHARACTER
+    }
+    val characterSheetRowScrolledOff = remember(listState, portraitAnchorKey, characterSheetShown) {
+        derivedStateOf {
+            if (listState.layoutInfo.visibleItemsInfo.isEmpty()) {
+                null
+            } else {
+                listState.isPortraitAnchorScrolledOff(
+                    anchorKey = portraitAnchorKey,
+                    rowHeightPx = characterSheetRowHeightPx.intValue,
+                    useRowHeight = characterSheetShown,
+                )
+            }
+        }
+    }.value
+    SideEffect {
+        if (characterSheetRowScrolledOff != null) {
+            showCharacterPortraitSaved = characterSheetRowScrolledOff
+        }
+    }
+    val showCharacterPortrait = characterSheetRowScrolledOff ?: showCharacterPortraitSaved
+    val enterHomeEdit = {
+        draftHiddenEntries = savedHiddenEntries
+        editingHome = true
+    }
+    val exitHomeEdit = {
+        homeLayoutPreferences.setHiddenEntryKeys(draftHiddenEntries.map { it.name }.toSet())
+        editingHome = false
+    }
+    val toggleHomeEntry = { entry: HomePageEntry ->
+        draftHiddenEntries = if (entry in draftHiddenEntries) {
+            draftHiddenEntries - entry
+        } else {
+            draftHiddenEntries + entry
+        }
+    }
+    val showCharacterSection = HomePageEntry.characterSection.any {
+        isHomeEntryShown(it, editingHome, activeHiddenEntries)
+    }
+    val showCorporationSection = showCorporationAffairs && HomePageEntry.corporationSection.any {
+        isHomeEntryShown(it, editingHome, activeHiddenEntries)
+    }
+    val showDataSection = HomePageEntry.dataSection.any {
+        isHomeEntryShown(it, editingHome, activeHiddenEntries)
+    }
+    val showBusinessSection = HomePageEntry.businessSection.any {
+        isHomeEntryShown(it, editingHome, activeHiddenEntries)
+    }
+    val dividerAfter = { entry: HomePageEntry, section: List<HomePageEntry> ->
+        homeEntryHasDividerAfter(
+            entry = entry,
+            section = section,
+            editing = editingHome,
+            hidden = activeHiddenEntries,
+        )
+    }
     val refreshTopBarAction = pyeritePullRefreshTopBarAction(
         isRefreshing = isRefreshing,
         refreshFailed = refreshFailed,
         onRefresh = onPullToRefresh,
     )
-    val endActions = buildList {
-        refreshTopBarAction?.let(::add)
-        if (currentCharacter != null) {
-            add(
-                PyeriteTopBarActionItem(
-                    onClick = characterViewModel::clearCurrentCharacter,
-                    icon = Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = stringResource(R.string.character_exit_current),
-                    iconTint = colorResource(R.color.character_delete),
-                ),
-            )
+    val exitEditLabel = stringResource(R.string.main_page_exit_edit)
+    val endActions = if (editingHome) {
+        listOf(
+            PyeriteTopBarActionItem(
+                onClick = exitHomeEdit,
+                icon = Icons.Filled.Close,
+                contentDescription = exitEditLabel,
+                label = exitEditLabel,
+                showIcon = false,
+            ),
+        )
+    } else {
+        buildList {
+            refreshTopBarAction?.let(::add)
+            if (currentCharacter != null) {
+                add(
+                    PyeriteTopBarActionItem(
+                        onClick = characterViewModel::clearCurrentCharacter,
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = stringResource(R.string.character_exit_current),
+                        iconTint = colorResource(R.color.character_delete),
+                    ),
+                )
+            }
         }
     }
 
@@ -213,12 +290,12 @@ fun MainPage(
         {
             PyeriteTopBarPortraitButton(
                 portraitUrl = selectedCharacter.portraitUrl,
-                contentDescription = stringResource(R.string.character_sheet),
+                contentDescription = stringResource(R.string.character),
                 visible = showCharacterPortrait,
-                onClick = {
-                    navController.navigate(
-                        CharacterSheetRoute.Sheet.create(selectedCharacter.characterId),
-                    )
+                onClick = if (editingHome) {
+                    null
+                } else {
+                    { navController.navigate(CharacterRoute.Root.route) }
                 },
             )
         }
@@ -245,115 +322,209 @@ fun MainPage(
                     bottom = mainPageBottomPadding + navigationBarBottom,
                 ),
             ) {
-                item(key = "page_title") {
+                item(key = MainPageListKey.PAGE_TITLE) {
                     PageTitle(text = pageTitle)
                 }
-                item(key = "current_character") {
+                item(key = MainPageListKey.CURRENT_CHARACTER) {
                     MainPageCharacterCard(
                         currentCharacter = currentCharacter,
-                        onClick = { navController.navigate(CharacterRoute.Root.route) },
+                        showChevron = !editingHome,
+                        onClick = if (editingHome) {
+                            null
+                        } else {
+                            { navController.navigate(CharacterRoute.Root.route) }
+                        },
                     )
                 }
-                item(key = "character_section_header") {
-                    MainPageSectionHeader(title = characterSectionTitle)
-                }
-                item(key = "character_section_entries") {
-                    MainPageSectionCard(
-                        bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
-                    ) {
-                        MainPageCharacterSheetItem(
-                            skillPointsHint = characterSheetHint,
-                            modifier = Modifier.onSizeChanged { size ->
-                                characterSheetRowHeightPx.intValue = size.height
-                            },
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterSheetItem
-                                navController.navigate(CharacterSheetRoute.Sheet.create(characterId))
-                            },
-                        )
-                        MainPageCloneStatusItem(
-                            nextCloneJumpEpochMs = nextCloneJumpEpochMs,
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCloneStatusItem
-                                navController.navigate(
-                                    CharacterClonesRoute.Status.create(characterId),
+                if (showCharacterSection) {
+                    item(key = MainPageListKey.CHARACTER_SECTION_HEADER) {
+                        MainPageSectionHeader(title = characterSectionTitle)
+                    }
+                    item(key = MainPageListKey.CHARACTER_SECTION) {
+                        MainPageSectionCard(
+                            bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
+                        ) {
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CHARACTER_SHEET,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterSheetItem(
+                                    skillPointsHint = characterSheetHint,
+                                    modifier = Modifier.onSizeChanged { size ->
+                                        characterSheetRowHeightPx.intValue = size.height
+                                    },
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CHARACTER_SHEET,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterSheetItem
+                                        navController.navigate(CharacterSheetRoute.Sheet.create(characterId))
+                                    },
                                 )
-                            },
-                        )
-                        MainPageSkillQueueItem(
-                            status = skillQueueStatus,
-                            detailsReady = skillsUiState.detailsReady,
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageSkillQueueItem
-                                navController.navigate(
-                                    CharacterSkillsRoute.Queue.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CLONE_STATUS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCloneStatusItem(
+                                    nextCloneJumpEpochMs = nextCloneJumpEpochMs,
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CLONE_STATUS,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCloneStatusItem
+                                        navController.navigate(
+                                            CharacterClonesRoute.Status.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
-                        MainPageCharacterMailItem(
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterMailItem
-                                navController.navigate(CharacterMailRoute.Root.create(characterId))
-                            },
-                        )
-                        MainPageCharacterCalendarItem(
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterCalendarItem
-                                navController.navigate(
-                                    CharacterCalendarRoute.Root.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.SKILL_QUEUE,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageSkillQueueItem(
+                                    status = skillQueueStatus,
+                                    detailsReady = skillsUiState.detailsReady,
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.SKILL_QUEUE,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageSkillQueueItem
+                                        navController.navigate(
+                                            CharacterSkillsRoute.Queue.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
-                        MainPagePersonalPropertyItem(
-                            walletBalanceHint = personalPropertyHint,
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPagePersonalPropertyItem
-                                navController.navigate(
-                                    PersonalPropertyRoute.Root.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.MAIL,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterMailItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.MAIL,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterMailItem
+                                        navController.navigate(CharacterMailRoute.Root.create(characterId))
+                                    },
                                 )
-                            },
-                        )
-                        MainPageLoyaltyPointsItem(
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageLoyaltyPointsItem
-                                navController.navigate(
-                                    LoyaltyPointsRoute.Hub.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CALENDAR,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterCalendarItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CALENDAR,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterCalendarItem
+                                        navController.navigate(
+                                            CharacterCalendarRoute.Root.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
-                        MainPagePeoplePlacesItem(
-                            showDivider = true,
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPagePeoplePlacesItem
-                                navController.navigate(
-                                    PeoplePlacesRoute.Search.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.PERSONAL_PROPERTY,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPagePersonalPropertyItem(
+                                    walletBalanceHint = personalPropertyHint,
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.PERSONAL_PROPERTY,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPagePersonalPropertyItem
+                                        navController.navigate(
+                                            PersonalPropertyRoute.Root.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
-                        MainPageCharacterMasteryItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterMasteryItem
-                                navController.navigate(
-                                    CharacterMasteryRoute.Overview.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.LOYALTY_POINTS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageLoyaltyPointsItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.LOYALTY_POINTS,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageLoyaltyPointsItem
+                                        navController.navigate(
+                                            LoyaltyPointsRoute.Hub.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.PEOPLE_PLACES,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPagePeoplePlacesItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.PEOPLE_PLACES,
+                                        HomePageEntry.characterSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPagePeoplePlacesItem
+                                        navController.navigate(
+                                            PeoplePlacesRoute.Search.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CHARACTER_MASTERY,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterMasteryItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterMasteryItem
+                                        navController.navigate(
+                                            CharacterMasteryRoute.Overview.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
                 if (showCorporationSection) {
@@ -364,140 +535,283 @@ fun MainPage(
                         MainPageSectionCard(
                             bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
                         ) {
-                            MainPageCorporationWalletItem(
-                                showDivider = true,
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationWalletItem
-                                    navController.navigate(
-                                        CorporationWalletRoute.Wallets.create(characterId),
-                                    )
-                                },
-                            )
-                            MainPageCorporationMembersItem(
-                                showDivider = true,
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationMembersItem
-                                    navController.navigate(
-                                        CorporationMembersRoute.Members.create(characterId),
-                                    )
-                                },
-                            )
-                            MainPageCorporationStructuresItem(
-                                showDivider = true,
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationStructuresItem
-                                    navController.navigate(
-                                        CorporationStructuresRoute.Structures.create(characterId),
-                                    )
-                                },
-                            )
-                            MainPageCorporationIndustryItem(
-                                showDivider = true,
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationIndustryItem
-                                    navController.navigate(
-                                        CorporationIndustryRoute.Industry.create(characterId),
-                                    )
-                                },
-                            )
-                            MainPageCorporationAssetsItem(
-                                showDivider = true,
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationAssetsItem
-                                    navController.navigate(
-                                        CorporationAssetsRoute.Regions.create(characterId),
-                                    )
-                                },
-                            )
-                            MainPageCorporationContractsItem(
-                                onClick = {
-                                    val characterId = currentCharacter?.characterId
-                                        ?: return@MainPageCorporationContractsItem
-                                    navController.navigate(
-                                        CorporationContractsRoute.Contracts.create(characterId),
-                                    )
-                                },
-                            )
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_WALLET,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationWalletItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CORPORATION_WALLET,
+                                        HomePageEntry.corporationSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationWalletItem
+                                        navController.navigate(
+                                            CorporationWalletRoute.Wallets.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_MEMBERS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationMembersItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CORPORATION_MEMBERS,
+                                        HomePageEntry.corporationSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationMembersItem
+                                        navController.navigate(
+                                            CorporationMembersRoute.Members.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_STRUCTURES,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationStructuresItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CORPORATION_STRUCTURES,
+                                        HomePageEntry.corporationSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationStructuresItem
+                                        navController.navigate(
+                                            CorporationStructuresRoute.Structures.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_INDUSTRY,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationIndustryItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CORPORATION_INDUSTRY,
+                                        HomePageEntry.corporationSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationIndustryItem
+                                        navController.navigate(
+                                            CorporationIndustryRoute.Industry.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_ASSETS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationAssetsItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CORPORATION_ASSETS,
+                                        HomePageEntry.corporationSection,
+                                    ),
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationAssetsItem
+                                        navController.navigate(
+                                            CorporationAssetsRoute.Regions.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CORPORATION_CONTRACTS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCorporationContractsItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCorporationContractsItem
+                                        navController.navigate(
+                                            CorporationContractsRoute.Contracts.create(characterId),
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
-                item(key = "data_section_header") {
-                    MainPageSectionHeader(title = dataSectionTitle)
-                }
-                item(key = "data_section_entries") {
-                    MainPageSectionCard {
-                        MainPageDatabaseItem(
-                            onClick = { navController.navigate(DatabaseRoute.Root.route) },
-                        )
-                        MainPageRegionMarketItem(
-                            onClick = { navController.navigate(RegionMarketRoute.Root.route) },
-                        )
-                        MainPageMarketWatchlistItem(
-                            onClick = { navController.navigate(RegionMarketRoute.Watchlists.route) },
-                        )
+                if (showDataSection) {
+                    item(key = "data_section_header") {
+                        MainPageSectionHeader(title = dataSectionTitle)
+                    }
+                    item(key = "data_section_entries") {
+                        MainPageSectionCard {
+                            HomeEditableEntry(
+                                entry = HomePageEntry.DATABASE,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageDatabaseItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.DATABASE,
+                                        HomePageEntry.dataSection,
+                                    ),
+                                    onClick = { navController.navigate(DatabaseRoute.Root.route) },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.REGION_MARKET,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageRegionMarketItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.REGION_MARKET,
+                                        HomePageEntry.dataSection,
+                                    ),
+                                    onClick = { navController.navigate(RegionMarketRoute.Root.route) },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.MARKET_WATCHLIST,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageMarketWatchlistItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.MARKET_WATCHLIST,
+                                        HomePageEntry.dataSection,
+                                    ),
+                                    onClick = {
+                                        navController.navigate(RegionMarketRoute.Watchlists.route)
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
-                item(key = "business_section_header") {
-                    MainPageSectionHeader(title = businessSectionTitle)
-                }
-                item(key = "business_section_entries") {
-                    MainPageSectionCard(
-                        bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
-                    ) {
-                        MainPagePersonalAssetsItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPagePersonalAssetsItem
-                                navController.navigate(
-                                    PersonalAssetsRoute.Regions.create(characterId),
+                if (showBusinessSection) {
+                    item(key = "business_section_header") {
+                        MainPageSectionHeader(title = businessSectionTitle)
+                    }
+                    item(key = "business_section_entries") {
+                        MainPageSectionCard(
+                            bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
+                        ) {
+                            HomeEditableEntry(
+                                entry = HomePageEntry.PERSONAL_ASSETS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPagePersonalAssetsItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPagePersonalAssetsItem
+                                        navController.navigate(
+                                            PersonalAssetsRoute.Regions.create(characterId),
+                                        )
+                                    },
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.PERSONAL_ASSETS,
+                                        HomePageEntry.businessSection,
+                                    ),
                                 )
-                            },
-                            showDivider = true,
-                        )
-                        MainPageContractListItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageContractListItem
-                                navController.navigate(
-                                    ContractListRoute.List.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CONTRACT_LIST,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageContractListItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageContractListItem
+                                        navController.navigate(
+                                            ContractListRoute.List.create(characterId),
+                                        )
+                                    },
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CONTRACT_LIST,
+                                        HomePageEntry.businessSection,
+                                    ),
                                 )
-                            },
-                            showDivider = true,
-                        )
-                        MainPageCharacterTransactionsItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterTransactionsItem
-                                navController.navigate(
-                                    CharacterTransactionsRoute.List.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CHARACTER_TRANSACTIONS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterTransactionsItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterTransactionsItem
+                                        navController.navigate(
+                                            CharacterTransactionsRoute.List.create(characterId),
+                                        )
+                                    },
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.CHARACTER_TRANSACTIONS,
+                                        HomePageEntry.businessSection,
+                                    ),
                                 )
-                            },
-                            showDivider = true,
-                        )
-                        MainPageCharacterWalletJournalItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterWalletJournalItem
-                                navController.navigate(
-                                    CharacterWalletJournalRoute.List.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.WALLET_JOURNAL,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterWalletJournalItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterWalletJournalItem
+                                        navController.navigate(
+                                            CharacterWalletJournalRoute.List.create(characterId),
+                                        )
+                                    },
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.WALLET_JOURNAL,
+                                        HomePageEntry.businessSection,
+                                    ),
                                 )
-                            },
-                            showDivider = true,
-                        )
-                        MainPageCharacterIndustryItem(
-                            onClick = {
-                                val characterId = currentCharacter?.characterId
-                                    ?: return@MainPageCharacterIndustryItem
-                                navController.navigate(
-                                    CharacterIndustryRoute.Industry.create(characterId),
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.CHARACTER_INDUSTRY,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageCharacterIndustryItem(
+                                    onClick = {
+                                        val characterId = currentCharacter?.characterId
+                                            ?: return@MainPageCharacterIndustryItem
+                                        navController.navigate(
+                                            CharacterIndustryRoute.Industry.create(characterId),
+                                        )
+                                    },
                                 )
-                            },
-                        )
+                            }
+                        }
                     }
                 }
                 item(key = "other_section_header") {
@@ -508,12 +822,27 @@ fun MainPage(
                         bottomSpacing = dimensionResource(R.dimen.character_main_card_bottom_spacing),
                     ) {
                         MainPageSettingsItem(
-                            onClick = { navController.navigate(SettingsRoute.Settings.route) },
+                            onClick = if (editingHome) {
+                                null
+                            } else {
+                                { navController.navigate(SettingsRoute.Settings.route) }
+                            },
                             showDivider = true,
+                            showChevron = !editingHome,
                         )
                         MainPageAboutItem(
-                            onClick = { navController.navigate(AboutRoute.About.route) },
+                            onClick = if (editingHome) {
+                                null
+                            } else {
+                                { navController.navigate(AboutRoute.About.route) }
+                            },
+                            showChevron = !editingHome,
                         )
+                    }
+                }
+                if (!editingHome) {
+                    item(key = "home_edit_prompt") {
+                        MainPageEditPrompt(onClick = enterHomeEdit)
                     }
                 }
             }
@@ -531,7 +860,7 @@ private fun MainPageSectionHeader(title: String) {
     val titleStartPadding = dimensionResource(R.dimen.type_detail_page_title_start_padding)
     val sectionHeaderBottomPadding = dimensionResource(R.dimen.list_section_header_bottom_padding)
 
-    androidx.compose.material3.Text(
+    Text(
         text = title,
         fontSize = sectionHeaderTextSize,
         fontWeight = FontWeight.Black,
@@ -546,6 +875,7 @@ private fun MainPageSectionHeader(title: String) {
 @Composable
 private fun MainPageDatabaseItem(
     onClick: () -> Unit,
+    showDivider: Boolean,
 ) {
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
@@ -553,12 +883,15 @@ private fun MainPageDatabaseItem(
             itemName = stringResource(R.string.database),
             onClick = onClick,
         ),
-        showDivider = true,
+        showDivider = showDivider,
     )
 }
 
 @Composable
-private fun MainPageRegionMarketItem(onClick: () -> Unit) {
+private fun MainPageRegionMarketItem(
+    onClick: () -> Unit,
+    showDivider: Boolean,
+) {
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             iconRes = R.drawable.ic_region_market,
@@ -566,12 +899,15 @@ private fun MainPageRegionMarketItem(onClick: () -> Unit) {
             itemName = stringResource(R.string.region_market),
             onClick = onClick,
         ),
-        showDivider = true,
+        showDivider = showDivider,
     )
 }
 
 @Composable
-private fun MainPageMarketWatchlistItem(onClick: () -> Unit) {
+private fun MainPageMarketWatchlistItem(
+    onClick: () -> Unit,
+    showDivider: Boolean,
+) {
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             iconRes = R.drawable.ic_market_watchlist,
@@ -579,7 +915,7 @@ private fun MainPageMarketWatchlistItem(onClick: () -> Unit) {
             itemName = stringResource(R.string.market_watchlist),
             onClick = onClick,
         ),
-        showDivider = false,
+        showDivider = showDivider,
     )
 }
 
@@ -603,19 +939,99 @@ private fun MainPageSectionCard(
     }
 }
 
-private fun LazyListState.isCharacterSheetRowScrolledOff(rowHeightPx: Int): Boolean {
-    val sectionItem = layoutInfo.visibleItemsInfo.find { it.index == MainPageListIndex.CHARACTER_SECTION }
-    return if (sectionItem == null) {
-        val firstIndex = layoutInfo.visibleItemsInfo.firstOrNull()?.index
-        firstIndex != null && firstIndex > MainPageListIndex.CHARACTER_SECTION
-    } else if (rowHeightPx <= 0) {
-        false
-    } else {
-        sectionItem.offset + rowHeightPx <= 0
+private fun LazyListState.isPortraitAnchorScrolledOff(
+    anchorKey: String,
+    rowHeightPx: Int,
+    useRowHeight: Boolean,
+): Boolean {
+    val anchor = layoutInfo.visibleItemsInfo.find { it.key == anchorKey }
+    if (anchor != null) {
+        val height = if (useRowHeight) rowHeightPx else anchor.size
+        if (height <= 0) return false
+        return anchor.offset + height <= 0
+    }
+    return layoutInfo.visibleItemsInfo.none { it.key == MainPageListKey.PAGE_TITLE }
+}
+
+private object MainPageListKey {
+    const val PAGE_TITLE = "page_title"
+    const val CURRENT_CHARACTER = "current_character"
+    const val CHARACTER_SECTION_HEADER = "character_section_header"
+    const val CHARACTER_SECTION = "character_section_entries"
+}
+
+private fun isHomeEntryShown(
+    entry: HomePageEntry,
+    editing: Boolean,
+    hidden: Set<HomePageEntry>,
+): Boolean = editing || entry !in hidden
+
+private fun homeEntryHasDividerAfter(
+    entry: HomePageEntry,
+    section: List<HomePageEntry>,
+    editing: Boolean,
+    hidden: Set<HomePageEntry>,
+): Boolean {
+    val visible = section.filter { isHomeEntryShown(it, editing, hidden) }
+    val index = visible.indexOf(entry)
+    return index >= 0 && index < visible.lastIndex
+}
+
+@Composable
+private fun HomeEditableEntry(
+    entry: HomePageEntry,
+    editing: Boolean,
+    hidden: Set<HomePageEntry>,
+    onToggle: (HomePageEntry) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (!isHomeEntryShown(entry, editing, hidden)) return
+    if (!editing) {
+        content()
+        return
+    }
+    val entryHidden = entry in hidden
+    CompositionLocalProvider(
+        LocalMainPageRowEdit provides MainPageRowEdit(
+            hidden = entryHidden,
+            onToggle = { onToggle(entry) },
+            contentDescription = stringResource(
+                if (entryHidden) {
+                    R.string.main_page_entry_hidden
+                } else {
+                    R.string.main_page_entry_visible
+                },
+            ),
+        ),
+    ) {
+        content()
     }
 }
 
-private object MainPageListIndex {
-    /** `character_section_entries`: page title, character card, section header, then this card. */
-    const val CHARACTER_SECTION = 3
+@Composable
+private fun MainPageEditPrompt(onClick: () -> Unit) {
+    val verticalPadding = dimensionResource(R.dimen.list_section_header_bottom_padding)
+    val horizontalPadding = dimensionResource(R.dimen.detail_row_horizontal_padding)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            TextButton(
+                onClick = onClick,
+                contentPadding = PaddingValues(
+                    horizontal = horizontalPadding,
+                    vertical = verticalPadding,
+                ),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = colorResource(R.color.hyperlink_text),
+                ),
+            ) {
+                Text(
+                    text = stringResource(R.string.main_page_too_many_features),
+                    fontSize = dimensionResource(R.dimen.list_section_subheader_text_size).value.sp,
+                )
+            }
+        }
+    }
 }

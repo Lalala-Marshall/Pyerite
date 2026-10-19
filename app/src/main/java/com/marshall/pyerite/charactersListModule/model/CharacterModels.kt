@@ -205,6 +205,4 @@ data class LoggedInCharacter(
     /** Parsed SSO scopes for UI / feature gates; no token material. */
     val grantedScopes: Set<EveSsoScope> = emptySet(),
     val corporationId: Long? = null,
-    /** True when ESI corp-wide `roles` is non-empty (management titles). */
-    val hasCorporationManagementAccess: Boolean = false,
 )

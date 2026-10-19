@@ -140,32 +140,44 @@ private fun DistributionLegendRow(
 ) {
     val dotSize = dimensionResource(R.dimen.personal_property_legend_dot_size)
     val dotGap = dimensionResource(R.dimen.personal_property_legend_dot_gap)
-    val value = formatDistributionSlice(slice.isk, totalIsk, detailsReady, placeholder)
-    Row(
+    val valueLineGap = dimensionResource(R.dimen.personal_property_legend_value_line_gap)
+    val isk = slice.isk
+    val showValues = detailsReady && isk != null
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(valueLineGap),
     ) {
-        Box(
-            modifier = Modifier
-                .size(dotSize)
-                .background(color = slice.color, shape = CircleShape),
-        )
-        Spacer(modifier = Modifier.width(dotGap))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(dotSize)
+                    .background(color = slice.color, shape = CircleShape),
+            )
+            Spacer(modifier = Modifier.width(dotGap))
+            Text(
+                text = slice.label,
+                color = colorResource(R.color.text_primary),
+                fontSize = dimensionResource(R.dimen.personal_property_legend_label_text_size).value.sp,
+                maxLines = PersonalPropertyChartConfig.LEGEND_LABEL_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         Text(
-            text = slice.label,
-            color = colorResource(R.color.text_primary),
-            fontSize = dimensionResource(R.dimen.personal_property_legend_label_text_size).value.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(modifier = Modifier.width(dotGap))
-        Text(
-            text = value,
+            text = if (showValues) {
+                formatDistributionSlice(isk, totalIsk)
+            } else {
+                placeholder
+            },
             color = colorResource(R.color.hint_text),
             fontSize = dimensionResource(R.dimen.personal_property_legend_value_text_size).value.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = dotSize + dotGap),
         )
     }
 }
@@ -202,13 +214,7 @@ internal fun formatDetailIsk(
 }
 
 @Composable
-private fun formatDistributionSlice(
-    value: Double?,
-    totalIsk: Double,
-    detailsReady: Boolean,
-    placeholder: String,
-): String {
-    if (!detailsReady || value == null) return placeholder
+private fun formatDistributionSlice(value: Double, totalIsk: Double): String {
     val percent = floor(
         (if (totalIsk <= 0.0 || value <= 0.0) 0.0 else value / totalIsk) *
             PersonalPropertyConfig.PERCENT_SCALE,
@@ -225,6 +231,7 @@ private object PersonalPropertyChartConfig {
     const val FULL_CIRCLE_DEGREES = 360f
     const val START_ANGLE_DEGREES = -90f
     const val ZERO_COMPACT_ISK = "0"
+    const val LEGEND_LABEL_MAX_LINES = 2
     const val LEGEND_WIDTH_WEIGHT = 0.5f
     const val CHART_WIDTH_WEIGHT = 0.5f
     const val RING_STROKE_FRACTION = 0.15f

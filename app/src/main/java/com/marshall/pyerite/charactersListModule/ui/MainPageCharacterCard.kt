@@ -41,8 +41,9 @@ import com.marshall.pyerite.ui.golbalComponents.PyeriteIconShape
 @Composable
 fun MainPageCharacterCard(
     currentCharacter: CharacterSummary?,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    showChevron: Boolean = true,
 ) {
     val cardCornerRadius = dimensionResource(R.dimen.detail_card_corner_radius)
     val shape = RoundedCornerShape(cardCornerRadius)
@@ -56,22 +57,31 @@ fun MainPageCharacterCard(
             .padding(bottom = dimensionResource(R.dimen.character_main_card_bottom_spacing))
             .clip(shape)
             .background(colorResource(R.color.second_background), shape)
-            .clickable(onClick = onClick)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(innerPadding),
     ) {
         if (currentCharacter == null) {
-            MainPageEmptyCharacterRow()
+            MainPageEmptyCharacterRow(showChevron = showChevron)
         } else {
-            MainPageSelectedCharacterRow(character = currentCharacter)
+            MainPageSelectedCharacterRow(
+                character = currentCharacter,
+                showChevron = showChevron,
+            )
         }
     }
 }
 
 @Composable
-private fun MainPageEmptyCharacterRow() {
+private fun MainPageEmptyCharacterRow(showChevron: Boolean) {
     val avatarSize = dimensionResource(R.dimen.character_main_avatar_size)
 
-    MainPageCharacterRow(avatarSize = avatarSize) {
+    MainPageCharacterRow(avatarSize = avatarSize, showChevron = showChevron) {
         Text(
             text = stringResource(R.string.character_add),
             modifier = Modifier.weight(1f),
@@ -83,7 +93,10 @@ private fun MainPageEmptyCharacterRow() {
 }
 
 @Composable
-private fun MainPageSelectedCharacterRow(character: CharacterSummary) {
+private fun MainPageSelectedCharacterRow(
+    character: CharacterSummary,
+    showChevron: Boolean,
+) {
     val avatarSize = dimensionResource(R.dimen.character_main_avatar_size)
     val orgTextSize = dimensionResource(R.dimen.character_org_text_size).value.sp
     val orgLineHeight = dimensionResource(R.dimen.character_org_icon_size).value.sp
@@ -91,6 +104,7 @@ private fun MainPageSelectedCharacterRow(character: CharacterSummary) {
     MainPageCharacterRow(
         avatarSize = avatarSize,
         portraitUrl = character.portraitUrl,
+        showChevron = showChevron,
     ) {
         Column(
             modifier = Modifier
@@ -128,6 +142,7 @@ private fun MainPageSelectedCharacterRow(character: CharacterSummary) {
 private fun MainPageCharacterRow(
     avatarSize: Dp,
     portraitUrl: String? = null,
+    showChevron: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
@@ -142,7 +157,9 @@ private fun MainPageCharacterRow(
         )
         Spacer(modifier = Modifier.width(dimensionResource(R.dimen.character_main_avatar_gap)))
         content()
-        MainPageCharacterChevron()
+        if (showChevron) {
+            MainPageCharacterChevron()
+        }
     }
 }
 

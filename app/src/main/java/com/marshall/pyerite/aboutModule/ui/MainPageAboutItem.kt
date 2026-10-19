@@ -16,12 +16,14 @@ import com.marshall.pyerite.ui.golbalComponents.BaseLazyColumnItemModel
 
 @Composable
 fun MainPageAboutItem(
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     showDivider: Boolean = false,
+    showChevron: Boolean = true,
 ) {
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             itemName = stringResource(R.string.about),
+            showChevron = showChevron,
             onClick = onClick,
         ),
         showDivider = showDivider,
