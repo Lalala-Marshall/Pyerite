@@ -44,7 +44,7 @@ Compiled with Android Studio (AGP 9.2.1, Kotlin 2.4.10, minSdk 24, compileSdk 37
 
 Download and install the Android package.
 
-- [Pyerite 1.0 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0/pyerite-1.0.apk)
+- [Pyerite 1.0.1 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0.1/pyerite-1.0.1.apk)
 
 Quark Cloud Download
 - [Pyerite 1.0 APK_Quark](https://pan.quark.cn/s/58349f254150)
