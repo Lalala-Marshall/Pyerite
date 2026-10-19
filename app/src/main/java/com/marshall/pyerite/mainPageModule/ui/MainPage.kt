@@ -290,16 +290,12 @@ fun MainPage(
         {
             PyeriteTopBarPortraitButton(
                 portraitUrl = selectedCharacter.portraitUrl,
-                contentDescription = stringResource(R.string.character_sheet),
+                contentDescription = stringResource(R.string.character),
                 visible = showCharacterPortrait,
                 onClick = if (editingHome) {
                     null
                 } else {
-                    {
-                        navController.navigate(
-                            CharacterSheetRoute.Sheet.create(selectedCharacter.characterId),
-                        )
-                    }
+                    { navController.navigate(CharacterRoute.Root.route) }
                 },
             )
         }
