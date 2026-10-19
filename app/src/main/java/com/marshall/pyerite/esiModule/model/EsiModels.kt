@@ -554,14 +554,6 @@ internal data class EsiLoyaltyPointsDto(
 )
 
 @Serializable
-internal data class EsiCharacterRolesDto(
-    val roles: List<String> = emptyList(),
-    @SerialName("roles_at_hq") val rolesAtHq: List<String> = emptyList(),
-    @SerialName("roles_at_base") val rolesAtBase: List<String> = emptyList(),
-    @SerialName("roles_at_other") val rolesAtOther: List<String> = emptyList(),
-)
-
-@Serializable
 internal data class EsiCorporationWalletDto(
     val division: Int,
     val balance: Double = 0.0,

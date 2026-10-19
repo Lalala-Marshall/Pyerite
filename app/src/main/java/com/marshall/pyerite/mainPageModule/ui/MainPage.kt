@@ -184,9 +184,6 @@ fun MainPage(
     val otherSectionTitle = stringResource(R.string.main_section_other)
     val homeLayoutPreferences: HomeLayoutPreferences = koinInject()
     val showCorporationAffairs by homeLayoutPreferences.showCorporationAffairs.collectAsState()
-    val showCorporationSection =
-        currentLoggedInCharacter?.hasCorporationManagementAccess == true &&
-            showCorporationAffairs
     val refreshTopBarAction = pyeritePullRefreshTopBarAction(
         isRefreshing = isRefreshing,
         refreshFailed = refreshFailed,
@@ -356,7 +353,7 @@ fun MainPage(
                         )
                     }
                 }
-                if (showCorporationSection) {
+                if (showCorporationAffairs) {
                     item(key = "corporation_section_header") {
                         MainPageSectionHeader(title = corporationSectionTitle)
                     }
