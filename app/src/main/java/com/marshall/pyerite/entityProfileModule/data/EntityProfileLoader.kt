@@ -140,6 +140,7 @@ internal class EntityProfileLoader(
             allianceId = allianceId,
             allianceName = alliance.name,
             allianceIconUrl = allianceLogoUrl(allianceId),
+            descriptionHtml = alliance.description,
             factionId = faction?.id,
             factionName = faction?.name,
             factionIconUrl = faction?.iconUrl,
