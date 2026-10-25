@@ -4,11 +4,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.widget.TextView
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
@@ -62,9 +61,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import com.marshall.pyerite.R
+import com.marshall.pyerite.entityProfileModule.data.EveDescriptionDocument
+import com.marshall.pyerite.entityProfileModule.data.parseEveEntityDescription
 import com.marshall.pyerite.entityProfileModule.model.EntityEmploymentEntry
 import com.marshall.pyerite.entityProfileModule.model.EntityProfile
 import com.marshall.pyerite.entityProfileModule.model.EntityProfileConfig
@@ -233,6 +233,8 @@ private fun ColumnScope.EntityProfileSheetBody(
     val sectionGap = dimensionResource(R.dimen.type_detail_section_gap)
     val bottomPadding = dimensionResource(R.dimen.type_detail_bottom_padding)
     val scrollState = rememberScrollState()
+    val rawDescription = profile?.descriptionHtml.orEmpty()
+    val descriptionDocument = remember(rawDescription) { parseEveEntityDescription(rawDescription) }
     Column(
         modifier = Modifier
             .weight(1f)
@@ -263,10 +265,12 @@ private fun ColumnScope.EntityProfileSheetBody(
         )
         Spacer(modifier = Modifier.height(sectionGap))
         EntityProfileLinksCard(profile = loaded)
-        val description = loaded.descriptionHtml
-        if (!description.isNullOrBlank()) {
+        if (descriptionDocument.text.isNotBlank()) {
             Spacer(modifier = Modifier.height(sectionGap))
-            EntityProfileDescriptionCard(html = description)
+            EntityProfileDescriptionCard(
+                document = descriptionDocument,
+                onOpenEntity = onOpenEntity,
+            )
         }
         Spacer(modifier = Modifier.height(sectionGap))
         EntityProfileDetailsCard(
@@ -526,32 +530,40 @@ private fun EntityProfileExternalLinkRow(
 }
 
 @Composable
-private fun EntityProfileDescriptionCard(html: String) {
-    val textColor = colorResource(R.color.text_primary).toArgb()
-    val textSizeSp = dimensionResource(R.dimen.type_detail_body_text_size).value
-    val rendered = remember(html) { entityProfileHtmlToCharSequence(html) }
+private fun EntityProfileDescriptionCard(
+    document: EveDescriptionDocument,
+    onOpenEntity: (UniverseEntityRef) -> Unit,
+) {
+    val context = LocalContext.current
+    val defaultColor = colorResource(R.color.text_primary)
+    val linkColor = colorResource(R.color.hyperlink_text)
+    val background = colorResource(R.color.second_background)
+    val baseFontSize = dimensionResource(R.dimen.type_detail_body_text_size).value.sp
+    val annotated = remember(document, defaultColor, linkColor, background, baseFontSize, context, onOpenEntity) {
+        document.toAnnotatedString(
+            defaultColor = defaultColor,
+            linkColor = linkColor,
+            background = background,
+            baseFontSize = baseFontSize,
+            onWebLink = { url -> openExternalUrl(context, url) },
+            onEntityLink = onOpenEntity,
+        )
+    }
     BaseContainer(
         title = stringResource(R.string.entity_profile_description),
         useSystemBarsPadding = false,
     ) {
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(dimensionResource(R.dimen.entity_profile_description_padding)),
-            factory = { context ->
-                TextView(context).apply {
-                    setTextColor(textColor)
-                    textSize = textSizeSp
-                    setTextIsSelectable(true)
-                    linksClickable = false
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                }
-            },
-            update = { view ->
-                view.setTextColor(textColor)
-                view.text = rendered
-            },
-        )
+        SelectionContainer(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = annotated,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(dimensionResource(R.dimen.entity_profile_description_padding)),
+                color = defaultColor,
+                fontSize = baseFontSize,
+                lineHeight = document.preferredLineHeight(baseFontSize),
+            )
+        }
     }
 }
 
