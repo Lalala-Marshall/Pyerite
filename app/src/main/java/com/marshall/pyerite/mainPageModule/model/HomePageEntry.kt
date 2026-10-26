@@ -20,6 +20,7 @@ internal enum class HomePageEntry {
     DATABASE,
     REGION_MARKET,
     MARKET_WATCHLIST,
+    AGENTS,
     PERSONAL_ASSETS,
     CONTRACT_LIST,
     CHARACTER_TRANSACTIONS,
@@ -49,6 +50,7 @@ internal enum class HomePageEntry {
         )
         val dataSection: List<HomePageEntry> = listOf(
             DATABASE,
+            AGENTS,
             REGION_MARKET,
             MARKET_WATCHLIST,
         )
