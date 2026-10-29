@@ -30,6 +30,8 @@ import com.marshall.pyerite.R
 import com.marshall.pyerite.iconModule.manager.IconManager
 import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.localization.displayName
+import com.marshall.pyerite.localization.opposite
+import com.marshall.pyerite.localization.translatedName
 import com.marshall.pyerite.sdeModule.room.type.TypeEntity
 import com.marshall.pyerite.sdeModule.room.dogma.TypeTraitDetail
 import com.marshall.pyerite.databaseHierarchyModule.util.formatTraitBonusAnnotated
@@ -83,11 +85,15 @@ fun TypeSummarySection(
     val innerGapLarge = dimensionResource(R.dimen.type_detail_section_inner_gap_large)
     val innerGapMedium = dimensionResource(R.dimen.type_detail_section_inner_gap_medium)
     val innerGapSmall = dimensionResource(R.dimen.type_detail_section_inner_gap_small)
+    val contentLanguage = localeController.contentLanguage
     val typeName = entity.displayName(localeController)
+    val typeTranslation = entity.translatedName(contentLanguage)
 
     BaseContainer(useSystemBarsPadding = false) {
         CopyNameLongPressHost(
             name = typeName,
+            translation = typeTranslation,
+            translationLanguage = contentLanguage.opposite(),
             modifier = Modifier.padding(cardPadding),
             header = {
             Row(verticalAlignment = Alignment.CenterVertically) {

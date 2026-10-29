@@ -1,6 +1,7 @@
 package com.marshall.pyerite.sdeModule.update
 
 import android.content.Context
+import android.os.PowerManager
 import com.marshall.pyerite.sdeModule.room.RoomProvider
 import com.marshall.pyerite.iconModule.manager.IconManager
 import com.marshall.pyerite.sdeModule.network.SdeRemoteDataSource
@@ -16,6 +17,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -35,6 +37,24 @@ class SdeUpdateRepository(
     internal fun installedRelease(): SdeReleaseMeta? = versionStore.load()
 
     fun installedIconVersion(): Int? = versionStore.load()?.iconVersion
+
+    /** Debug only: drop a downloaded SDE and copy the databases shipped in the app. */
+    internal suspend fun reinstallBundledAssets(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            SdeInstallJournal.discardArtifacts(context)
+            val bundled = SdeReleaseMeta.fromAssets(context) ?: error("bundled SDE metadata missing")
+            roomProvider.replaceOpenDatabases {
+                SdeAssetFiles.deleteAllDatabases(context)
+                SdeAssetFiles.copyDatabaseFromAssets(context, SdeDatabase.ZH_FILE_NAME)
+                SdeAssetFiles.copyDatabaseFromAssets(context, SdeDatabase.EN_FILE_NAME)
+            }
+            SdeAssetFiles.extractIconsFromAssets(context)
+            iconManager.reload()
+            versionStore.save(bundled)
+            _contentRefreshed.tryEmit(Unit)
+            SdeUpdateLog.d("Repository", "reinstalled bundled build=${bundled.buildNumber}")
+        }
+    }
 
     fun resolveVersionVisibility(remote: SdeRemotePackage): SdeUpdateVersionVisibility {
         val installed = versionStore.load()
@@ -106,13 +126,29 @@ class SdeUpdateRepository(
 
     suspend fun downloadAndApply(
         remote: SdeRemotePackage,
-        onProgress: (Int) -> Unit,
+        onProgress: (percent: Int, applying: Boolean) -> Unit,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         SdeUpdateLog.d(
             "Repository",
             "downloadAndApply build=${remote.meta.buildNumber} icons=${remote.meta.iconVersion}",
         )
         runCatching {
+            val wakeLock = acquireInstallWakeLock()
+            try {
+                downloadAndApplyHoldingWakeLock(remote, onProgress)
+            } finally {
+                if (wakeLock.isHeld) wakeLock.release()
+            }
+        }.onFailure { error ->
+            SdeUpdateLog.w("Repository", "downloadAndApply failed", error)
+        }
+    }
+
+    private suspend fun downloadAndApplyHoldingWakeLock(
+        remote: SdeRemotePackage,
+        onProgress: (percent: Int, applying: Boolean) -> Unit,
+    ) {
+            SdeInstallJournal.recoverInterruptedInstall(context, versionStore)
             val installed = versionStore.load()
             val needsDatabase = SdeVersionComparator.needsDatabaseUpgrade(remote.meta, installed)
             val needsIcons = SdeVersionComparator.needsIconsUpgrade(remote.meta, installed)
@@ -123,8 +159,8 @@ class SdeUpdateRepository(
             )
             if (!needsDatabase && !needsIcons) {
                 SdeUpdateLog.d("Repository", "nothing to apply, skipping")
-                onProgress(100)
-                return@runCatching
+                onProgress(COMPLETE_PROGRESS_PERCENT, false)
+                return
             }
 
             val downloadDir = File(context.cacheDir, "sde_download").apply {
@@ -185,8 +221,9 @@ class SdeUpdateRepository(
             steps.forEachIndexed { index, step ->
                 SdeUpdateLog.d("Repository", "downloading ${step.installed.name} (${index + 1}/${steps.size})")
                 val report = { stepProgress: Float ->
-                    val total = ((index * perStep) + (stepProgress * perStep)).roundToInt().coerceIn(0, 100)
-                    onProgress(total)
+                    val total = ((index * perStep) + (stepProgress * perStep)).roundToInt()
+                        .coerceIn(0, COMPLETE_PROGRESS_PERCENT)
+                    onProgress(scaleDownloadProgress(total), false)
                 }
                 if (step.iconPartCount >= SdeRemoteConfig.MIN_ICON_PARTS) {
                     try {
@@ -212,14 +249,7 @@ class SdeUpdateRepository(
                 requireSha256(step.installed, step.expectedSha256, step.installed.name)
             }
 
-            if (needsDatabase) {
-                val dbZhFile = File(downloadDir, SdeDatabase.ZH_FILE_NAME)
-                val dbEnFile = File(downloadDir, SdeDatabase.EN_FILE_NAME)
-                roomProvider.closeAndInvalidate()
-                SdeAssetFiles.deleteAllDatabases(context)
-                SdeAssetFiles.installDatabaseFromFile(context, SdeDatabase.ZH_FILE_NAME, dbZhFile)
-                SdeAssetFiles.installDatabaseFromFile(context, SdeDatabase.EN_FILE_NAME, dbEnFile)
-            }
+            onProgress(APPLY_PROGRESS_PERCENT, true)
             if (needsIcons) {
                 val iconsFile = File(downloadDir, SdeRemoteConfig.ASSET_ICONS)
                 SdeAssetFiles.extractIconsFromFile(context, iconsFile)
@@ -231,13 +261,35 @@ class SdeUpdateRepository(
                         "(version=${installed?.iconVersion} sha=${installed?.iconSha256})",
                 )
             }
-            versionStore.save(remote.meta)
+            if (needsDatabase) {
+                val dbZhFile = File(downloadDir, SdeDatabase.ZH_FILE_NAME)
+                val dbEnFile = File(downloadDir, SdeDatabase.EN_FILE_NAME)
+                SdeInstallJournal.installDatabases(
+                    context = context,
+                    roomProvider = roomProvider,
+                    versionStore = versionStore,
+                    zhSource = dbZhFile,
+                    enSource = dbEnFile,
+                    meta = remote.meta,
+                )
+            } else {
+                versionStore.save(remote.meta)
+            }
             _contentRefreshed.tryEmit(Unit)
-            onProgress(100)
             downloadDir.deleteRecursively()
             SdeUpdateLog.d("Repository", "downloadAndApply completed")
-        }.onFailure { error ->
-            SdeUpdateLog.w("Repository", "downloadAndApply failed", error)
+    }
+
+    private fun acquireInstallWakeLock(): PowerManager.WakeLock {
+        val powerManager = requireNotNull(context.getSystemService(PowerManager::class.java))
+        return powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            SdeRemoteConfig.INSTALL_WAKE_LOCK_TAG,
+        ).also { wakeLock ->
+            wakeLock.setReferenceCounted(false)
+            wakeLock.acquire(
+                TimeUnit.HOURS.toMillis(SdeRemoteConfig.INSTALL_WAKE_LOCK_TIMEOUT_HOURS),
+            )
         }
     }
 
@@ -285,6 +337,15 @@ class SdeUpdateRepository(
     companion object {
         private const val CHECK_MAX_ATTEMPTS = 3
         private const val CHECK_RETRY_DELAY_MS = 2_000L
+        private const val DOWNLOAD_PROGRESS_CEILING = 90
+        private const val APPLY_PROGRESS_PERCENT = 95
+        private const val COMPLETE_PROGRESS_PERCENT = 100
+
+        private fun scaleDownloadProgress(percent: Int): Int {
+            return (percent.toLong() * DOWNLOAD_PROGRESS_CEILING / COMPLETE_PROGRESS_PERCENT)
+                .toInt()
+                .coerceIn(0, DOWNLOAD_PROGRESS_CEILING)
+        }
         private const val SHA_256 = "SHA-256"
         private const val HEX_RADIX = 16
         private const val HEX_DIGITS = 2

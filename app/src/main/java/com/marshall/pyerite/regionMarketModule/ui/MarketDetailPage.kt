@@ -128,6 +128,8 @@ internal fun MarketDetailPage(
                 BaseContainer(useSystemBarsPadding = false) {
                     CopyNameLongPressHost(
                         name = ui.typeName,
+                        translation = ui.typeTranslation,
+                        translationLanguage = ui.typeTranslationLanguage,
                         header = {
                             BaseLazyColumnItem(
                                 model = BaseLazyColumnItemModel(
