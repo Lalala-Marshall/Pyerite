@@ -1,19 +1,35 @@
 package com.marshall.pyerite.agentsModule.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -163,55 +179,122 @@ private fun AgentsPlacePage(
 ) {
     val listState = rememberLazyListState()
     val onBack = navController.rememberNavigateUpAction()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     PyeritePageScaffold(
         title = title,
         showCollapsedTitle = rememberLazyListTitleCollapsed(listState),
         onBack = onBack,
     ) { topBarPadding ->
-        LazyColumn(
-            state = listState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = topBarPadding.calculateTopPadding()),
+                .padding(topBarPadding)
+                .imePadding()
+                .navigationBarsPadding(),
         ) {
-            item { PageTitle(text = title) }
-            item { PlaceSearchField(hint = hint, query = query, onQueryChange = onQueryChange) }
-            rows()
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                item { PageTitle(text = title) }
+                rows()
+            }
+            AgentsPlaceSearchBar(
+                hint = hint,
+                query = query,
+                onQueryChange = onQueryChange,
+                onSearch = {
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = dimensionResource(R.dimen.search_bar_vertical_padding)),
+            )
         }
     }
 }
 
 @Composable
-private fun PlaceSearchField(
+private fun AgentsPlaceSearchBar(
     hint: String,
     query: String,
     onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val barHeight = dimensionResource(R.dimen.search_bar_height)
+    val corner = dimensionResource(R.dimen.detail_card_corner_radius)
+    val iconSize = dimensionResource(R.dimen.detail_row_chevron_size)
+    val fieldBackground = colorResource(R.color.search_field_background)
     val textColor = colorResource(R.color.text_primary)
     val hintColor = colorResource(R.color.hint_text)
     val textSize = dimensionResource(R.dimen.sub_menu_label_text_size).value.sp
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = dimensionResource(R.dimen.detail_card_horizontal_padding),
-                vertical = dimensionResource(R.dimen.detail_row_vertical_padding_single_line),
-            )
-            .clip(RoundedCornerShape(dimensionResource(R.dimen.agents_tag_corner)))
-            .background(colorResource(R.color.search_field_idle_background))
-            .padding(dimensionResource(R.dimen.detail_row_horizontal_padding)),
-        contentAlignment = Alignment.CenterStart,
+        modifier = modifier.padding(horizontal = dimensionResource(R.dimen.detail_card_horizontal_padding)),
     ) {
-        if (query.isEmpty()) {
-            Text(text = hint, color = hintColor, fontSize = textSize)
-        }
         BasicTextField(
             value = query,
             onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(barHeight)
+                .clip(RoundedCornerShape(corner))
+                .background(fieldBackground),
             textStyle = TextStyle(color = textColor, fontSize = textSize),
-            cursorBrush = SolidColor(textColor),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            cursorBrush = SolidColor(textColor),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = dimensionResource(R.dimen.search_bar_cancel_gap)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = hintColor,
+                        modifier = Modifier.size(iconSize),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = dimensionResource(R.dimen.search_bar_cancel_gap)),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (query.isEmpty()) {
+                            Text(text = hint, color = hintColor, fontSize = textSize)
+                        }
+                        innerTextField()
+                    }
+                    if (query.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(dimensionResource(R.dimen.top_bar_back_button_size))
+                                .clip(CircleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { onQueryChange("") },
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.search_clear),
+                                tint = colorResource(R.color.search_clear_icon),
+                                modifier = Modifier.size(iconSize),
+                            )
+                        }
+                    }
+                }
+            },
         )
     }
 }

@@ -50,9 +50,9 @@ internal enum class HomePageEntry {
         )
         val dataSection: List<HomePageEntry> = listOf(
             DATABASE,
-            AGENTS,
             REGION_MARKET,
             MARKET_WATCHLIST,
+            AGENTS,
         )
         val businessSection: List<HomePageEntry> = listOf(
             PERSONAL_ASSETS,

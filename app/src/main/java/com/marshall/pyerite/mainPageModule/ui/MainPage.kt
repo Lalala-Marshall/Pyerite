@@ -677,20 +677,6 @@ fun MainPage(
                                 )
                             }
                             HomeEditableEntry(
-                                entry = HomePageEntry.AGENTS,
-                                editing = editingHome,
-                                hidden = activeHiddenEntries,
-                                onToggle = toggleHomeEntry,
-                            ) {
-                                MainPageAgentsItem(
-                                    showDivider = dividerAfter(
-                                        HomePageEntry.AGENTS,
-                                        HomePageEntry.dataSection,
-                                    ),
-                                    onClick = { navController.navigate(AgentsRoute.Graph.route) },
-                                )
-                            }
-                            HomeEditableEntry(
                                 entry = HomePageEntry.REGION_MARKET,
                                 editing = editingHome,
                                 hidden = activeHiddenEntries,
@@ -718,6 +704,20 @@ fun MainPage(
                                     onClick = {
                                         navController.navigate(RegionMarketRoute.Watchlists.route)
                                     },
+                                )
+                            }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.AGENTS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageAgentsItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.AGENTS,
+                                        HomePageEntry.dataSection,
+                                    ),
+                                    onClick = { navController.navigate(AgentsRoute.Graph.route) },
                                 )
                             }
                         }

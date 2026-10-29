@@ -2,23 +2,52 @@ package com.marshall.pyerite.agentsModule.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import kotlin.math.roundToInt
 import com.marshall.pyerite.R
 import com.marshall.pyerite.agentsModule.model.AgentChoice
 import com.marshall.pyerite.agentsModule.model.AgentsConfig
@@ -35,38 +64,133 @@ internal fun AgentsChoiceRow(
     onSelect: (Long?) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        BaseLazyColumnItem(
-            model = BaseLazyColumnItemModel(
-                showLeadingIcon = false,
-                itemName = label,
-                trailingValue = selectedLabel,
-                chevronExpanded = expanded,
-                onClick = { expanded = true },
-            ),
-            showDivider = showDivider,
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(
-                text = { Text(text = anyLabel) },
-                onClick = {
-                    onSelect(null)
-                    expanded = false
+    var anchorBottomPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val view = LocalView.current
+    val edgeGap = dimensionResource(R.dimen.search_bar_vertical_padding)
+    val valueTextSize = dimensionResource(R.dimen.sub_menu_value_text_size).value.sp
+    val chevronSize = dimensionResource(R.dimen.detail_row_chevron_size)
+    val trailingColor = colorResource(R.color.hint_text)
+    val expandedChevronColor = colorResource(R.color.text_primary)
+    val spaceBelow = with(density) { (view.height - anchorBottomPx).toDp() } - edgeGap
+    val maxMenuHeight = spaceBelow.coerceAtLeast(0.dp)
+    val menuWidth = dimensionResource(R.dimen.top_bar_dropdown_wide_min_width)
+        .coerceAtMost(with(density) { view.width.toDp() } - edgeGap)
+    BaseLazyColumnItem(
+        model = BaseLazyColumnItemModel(
+            showLeadingIcon = false,
+            itemName = label,
+            showChevron = false,
+            onClick = { expanded = true },
+        ),
+        showDivider = showDivider,
+        trailingContent = {
+            Box(
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    val bottom = coordinates.positionInWindow().y + coordinates.size.height
+                    anchorBottomPx = bottom.roundToInt()
                 },
-            )
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = option.name) },
-                    onClick = {
-                        onSelect(option.id)
-                        expanded = false
-                    },
-                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = selectedLabel,
+                        color = trailingColor,
+                        fontSize = valueTextSize,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.width(dimensionResource(R.dimen.detail_row_trailing_gap)))
+                    Icon(
+                        modifier = Modifier.size(chevronSize),
+                        imageVector = if (expanded) {
+                            Icons.Filled.KeyboardArrowDown
+                        } else {
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight
+                        },
+                        contentDescription = null,
+                        tint = if (expanded) expandedChevronColor else trailingColor,
+                    )
+                }
+                if (expanded) {
+                    Popup(
+                        popupPositionProvider = BelowButtonPopupPositionProvider,
+                        onDismissRequest = { expanded = false },
+                        properties = PopupProperties(focusable = true),
+                    ) {
+                        val menuShape = RoundedCornerShape(
+                            dimensionResource(R.dimen.top_bar_dropdown_corner),
+                        )
+                        Column(
+                            modifier = Modifier
+                                .width(menuWidth)
+                                .heightIn(max = maxMenuHeight)
+                                .shadow(
+                                    elevation = dimensionResource(R.dimen.copy_name_menu_elevation),
+                                    shape = menuShape,
+                                )
+                                .clip(menuShape)
+                                .background(colorResource(R.color.second_background))
+                                .verticalScroll(rememberScrollState()),
+                        ) {
+                            AgentsMenuItem(
+                                text = anyLabel,
+                                onClick = {
+                                    onSelect(null)
+                                    expanded = false
+                                },
+                            )
+                            options.forEach { option ->
+                                AgentsMenuItem(
+                                    text = option.name,
+                                    onClick = {
+                                        onSelect(option.id)
+                                        expanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
             }
+        },
+    )
+}
+
+@Composable
+private fun AgentsMenuItem(
+    text: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        color = colorResource(R.color.text_primary),
+        fontSize = dimensionResource(R.dimen.sub_menu_value_text_size).value.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(
+                horizontal = dimensionResource(R.dimen.top_bar_dropdown_divider_horizontal_padding),
+                vertical = dimensionResource(R.dimen.detail_row_vertical_padding_single_line),
+            ),
+    )
+}
+
+private object BelowButtonPopupPositionProvider : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+        val aligned = if (layoutDirection == LayoutDirection.Ltr) {
+            anchorBounds.right - popupContentSize.width
+        } else {
+            anchorBounds.left
         }
+        return IntOffset(aligned.coerceIn(0, maxX), anchorBounds.bottom)
     }
 }
 
