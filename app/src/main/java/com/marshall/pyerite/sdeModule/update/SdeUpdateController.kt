@@ -1,5 +1,6 @@
 package com.marshall.pyerite.sdeModule.update
 
+import com.marshall.pyerite.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -25,6 +26,7 @@ class SdeUpdateController(
     private var pendingUpdate: SdeRemotePackage? = null
     private var downloadJob: Job? = null
     private var checkJob: Job? = null
+    private var reinstallJob: Job? = null
     private var checkGeneration = 0
     private var downloadGeneration = 0
     private var sheetInstanceId = 0
@@ -419,6 +421,35 @@ class SdeUpdateController(
         checkForUpdates(inSheet = true)
     }
 
+    /** Debug builds only. Restores the SDE shipped in the app, then checks for an update again. */
+    fun reinstallBundledForDebug() {
+        if (!BuildConfig.DEBUG) return
+        if (reinstallJob?.isActive == true) return
+        logAction("reinstallBundledForDebug", describeJobs())
+        invalidateDownloadWork()
+        invalidateCheckWork()
+        pendingUpdate = null
+        val job = scope.launch {
+            _uiState.value = SdeUpdateUiState.Checking
+            val result = repository.reinstallBundledAssets()
+            result.onSuccess {
+                _uiState.value = SdeUpdateUiState.Idle
+                checkForUpdates(inSheet = false)
+            }.onFailure { error ->
+                logAction("reinstallBundledForDebug", "failed: ${error.message.orEmpty()}", error)
+                _uiState.value = SdeUpdateUiState.CheckFailed(
+                    installedBuild = repository.installedBuildNumber(),
+                    installedIconVersion = repository.installedIconVersion(),
+                    message = error.message.orEmpty(),
+                )
+            }
+        }
+        reinstallJob = job
+        job.invokeOnCompletion {
+            if (reinstallJob === job) reinstallJob = null
+        }
+    }
+
     /**
      * Main-page pull-to-refresh: re-run a background update check when idle,
      * already up-to-date, or the last check failed. Clears to Idle first so
@@ -473,6 +504,12 @@ class SdeUpdateController(
         checkJob?.cancel()
         checkJob = null
         _isUpdateCheckInFlight.value = false
+    }
+
+    private fun invalidateDownloadWork() {
+        downloadGeneration++
+        downloadJob?.cancel()
+        downloadJob = null
     }
 
     fun repairStaleCheckingState() {

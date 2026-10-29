@@ -14,6 +14,19 @@ import java.io.FileOutputStream
  */
 internal object SdeInstallJournal {
 
+    fun discardArtifacts(context: Context) {
+        val zh = paths(context, SdeDatabase.ZH_FILE_NAME)
+        val en = paths(context, SdeDatabase.EN_FILE_NAME)
+        listOf(zh.staging, zh.backup, en.staging, en.backup).forEach { file ->
+            if (file.exists()) file.delete()
+        }
+        cleanupFinishedInstall(zh, en)
+        val iconStaging = File(context.filesDir, SdeAssetFiles.ICONS_DIR_NAME + SdeAssetFiles.STAGING_SUFFIX)
+        val iconBackup = File(context.filesDir, SdeAssetFiles.ICONS_DIR_NAME + SdeAssetFiles.BACKUP_SUFFIX)
+        if (iconStaging.exists()) iconStaging.deleteRecursively()
+        if (iconBackup.exists()) iconBackup.deleteRecursively()
+    }
+
     fun recoverInterruptedInstall(context: Context, versionStore: SdeVersionStore) {
         try {
             SdeAssetFiles.recoverIncompleteIcons(context)

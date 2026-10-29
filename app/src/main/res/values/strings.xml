@@ -428,6 +428,8 @@
     <string name="sde_update_failed_title">更新失败</string>
     <string name="sde_update_error">更新失败：%1$s</string>
     <string name="sde_update_ok">确定</string>
+    <string name="sde_update_debug_reinstall_bundled">恢复内置数据库</string>
+    <string name="sde_update_debug_reinstall_bundled_hint">删除已下载的更新，并重新安装应用自带的数据库</string>
 
     <!-- Search preview (dev comparison screen) -->
     <string name="search">搜索</string>

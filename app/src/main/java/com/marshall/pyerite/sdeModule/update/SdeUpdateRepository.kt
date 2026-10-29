@@ -38,6 +38,24 @@ class SdeUpdateRepository(
 
     fun installedIconVersion(): Int? = versionStore.load()?.iconVersion
 
+    /** Debug only: drop a downloaded SDE and copy the databases shipped in the app. */
+    internal suspend fun reinstallBundledAssets(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            SdeInstallJournal.discardArtifacts(context)
+            val bundled = SdeReleaseMeta.fromAssets(context) ?: error("bundled SDE metadata missing")
+            roomProvider.replaceOpenDatabases {
+                SdeAssetFiles.deleteAllDatabases(context)
+                SdeAssetFiles.copyDatabaseFromAssets(context, SdeDatabase.ZH_FILE_NAME)
+                SdeAssetFiles.copyDatabaseFromAssets(context, SdeDatabase.EN_FILE_NAME)
+            }
+            SdeAssetFiles.extractIconsFromAssets(context)
+            iconManager.reload()
+            versionStore.save(bundled)
+            _contentRefreshed.tryEmit(Unit)
+            SdeUpdateLog.d("Repository", "reinstalled bundled build=${bundled.buildNumber}")
+        }
+    }
+
     fun resolveVersionVisibility(remote: SdeRemotePackage): SdeUpdateVersionVisibility {
         val installed = versionStore.load()
         return SdeUpdateVersionVisibility(
