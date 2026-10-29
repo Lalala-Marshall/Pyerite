@@ -47,4 +47,4 @@ Download and install the Android package.
 - [Pyerite 1.0.2 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0.2/pyerite-1.0.2.apk)
 
 Quark Cloud Download
-- [Pyerite 1.0.1 APK_Quark](https://pan.quark.cn/s/0dc8e9012d98)
+- [Pyerite 1.0.2 APK_Quark](https://pan.quark.cn/s/94023cb0811f)

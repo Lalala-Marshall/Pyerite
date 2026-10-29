@@ -47,4 +47,4 @@ python tools/sync_sde_release.py --yes
 - [Pyerite 1.0.2 APK](https://github.com/Lalala-Marshall/Pyerite/releases/download/app-v1.0.2/pyerite-1.0.2.apk)
 
 夸克网盘下载
-- [Pyerite 1.0.1 APK_Quark](https://pan.quark.cn/s/0dc8e9012d98)
+- [Pyerite 1.0.2 APK_Quark](https://pan.quark.cn/s/94023cb0811f)
