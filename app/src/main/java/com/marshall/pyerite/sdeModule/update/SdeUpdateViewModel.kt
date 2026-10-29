@@ -17,4 +17,5 @@ class SdeUpdateViewModel(
     fun startDownload() = controller.startDownload()
     fun retryDownload() = controller.retryDownload()
     fun retryCheck() = controller.retryCheck()
+    fun reinstallBundledForDebug() = controller.reinstallBundledForDebug()
 }

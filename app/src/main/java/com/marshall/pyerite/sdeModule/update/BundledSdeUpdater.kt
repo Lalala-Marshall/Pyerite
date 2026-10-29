@@ -2,11 +2,12 @@ package com.marshall.pyerite.sdeModule.update
 
 import android.content.Context
 import com.marshall.pyerite.localization.SdeDatabase
-import java.io.File
 
 object BundledSdeUpdater {
 
     fun ensureUpToDate(context: Context) {
+        val versionStore = SdeVersionStore(context)
+        SdeInstallJournal.recoverInterruptedInstall(context, versionStore)
         val bundled = SdeReleaseMeta.fromAssets(context)
         if (bundled == null) {
             SdeUpdateLog.d("BundledSde", "no bundled metadata, ensuring databases and icons only")
@@ -15,10 +16,8 @@ object BundledSdeUpdater {
             return
         }
 
-        val versionStore = SdeVersionStore(context)
         val installed = versionStore.load()
         val databasesPresent = SdeAssetFiles.areDatabasesPresent(context)
-        val iconsPresent = File(context.filesDir, SdeAssetFiles.ICONS_DIR_NAME).exists()
 
         when {
             !databasesPresent -> {
@@ -34,11 +33,6 @@ object BundledSdeUpdater {
                     "BundledSde",
                     "bundled newer than installed (${bundled.buildNumber} > ${installed.buildNumber}), applying",
                 )
-                applyBundledAssets(context, bundled)
-            }
-            SdeVersionComparator.needsUpgrade(installed, bundled) &&
-                !iconsPresent -> {
-                SdeUpdateLog.d("BundledSde", "icons missing with stale prefs, re-applying bundled ${bundled.buildNumber}")
                 applyBundledAssets(context, bundled)
             }
             else -> {

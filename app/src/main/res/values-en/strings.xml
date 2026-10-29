@@ -420,11 +420,15 @@
     <string name="sde_update_network_error">Could not reach the update server. Check your network and try again.</string>
     <string name="sde_update_downloading_title">Downloading database</string>
     <string name="sde_update_downloading">Download progress %1$d%%</string>
+    <string name="sde_update_applying_title">Writing the database</string>
+    <string name="sde_update_applying">Saving the update on this device. It does not take effect until this finishes.</string>
     <string name="sde_update_complete">Update complete</string>
     <string name="sde_update_complete_message">Database updated. No app restart required.</string>
     <string name="sde_update_failed_title">Update failed</string>
     <string name="sde_update_error">Update failed: %1$s</string>
     <string name="sde_update_ok">OK</string>
+    <string name="sde_update_debug_reinstall_bundled">Restore bundled database</string>
+    <string name="sde_update_debug_reinstall_bundled_hint">Remove the downloaded update and reinstall the database shipped with the app</string>
 
     <string name="search">Search</string>
     <string name="search_input_hint">Enter search content…</string>

@@ -10,17 +10,37 @@ import java.util.zip.ZipInputStream
 object SdeAssetFiles {
 
     const val ICONS_DIR_NAME = "icons"
+    internal const val STAGING_SUFFIX = ".staging"
+    internal const val BACKUP_SUFFIX = ".bak"
     private const val GZIP_MAGIC_FIRST = 0x1f
     private const val GZIP_MAGIC_SECOND = 0x8b
+    private const val WAL_SUFFIX = "-wal"
+    private const val SHM_SUFFIX = "-shm"
 
     fun deleteDatabase(context: Context, dbName: String) {
         val dbFile = context.getDatabasePath(dbName)
+        if (dbFile.exists()) dbFile.delete()
+        deleteSidecars(dbFile)
+    }
+
+    internal fun deleteSidecars(dbFile: File) {
         listOf(
-            dbFile,
-            File("${dbFile.absolutePath}-wal"),
-            File("${dbFile.absolutePath}-shm"),
+            File(dbFile.absolutePath + WAL_SUFFIX),
+            File(dbFile.absolutePath + SHM_SUFFIX),
         ).forEach { file ->
             if (file.exists()) file.delete()
+        }
+    }
+
+    internal fun copySynced(source: File, dest: File) {
+        dest.parentFile?.mkdirs()
+        if (dest.exists()) dest.delete()
+        FileOutputStream(dest).use { output ->
+            source.inputStream().use { input -> input.copyTo(output) }
+            output.fd.sync()
+        }
+        check(dest.length() > 0L && dest.length() == source.length()) {
+            "failed to write ${dest.name}"
         }
     }
 
@@ -29,9 +49,15 @@ object SdeAssetFiles {
         deleteDatabase(context, SdeDatabase.EN_FILE_NAME)
     }
 
-    fun deleteIcons(context: Context) {
+    internal fun recoverIncompleteIcons(context: Context) {
         val iconDir = File(context.filesDir, ICONS_DIR_NAME)
-        if (iconDir.exists()) iconDir.deleteRecursively()
+        val staging = File(context.filesDir, ICONS_DIR_NAME + STAGING_SUFFIX)
+        val backup = File(context.filesDir, ICONS_DIR_NAME + BACKUP_SUFFIX)
+        if (!iconDir.exists() && backup.exists()) {
+            backup.renameTo(iconDir)
+        }
+        if (staging.exists()) staging.deleteRecursively()
+        if (iconDir.exists() && backup.exists()) backup.deleteRecursively()
     }
 
     fun copyDatabaseFromAssets(context: Context, dbName: String) {
@@ -42,6 +68,7 @@ object SdeAssetFiles {
         context.assets.open("db/$dbName").use { input ->
             FileOutputStream(dbFile).use { output ->
                 input.copyTo(output)
+                output.fd.sync()
             }
         }
     }
@@ -54,13 +81,6 @@ object SdeAssetFiles {
     fun areDatabasesPresent(context: Context): Boolean {
         return context.getDatabasePath(SdeDatabase.ZH_FILE_NAME).exists() &&
             context.getDatabasePath(SdeDatabase.EN_FILE_NAME).exists()
-    }
-
-    fun installDatabaseFromFile(context: Context, dbName: String, source: File) {
-        deleteDatabase(context, dbName)
-        val dbFile = context.getDatabasePath(dbName)
-        dbFile.parentFile?.mkdirs()
-        source.copyTo(dbFile, overwrite = true)
     }
 
     internal fun materializeSqlite(source: File, dest: File) {
@@ -83,21 +103,43 @@ object SdeAssetFiles {
     }
 
     fun extractIconsFromFile(context: Context, zipFile: File) {
-        deleteIcons(context)
-        val iconDir = File(context.filesDir, ICONS_DIR_NAME)
-        iconDir.mkdirs()
-        zipFile.inputStream().use { input ->
-            extractIconsZip(input, iconDir)
+        replaceIcons(context) { staging ->
+            zipFile.inputStream().use { input ->
+                extractIconsZip(input, staging)
+            }
         }
     }
 
     /** Unpack bundled [assets/icons/icons.zip] into filesDir/icons. */
     fun extractIconsFromAssets(context: Context) {
-        deleteIcons(context)
+        replaceIcons(context) { staging ->
+            context.assets.open("icons/icons.zip").use { input ->
+                extractIconsZip(input, staging)
+            }
+        }
+    }
+
+    private fun replaceIcons(context: Context, populateStaging: (File) -> Unit) {
         val iconDir = File(context.filesDir, ICONS_DIR_NAME)
-        iconDir.mkdirs()
-        context.assets.open("icons/icons.zip").use { input ->
-            extractIconsZip(input, iconDir)
+        val staging = File(context.filesDir, ICONS_DIR_NAME + STAGING_SUFFIX)
+        val backup = File(context.filesDir, ICONS_DIR_NAME + BACKUP_SUFFIX)
+        if (staging.exists()) staging.deleteRecursively()
+        staging.mkdirs()
+        try {
+            populateStaging(staging)
+            if (backup.exists()) backup.deleteRecursively()
+            if (iconDir.exists() && !iconDir.renameTo(backup)) {
+                error("failed to move current icons aside")
+            }
+            if (!staging.renameTo(iconDir)) {
+                if (backup.exists()) backup.renameTo(iconDir)
+                error("failed to install icons")
+            }
+            if (backup.exists()) backup.deleteRecursively()
+        } catch (error: Exception) {
+            if (!iconDir.exists() && backup.exists()) backup.renameTo(iconDir)
+            if (staging.exists()) staging.deleteRecursively()
+            throw error
         }
     }
 

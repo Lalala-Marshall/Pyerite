@@ -40,6 +40,8 @@ object SdeRemoteConfig {
     const val METADATA_SOURCE_ATTEMPTS = 2
     const val DOWNLOAD_CONNECT_TIMEOUT_SECONDS = 30L
     const val DOWNLOAD_READ_TIMEOUT_MINUTES = 30L
+    const val INSTALL_WAKE_LOCK_TIMEOUT_HOURS = 3L
+    const val INSTALL_WAKE_LOCK_TAG = "Pyerite:SdeUpdate"
     const val DOWNLOAD_URL_ATTEMPTS = 2
 
     const val HEADER_RANGE = "Range"

@@ -39,6 +39,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.marshall.pyerite.BuildConfig
 import com.marshall.pyerite.R
 import com.marshall.pyerite.sdeModule.update.SdeUpdateBottomSheet
 import com.marshall.pyerite.sdeModule.update.SdeUpdateSheetContent
@@ -151,6 +152,17 @@ internal fun SettingsPage(
                     ),
                     showDivider = true,
                 )
+                if (BuildConfig.DEBUG) {
+                    BaseLazyColumnItem(
+                        model = BaseLazyColumnItemModel(
+                            showLeadingIcon = false,
+                            itemName = stringResource(R.string.sde_update_debug_reinstall_bundled),
+                            itemHint = stringResource(R.string.sde_update_debug_reinstall_bundled_hint),
+                            onClick = sdeUpdateViewModel::reinstallBundledForDebug,
+                        ),
+                        showDivider = true,
+                    )
+                }
                 BaseLazyColumnItem(
                     model = BaseLazyColumnItemModel(
                         showLeadingIcon = false,

@@ -173,15 +173,23 @@ private fun SdeUpdateSheetBody(
                     remoteIconVersion = content.remoteIconVersion,
                     versionVisibility = content.versionVisibility,
                 )
-                LinearProgressIndicator(
-                    progress = { content.progressPercent / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {},
-                )
+                if (content.applying) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                } else {
+                    LinearProgressIndicator(
+                        progress = { content.progressPercent / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {},
+                    )
+                }
                 Text(
-                    text = stringResource(R.string.sde_update_downloading, content.progressPercent),
+                    text = if (content.applying) {
+                        stringResource(R.string.sde_update_applying)
+                    } else {
+                        stringResource(R.string.sde_update_downloading, content.progressPercent)
+                    },
                     fontSize = 14.sp,
                     color = captionColor,
                 )
@@ -393,7 +401,13 @@ private fun SdeUpdateSheetContent.isDismissLocked(): Boolean {
 private fun sheetTitle(content: SdeUpdateSheetContent): String {
     return when (content) {
         is SdeUpdateSheetContent.Prompt -> stringResource(R.string.sde_update_sheet_title)
-        is SdeUpdateSheetContent.Downloading -> stringResource(R.string.sde_update_downloading_title)
+        is SdeUpdateSheetContent.Downloading -> {
+            if (content.applying) {
+                stringResource(R.string.sde_update_applying_title)
+            } else {
+                stringResource(R.string.sde_update_downloading_title)
+            }
+        }
         is SdeUpdateSheetContent.Completed -> stringResource(R.string.sde_update_complete)
         is SdeUpdateSheetContent.DownloadFailed -> {
             if (content.cancelled) {

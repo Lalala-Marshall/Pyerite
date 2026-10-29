@@ -50,6 +50,7 @@ sealed interface SdeUpdateSheetContent {
         val remoteIconVersion: Int?,
         val versionVisibility: SdeUpdateVersionVisibility,
         val progressPercent: Int,
+        val applying: Boolean = false,
     ) : SdeUpdateSheetContent
 
     data class Completed(
