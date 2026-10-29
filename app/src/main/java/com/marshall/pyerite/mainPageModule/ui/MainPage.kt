@@ -41,6 +41,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,6 +97,7 @@ import com.marshall.pyerite.aboutModule.navHost.AboutRoute
 import com.marshall.pyerite.aboutModule.ui.MainPageAboutItem
 import com.marshall.pyerite.settingsModule.navHost.SettingsRoute
 import com.marshall.pyerite.settingsModule.ui.MainPageSettingsItem
+import com.marshall.pyerite.agentsModule.navHost.AgentsRoute
 import com.marshall.pyerite.databaseHierarchyModule.navHost.DatabaseRoute
 import com.marshall.pyerite.infra.prefs.HomeLayoutPreferences
 import com.marshall.pyerite.mainPageModule.model.HomePageEntry
@@ -704,6 +706,20 @@ fun MainPage(
                                     },
                                 )
                             }
+                            HomeEditableEntry(
+                                entry = HomePageEntry.AGENTS,
+                                editing = editingHome,
+                                hidden = activeHiddenEntries,
+                                onToggle = toggleHomeEntry,
+                            ) {
+                                MainPageAgentsItem(
+                                    showDivider = dividerAfter(
+                                        HomePageEntry.AGENTS,
+                                        HomePageEntry.dataSection,
+                                    ),
+                                    onClick = { navController.navigate(AgentsRoute.Graph.route) },
+                                )
+                            }
                         }
                     }
                 }
@@ -888,6 +904,22 @@ private fun MainPageDatabaseItem(
 }
 
 @Composable
+private fun MainPageAgentsItem(
+    onClick: () -> Unit,
+    showDivider: Boolean,
+) {
+    BaseLazyColumnItem(
+        model = BaseLazyColumnItemModel(
+            iconRes = R.drawable.ic_agents,
+            iconTint = Color.Unspecified,
+            itemName = stringResource(R.string.agents),
+            onClick = onClick,
+        ),
+        showDivider = showDivider,
+    )
+}
+
+@Composable
 private fun MainPageRegionMarketItem(
     onClick: () -> Unit,
     showDivider: Boolean,
@@ -895,7 +927,7 @@ private fun MainPageRegionMarketItem(
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             iconRes = R.drawable.ic_region_market,
-            iconTint = androidx.compose.ui.graphics.Color.Unspecified,
+            iconTint = Color.Unspecified,
             itemName = stringResource(R.string.region_market),
             onClick = onClick,
         ),
@@ -911,7 +943,7 @@ private fun MainPageMarketWatchlistItem(
     BaseLazyColumnItem(
         model = BaseLazyColumnItemModel(
             iconRes = R.drawable.ic_market_watchlist,
-            iconTint = androidx.compose.ui.graphics.Color.Unspecified,
+            iconTint = Color.Unspecified,
             itemName = stringResource(R.string.market_watchlist),
             onClick = onClick,
         ),

@@ -31,6 +31,7 @@ import com.marshall.pyerite.personalAssetsModule.personalAssetsModule
 import com.marshall.pyerite.personalPropertyModule.personalPropertyModule
 import com.marshall.pyerite.characterSkillsModule.characterSkillsModule
 import com.marshall.pyerite.charactersListModule.charactersListModule
+import com.marshall.pyerite.agentsModule.agentsModule
 import com.marshall.pyerite.databaseHierarchyModule.databaseHierarchyModule
 import com.marshall.pyerite.esiModule.esiModule
 import com.marshall.pyerite.eveAuthModule.eveAuthModule
@@ -70,6 +71,7 @@ class PyeriteApp : Application() {
                 eveAuthModule,
                 esiModule,
                 databaseHierarchyModule,
+                agentsModule,
                 charactersListModule,
                 characterSheetModule,
                 characterClonesModule,

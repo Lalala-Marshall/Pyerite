@@ -30,6 +30,12 @@
     <dimen name="loyalty_points_militia_tag_vertical_padding">0dp</dimen>
     <dimen name="loyalty_points_militia_tag_corner">4dp</dimen>
     <dimen name="loyalty_points_militia_tag_text_size">10sp</dimen>
+    <dimen name="agents_portrait_size">48dp</dimen>
+    <dimen name="agents_tag_horizontal_padding">6dp</dimen>
+    <dimen name="agents_tag_vertical_padding">2dp</dimen>
+    <dimen name="agents_tag_corner">4dp</dimen>
+    <dimen name="agents_tag_spacing">8dp</dimen>
+    <dimen name="agents_tag_text_size">12sp</dimen>
     <dimen name="detail_divider_thickness">0.5dp</dimen>
 
     <!-- Submenu row (nested under an expandable header) -->

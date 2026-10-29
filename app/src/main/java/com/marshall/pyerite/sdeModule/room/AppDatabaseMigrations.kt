@@ -65,4 +65,10 @@ internal object AppDatabaseMigrations {
             // Loyalty WITHOUT ROWID indexes: Room index_xinfo includes the appended PK columns.
         }
     }
+
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // DivisionEntity registered; `divisions` already present in the SDE file.
+        }
+    }
 }

@@ -19,6 +19,7 @@ import com.marshall.pyerite.characterSheetModule.navHost.characterSheetNavGraph
 import com.marshall.pyerite.characterSkillsModule.navHost.characterSkillsNavGraph
 import com.marshall.pyerite.charactersListModule.navHost.charactersListNavGraph
 import com.marshall.pyerite.charactersListModule.viewModel.CharacterViewModel
+import com.marshall.pyerite.agentsModule.navHost.agentsNavGraph
 import com.marshall.pyerite.databaseHierarchyModule.navHost.databaseNavGraph
 import com.marshall.pyerite.entityProfileModule.ui.EntityProfileBottomSheet
 import com.marshall.pyerite.entityProfileModule.viewModel.EntityProfileViewModel
@@ -71,6 +72,7 @@ fun AppNavHost() {
             ) {
                 mainNavGraph(navController)
                 databaseNavGraph(navController)
+                agentsNavGraph(navController)
                 charactersListNavGraph(navController)
                 characterSheetNavGraph(navController)
                 characterClonesNavGraph(navController)

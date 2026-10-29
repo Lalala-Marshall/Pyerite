@@ -118,4 +118,31 @@
     <color name="corporation_contract_status_closed_text">#B71C1C</color>
     <color name="corporation_contract_status_deleted_background">#E6E8EC</color>
     <color name="corporation_contract_status_deleted_text">#6E7899</color>
+
+    <color name="agents_show_button">#1565C0</color>
+    <color name="agents_show_button_text">#FFFFFF</color>
+    <color name="agents_tag_on_solid">#FFFFFF</color>
+    <color name="agents_tag_level_1">#9E9E9E</color>
+    <color name="agents_tag_level_2">#4CAF50</color>
+    <color name="agents_tag_level_3">#2196F3</color>
+    <color name="agents_tag_level_4">#9C27B0</color>
+    <color name="agents_tag_level_5">#F44336</color>
+    <color name="agents_tag_division_research">#CC007AFF</color>
+    <color name="agents_tag_division_distribution">#CCAF52DE</color>
+    <color name="agents_tag_division_mining">#CC9900</color>
+    <color name="agents_tag_division_security">#CCFF3B30</color>
+    <color name="agents_tag_division_other">#CC8E8E93</color>
+    <color name="agents_tag_type_gray">#CC8E8E93</color>
+    <color name="agents_tag_type_green">#CC34C759</color>
+    <color name="agents_tag_type_blue">#CC007AFF</color>
+    <color name="agents_tag_type_brown">#CCA2845E</color>
+    <color name="agents_tag_type_yellow">#CCFFCC00</color>
+    <color name="agents_tag_type_cyan">#CC32ADE6</color>
+    <color name="agents_tag_type_mint">#CC00C7BE</color>
+    <color name="agents_tag_type_indigo">#CC5856D6</color>
+    <color name="agents_tag_type_teal">#CC30B0C7</color>
+    <color name="agents_tag_locator_text">#007AFF</color>
+    <color name="agents_tag_locator_background">#1A007AFF</color>
+    <color name="agents_tag_space_text">#34C759</color>
+    <color name="agents_tag_space_background">#1A34C759</color>
 </resources>
