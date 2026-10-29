@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -39,6 +40,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.marshall.pyerite.R
+import com.marshall.pyerite.localization.ContentLanguage
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -56,7 +58,8 @@ internal fun Context.copyPlainText(
 }
 
 /**
- * Long-press opens a small menu whose only action copies [name].
+ * Long-press opens a menu that copies [name], and [translation] when it is not blank.
+ * [translationLanguage] selects the translation action label.
  * The menu is anchored to [header], directly under the basic-info block.
  * The press is watched on the initial pass so pull-to-refresh and scrolling
  * can still take over once the finger moves past touch slop.
@@ -65,15 +68,21 @@ internal fun Context.copyPlainText(
 internal fun CopyNameLongPressHost(
     name: String,
     modifier: Modifier = Modifier,
+    translation: String = "",
+    translationLanguage: ContentLanguage = ContentLanguage.ENGLISH,
     header: @Composable () -> Unit,
     content: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val latestHaptic by rememberUpdatedState(haptic)
-    val canCopy by rememberUpdatedState(name.isNotBlank())
+    val canCopy by rememberUpdatedState(name.isNotBlank() || translation.isNotBlank())
     val copyLabel = stringResource(R.string.type_detail_copy_name_label)
     val copySuccess = stringResource(R.string.type_detail_copy_name_success)
+    val translationCopy = translationCopyText(translationLanguage)
+    val translationLabel = stringResource(translationCopy.label)
+    val translationAction = stringResource(translationCopy.action)
+    val translationSuccess = stringResource(translationCopy.success)
     var menuExpanded by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
@@ -120,13 +129,24 @@ internal fun CopyNameLongPressHost(
             header()
             CopyNameMenu(
                 expanded = menuExpanded,
+                name = name,
+                translation = translation,
+                translationAction = translationAction,
                 onDismiss = { menuExpanded = false },
-                onCopy = {
+                onCopyName = {
                     menuExpanded = false
                     context.copyPlainText(
                         label = copyLabel,
                         text = name,
                         successMessage = copySuccess,
+                    )
+                },
+                onCopyTranslation = {
+                    menuExpanded = false
+                    context.copyPlainText(
+                        label = translationLabel,
+                        text = translation,
+                        successMessage = translationSuccess,
                     )
                 },
             )
@@ -138,8 +158,12 @@ internal fun CopyNameLongPressHost(
 @Composable
 private fun CopyNameMenu(
     expanded: Boolean,
+    name: String,
+    translation: String,
+    translationAction: String,
     onDismiss: () -> Unit,
-    onCopy: () -> Unit,
+    onCopyName: () -> Unit,
+    onCopyTranslation: () -> Unit,
 ) {
     if (!expanded) return
     Popup(
@@ -149,26 +173,59 @@ private fun CopyNameMenu(
     ) {
         val menuShape = RoundedCornerShape(dimensionResource(R.dimen.top_bar_dropdown_corner))
         val menuColor = colorResource(R.color.copy_name_menu_background)
+        val itemColor = colorResource(R.color.text_primary)
         Column(
             modifier = Modifier
-                .width(dimensionResource(R.dimen.top_bar_dropdown_min_width))
+                .width(dimensionResource(R.dimen.copy_name_menu_width))
                 .shadow(
                     elevation = dimensionResource(R.dimen.copy_name_menu_elevation),
                     shape = menuShape,
                 )
                 .background(menuColor, menuShape),
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = stringResource(R.string.type_detail_copy_name_action),
-                        color = colorResource(R.color.text_primary),
-                    )
-                },
-                onClick = onCopy,
-            )
+            if (name.isNotBlank()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.type_detail_copy_name_action),
+                            color = itemColor,
+                        )
+                    },
+                    onClick = onCopyName,
+                )
+            }
+            if (translation.isNotBlank()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = translationAction,
+                            color = itemColor,
+                        )
+                    },
+                    onClick = onCopyTranslation,
+                )
+            }
         }
     }
+}
+
+private data class TranslationCopyText(
+    @param:StringRes val label: Int,
+    @param:StringRes val action: Int,
+    @param:StringRes val success: Int,
+)
+
+private fun translationCopyText(language: ContentLanguage): TranslationCopyText = when (language) {
+    ContentLanguage.ENGLISH -> TranslationCopyText(
+        label = R.string.type_detail_copy_english_translation_label,
+        action = R.string.type_detail_copy_english_translation_action,
+        success = R.string.type_detail_copy_english_translation_success,
+    )
+    ContentLanguage.CHINESE -> TranslationCopyText(
+        label = R.string.type_detail_copy_chinese_translation_label,
+        action = R.string.type_detail_copy_chinese_translation_action,
+        success = R.string.type_detail_copy_chinese_translation_success,
+    )
 }
 
 private object BelowSectionCenteredPopupPositionProvider : PopupPositionProvider {

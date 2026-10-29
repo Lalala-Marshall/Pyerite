@@ -2,8 +2,11 @@ package com.marshall.pyerite.regionMarketModule.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.marshall.pyerite.localization.ContentLanguage
 import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.localization.displayName
+import com.marshall.pyerite.localization.opposite
+import com.marshall.pyerite.localization.translatedName
 import com.marshall.pyerite.regionMarketModule.data.MarketRepository
 import com.marshall.pyerite.regionMarketModule.data.MarketStructureAccessException
 import com.marshall.pyerite.regionMarketModule.data.SelectedMarketStore
@@ -21,6 +24,8 @@ import kotlinx.coroutines.launch
 
 internal data class MarketDetailUiState(
     val typeName: String = "",
+    val typeTranslation: String = "",
+    val typeTranslationLanguage: ContentLanguage = ContentLanguage.ENGLISH,
     val categoryName: String = "",
     val groupName: String = "",
     val iconFileName: String? = null,
@@ -61,8 +66,11 @@ internal class MarketDetailViewModel(
     init {
         viewModelScope.launch {
             val type = repository.type(typeId)
+            val contentLanguage = localeController.contentLanguage
             _ui.value = _ui.value.copy(
                 typeName = type?.displayName(localeController).orEmpty(),
+                typeTranslation = type?.translatedName(contentLanguage).orEmpty(),
+                typeTranslationLanguage = contentLanguage.opposite(),
                 categoryName = type?.categoryName.orEmpty(),
                 groupName = type?.groupName.orEmpty(),
                 iconFileName = type?.iconFilename,

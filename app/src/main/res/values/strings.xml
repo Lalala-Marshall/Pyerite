@@ -278,6 +278,12 @@
     <string name="type_detail_copy_name_label">物品名称</string>
     <string name="type_detail_copy_name_action">复制名称</string>
     <string name="type_detail_copy_name_success">已复制名称</string>
+    <string name="type_detail_copy_english_translation_label">英文翻译</string>
+    <string name="type_detail_copy_english_translation_action">复制英文翻译</string>
+    <string name="type_detail_copy_english_translation_success">已复制英文翻译</string>
+    <string name="type_detail_copy_chinese_translation_label">中文翻译</string>
+    <string name="type_detail_copy_chinese_translation_action">复制中文翻译</string>
+    <string name="type_detail_copy_chinese_translation_success">已复制中文翻译</string>
 
     <string name="type_detail_section_market">市场</string>
     <string name="type_detail_market_buy_column_title">买单</string>

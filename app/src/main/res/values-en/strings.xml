@@ -277,6 +277,12 @@
     <string name="type_detail_copy_name_label">Item name</string>
     <string name="type_detail_copy_name_action">Copy name</string>
     <string name="type_detail_copy_name_success">Name copied</string>
+    <string name="type_detail_copy_english_translation_label">English translation</string>
+    <string name="type_detail_copy_english_translation_action">Copy English translation</string>
+    <string name="type_detail_copy_english_translation_success">English translation copied</string>
+    <string name="type_detail_copy_chinese_translation_label">Chinese translation</string>
+    <string name="type_detail_copy_chinese_translation_action">Copy Chinese translation</string>
+    <string name="type_detail_copy_chinese_translation_success">Chinese translation copied</string>
 
     <string name="type_detail_section_market">Market</string>
     <string name="type_detail_market_buy_column_title">Buy orders</string>
