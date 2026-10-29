@@ -334,7 +334,7 @@ class SdeUpdateController(
                 )
             }
             try {
-                repository.downloadAndApply(remote) { progress ->
+                repository.downloadAndApply(remote) { progress, applying ->
                     setDownloadUiState(generation) {
                         updateSheet(
                             SdeUpdateSheetContent.Downloading(
@@ -344,6 +344,7 @@ class SdeUpdateController(
                                 remoteIconVersion = remoteIconVersion,
                                 versionVisibility = versionVisibility,
                                 progressPercent = progress,
+                                applying = applying,
                             ),
                         )
                     }
@@ -586,7 +587,9 @@ class SdeUpdateController(
             is SdeUpdateSheetContent.Checking -> "Checking"
             is SdeUpdateSheetContent.CheckFailed -> "CheckFailed"
             is SdeUpdateSheetContent.Prompt -> "Prompt"
-            is SdeUpdateSheetContent.Downloading -> "Downloading(${content.progressPercent}%)"
+            is SdeUpdateSheetContent.Downloading -> {
+                if (content.applying) "Applying" else "Downloading(${content.progressPercent}%)"
+            }
             is SdeUpdateSheetContent.Completed -> "Completed"
             is SdeUpdateSheetContent.DownloadFailed -> {
                 if (content.cancelled) "DownloadCancelled" else "DownloadFailed"

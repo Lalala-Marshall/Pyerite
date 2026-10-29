@@ -20,7 +20,9 @@ class SdeVersionStore(context: Context) {
     }
 
     fun save(meta: SdeReleaseMeta) {
-        prefs.edit {
+        // commit = true flushes before returning. The default apply() only updates memory,
+        // so a process kill after the "update complete" screen can drop the new version.
+        prefs.edit(commit = true) {
             putString(KEY_BUILD_NUMBER, meta.buildNumber)
             putString(KEY_RELEASE_DATE, meta.releaseDate)
             putString(KEY_COMPLETION_TIME, meta.completionTime)

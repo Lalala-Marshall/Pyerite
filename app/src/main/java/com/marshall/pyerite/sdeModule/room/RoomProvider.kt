@@ -2,6 +2,7 @@ package com.marshall.pyerite.sdeModule.room
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.db.SimpleSQLiteQuery
 import com.marshall.pyerite.localization.LocaleController
 import com.marshall.pyerite.localization.SdeDatabase
 import com.marshall.pyerite.sdeModule.room.mastery.SdeMasteryTableBootstrap
@@ -27,9 +28,26 @@ class RoomProvider(
 
     @Synchronized
     fun closeAndInvalidate() {
-        cachedDatabase?.close()
+        checkpointAndClose()
+    }
+
+    /** Close Room and hold the database lock while [block] swaps the sqlite files. */
+    @Synchronized
+    internal fun <T> replaceOpenDatabases(block: () -> T): T {
+        checkpointAndClose()
+        return block()
+    }
+
+    private fun checkpointAndClose() {
+        val database = cachedDatabase ?: return
         cachedDatabase = null
         cachedDbName = null
+        try {
+            database.openHelper.writableDatabase.query(SimpleSQLiteQuery(WAL_CHECKPOINT_TRUNCATE)).close()
+        } catch (_: Exception) {
+            // Checkpoint is best-effort; close() still drops the connection.
+        }
+        database.close()
     }
 
     @Synchronized
@@ -61,6 +79,10 @@ class RoomProvider(
         cachedDbName = dbName
         cachedDatabase = database
         return database
+    }
+
+    private companion object {
+        const val WAL_CHECKPOINT_TRUNCATE = "PRAGMA wal_checkpoint(TRUNCATE)"
     }
 
     private fun resolveDatabaseFileName(): String {
