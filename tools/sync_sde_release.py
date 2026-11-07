@@ -52,6 +52,7 @@ GITEE_REPO = "pyerite-sde-source"
 GITEE_API_BASE = "https://gitee.com/api/v5"
 GITEE_MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
 GITEE_RELEASES_TO_KEEP = 4
+GITEE_RELEASE_LIST_PAGE_SIZE = 100
 GITEE_UPLOAD_ATTEMPTS = 3
 GITEE_UPLOAD_RETRY_SECONDS = 5
 # One connection from a US-hosted runner into Gitee is slow; overlap the attachments.
@@ -750,7 +751,18 @@ def main() -> int:
         default="",
         help="Gitee release tag used with --gitee-file",
     )
+    p.add_argument(
+        "--prune-gitee",
+        action="store_true",
+        help=(
+            "Keep the newest Gitee sde-build releases and delete the rest, then exit. "
+            "Run this before uploading so the 1GB attachment quota has room."
+        ),
+    )
     args = p.parse_args()
+
+    if args.prune_gitee:
+        return _prune_gitee_cli()
 
     if args.gitee_file is not None:
         tag = args.gitee_tag.strip()
@@ -1342,11 +1354,29 @@ def _gitee_form(url: str, token: str, fields: dict[str, str]) -> dict | None:
 
 
 def _gitee_list_releases(token: str) -> list[dict]:
-    url = _gitee_api_url("releases", token, {"page": "1", "per_page": "100"})
-    payload = _gitee_json(url, token)
-    if not isinstance(payload, list):
-        raise GiteePublishError("Gitee releases response was not a list")
-    return [item for item in payload if isinstance(item, dict)]
+    """Every sde-build release. Gitee returns older pages first, so one page is not enough."""
+    page = 1
+    releases: list[dict] = []
+    seen: set[object] = set()
+    while True:
+        url = _gitee_api_url(
+            "releases",
+            token,
+            {"page": str(page), "per_page": str(GITEE_RELEASE_LIST_PAGE_SIZE)},
+        )
+        payload = _gitee_json(url, token)
+        if not isinstance(payload, list):
+            raise GiteePublishError("Gitee releases response was not a list")
+        batch = [item for item in payload if isinstance(item, dict)]
+        fresh = [item for item in batch if item.get("id") not in seen]
+        if not fresh:
+            return releases
+        for item in fresh:
+            seen.add(item.get("id"))
+            releases.append(item)
+        if len(batch) < GITEE_RELEASE_LIST_PAGE_SIZE:
+            return releases
+        page += 1
 
 
 def _gitee_asset_names(release: dict) -> set[str]:
@@ -1369,7 +1399,12 @@ def _gitee_release_build(release: dict) -> int | None:
 
 def _gitee_delete_release(token: str, release_id: object) -> None:
     url = _gitee_api_url(f"releases/{release_id}", token)
-    _gitee_json(url, token, method="DELETE")
+    try:
+        _gitee_json(url, token, method="DELETE")
+    except GiteePublishError as error:
+        if "HTTP 404 " in str(error):
+            return
+        raise
 
 
 def _multipart_file(token: str, file_path: Path) -> tuple[bytes, str]:
@@ -1446,18 +1481,58 @@ def _gitee_upload_files(token: str, release_id: object, files: list[tuple[str, P
         raise GiteePublishError("; ".join(errors))
 
 
-def _gitee_prune_releases(token: str) -> None:
-    ranked: list[tuple[int, object]] = []
+def _gitee_releases_to_delete(
+    ranked: list[tuple[int, object, str]],
+    *,
+    protect_tag: str | None = None,
+) -> list[tuple[int, object]]:
+    """Drop every sde-build release past the newest ones. ``protect_tag`` is never deleted."""
+    ordered = sorted(ranked, key=lambda item: item[0], reverse=True)
+    keep_ids = {release_id for _, release_id, _ in ordered[:GITEE_RELEASES_TO_KEEP]}
+    if protect_tag:
+        for _, release_id, tag in ordered:
+            if tag == protect_tag:
+                keep_ids.add(release_id)
+    return [
+        (build, release_id)
+        for build, release_id, tag in ordered
+        if release_id not in keep_ids
+    ]
+
+
+def _gitee_prune_releases(token: str, protect_tag: str | None = None) -> None:
+    ranked: list[tuple[int, object, str]] = []
     for release in _gitee_list_releases(token):
         build = _gitee_release_build(release)
         release_id = release.get("id")
+        tag = str(release.get("tag_name") or "")
         if build is None or release_id is None:
             continue
-        ranked.append((build, release_id))
-    ranked.sort(reverse=True)
-    for build, release_id in ranked[GITEE_RELEASES_TO_KEEP:]:
+        ranked.append((build, release_id, tag))
+    stale = _gitee_releases_to_delete(ranked, protect_tag=protect_tag)
+    if not stale:
+        print(
+            f"[=] Gitee has {len(ranked)} sde-build release(s); "
+            f"nothing older than the newest {GITEE_RELEASES_TO_KEEP}"
+        )
+        return
+    for build, release_id in stale:
         print(f"[+] Deleting old Gitee release {SDE_RELEASE_TAG_PREFIX}{build}")
         _gitee_delete_release(token, release_id)
+    print(f"[+] Deleted {len(stale)} old Gitee release(s)")
+
+
+def _prune_gitee_cli() -> int:
+    token = os.environ.get("GITEE_TOKEN", "").strip()
+    if not token:
+        print("GITEE_TOKEN is not set", file=sys.stderr)
+        return 2
+    try:
+        _gitee_prune_releases(token)
+    except GiteePublishError as error:
+        print(f"[!] Gitee prune failed: {error}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _gitee_release_body(build_number: str) -> str:
@@ -1507,9 +1582,12 @@ def _write_pending_gitee_manifest(publish_meta: dict, gitee_files: list[tuple[st
     if token:
         try:
             release = _ensure_gitee_release(token, tag, str(publish_meta.get("build_number", "?")))
+            # Drop older releases before the parallel jobs upload, or the 1GB quota stays full.
+            _gitee_prune_releases(token, protect_tag=tag)
             present = _gitee_asset_names(release)
         except GiteePublishError as error:
             print(f"[!] Could not prepare the Gitee release: {error}", file=sys.stderr)
+            raise SystemExit(1) from error
     pending = [name for name, _ in gitee_files if name not in present]
     for name in pending:
         print(f"[+] Gitee still needs {name}", flush=True)
@@ -1578,11 +1656,11 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
     tag = str(publish_meta.get("tag_name") or pyerite_release_tag(str(publish_meta.get("build_number", "0"))))
     bn = str(publish_meta.get("build_number", "?"))
     release = _ensure_gitee_release(token, tag, bn)
+    _gitee_prune_releases(token, protect_tag=tag)
     present = _gitee_asset_names(release)
     expected = {name for name, _ in release_files}
     if expected <= present:
         print(f"[=] Gitee release {tag} already has all assets")
-        _gitee_prune_releases(token)
         return
     release_id = release.get("id")
     if release_id is None:
@@ -1591,7 +1669,6 @@ def publish_pyerite_gitee_release(publish_meta: dict, release_files: list[tuple[
     for name in expected & present:
         print(f"[=] {name} already on Gitee")
     _gitee_upload_files(token, release_id, pending)
-    _gitee_prune_releases(token)
     print(f"[+] Published assets to Gitee release {tag}")
 
 

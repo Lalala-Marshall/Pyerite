@@ -24,7 +24,7 @@
 2. 投影成 Room 仍在使用的 `item_db_zh.sqlite` / `item_db_en.sqlite`。缺了 App 要读的列就停止，不发布。
 3. 把 `BOOLEAN` 收成 `INTEGER`。
 4. 未压缩的 sqlite 写入 `app/src/main/assets/`，并 commit。
-5. 发布 gzip 后的数据库、`latest.json` 和单个 `icons.zip` 到 GitHub。同一份 `latest.json` 和两个 `.sqlite.gz` 也发到 Gitee。Gitee 不传整包图标：美国 runner 到 Gitee 单连接太慢，整包会超过上传时限。图标切成约 8MB 的 `icons.zip.partNN`，外加一行块数的 `icons.zip.parts`，只出现在 Gitee，由多台 runner 并行上传。这些分块不是 GitHub Release 的附件。Gitee 只保留最近 4 个 `sde-build-*` Release。单个文件超过 100MB 时跳过 Gitee，GitHub 仍然发布。
+5. 发布 gzip 后的数据库、`latest.json` 和单个 `icons.zip` 到 GitHub。同一份 `latest.json` 和两个 `.sqlite.gz` 也发到 Gitee。Gitee 不传整包图标：美国 runner 到 Gitee 单连接太慢，整包会超过上传时限。图标切成约 8MB 的 `icons.zip.partNN`，外加一行块数的 `icons.zip.parts`，只出现在 Gitee，由多台 runner 并行上传。这些分块不是 GitHub Release 的附件。同步任务会先确保本次的 Gitee Release 存在，再删到只剩最近 4 个 `sde-build-*`，然后才并行上传。仓库附件合计不能超过 1GB，所以清理必须发生在上传之前。单个文件超过 100MB 时跳过 Gitee，GitHub 仍然发布。
 
 `latest.json` 里的 `item_db_zh_sha256` / `item_db_en_sha256` 是解压后 sqlite 的 SHA256，`icon_sha256` 是 `icons.zip` 的 SHA256。
 

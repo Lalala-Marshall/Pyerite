@@ -37,6 +37,14 @@ jobs:
           SDE_GITEE_PARTS_DIR: ${{ runner.temp }}/gitee-parts
         run: python -u tools/sync_sde_release.py --yes --publish-release --commit-assets --skip-gitee
 
+      # The release for this build already exists. Delete older ones before any upload,
+      # or the 1GB Gitee attachment quota rejects the remaining files.
+      - name: Prune old Gitee releases
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: python -u tools/sync_sde_release.py --prune-gitee
+
       - name: Read Gitee upload list
         id: manifest
         env:
