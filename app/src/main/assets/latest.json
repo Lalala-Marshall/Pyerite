@@ -1,19 +1,19 @@
 {
-  "build_number": "3714173",
-  "release_date": "2026-11-18T11:22:46Z",
-  "completion_time": "2026-11-18T11:52:24.633889",
+  "build_number": "3720952",
+  "release_date": "2026-11-19T11:07:08Z",
+  "completion_time": "2026-11-19T11:33:30.875138",
   "icon_version": 18,
   "icon_sha256": "cdd4c17130c35d1235f1aba310e85cf59b4d2f5a4bdece26244d1684d9bca0df",
-  "sde_sha256": "c30fbc1d28943a8c7f997597b976adb0c4fea2419fcea1e6d29fa1433ae472e2",
+  "sde_sha256": "f5c16535feb20e08d43ecdae0ed8112e7d4cf1b3f239edbb9b1416070ccd6a5f",
   "patch_number": 0,
-  "tag_name": "sde-build-3714173",
-  "assets_base_url": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3714173/",
+  "tag_name": "sde-build-3720952",
+  "assets_base_url": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3720952/",
   "assets": {
-    "latest.json": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3714173/latest.json",
-    "item_db_zh.sqlite.gz": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3714173/item_db_zh.sqlite.gz",
-    "item_db_en.sqlite.gz": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3714173/item_db_en.sqlite.gz",
-    "icons.zip": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3714173/icons.zip"
+    "latest.json": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3720952/latest.json",
+    "item_db_zh.sqlite.gz": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3720952/item_db_zh.sqlite.gz",
+    "item_db_en.sqlite.gz": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3720952/item_db_en.sqlite.gz",
+    "icons.zip": "https://github.com/Lalala-Marshall/Pyerite/releases/download/sde-build-3720952/icons.zip"
   },
-  "item_db_zh_sha256": "b45b43f8208911a598e32f2ae1e28fb622099966410c909f5670a10ca831d8d6",
-  "item_db_en_sha256": "d1371b307577b2ebbebcc190e3010e5782feb7ac48a212f0a3fc2277d5e679e1"
+  "item_db_zh_sha256": "757db7615bf1c0f80672af2fdc202a90830dbc2b3eb336c3d42f0ba41dc9d24c",
+  "item_db_en_sha256": "75990d3d9ed416d9ec8810527811988099257f3db2a9a137a0c2a4006ec2bce0"
 }
