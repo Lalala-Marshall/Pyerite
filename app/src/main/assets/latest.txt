@@ -1,11 +1,11 @@
 {
-  "build_number": "3739102",
-  "release_date": "2026-11-24T11:06:33Z",
-  "completion_time": "2026-11-24T11:26:48.173567",
+  "build_number": "3744011",
+  "release_date": "2026-11-25T11:07:06Z",
+  "completion_time": "2026-11-25T11:21:37.770150",
   "icon_version": 18,
   "icon_sha256": "cdd4c17130c35d1235f1aba310e85cf59b4d2f5a4bdece26244d1684d9bca0df",
-  "sde_sha256": "e0f38d94f450300221d3f5d592efbff2ef44dd65223e19c31a3c66964cff43ca",
-  "item_db_zh_sha256": "a815a08ffdc290ffc369573cac2207f20c2072b219910e0414891160de024f52",
-  "item_db_en_sha256": "6e4e2a42653d4f87f30a6db79fd5ad93745b311de56a1ec1c61da467cb016e42",
+  "sde_sha256": "ca4d3093b3ec9d62a2a8308a5be8d7a19f29c6d83f68b738cc7abbc431bf27b6",
+  "item_db_zh_sha256": "56b34586fff03a6ac512b62f0dd45ab3f782782c5f9605892196b2410fc8601c",
+  "item_db_en_sha256": "6409dac2960ed7450c59fcc89356ca35daf7acd72453a77d1f1a453711aac797",
   "patch_number": 0
 }
